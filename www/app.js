@@ -57,8 +57,8 @@
     void main() {
       vec2 uv = gl_FragCoord.xy / u_resolution;
 
-      // Base aged plastic — warm beige/grey
-      vec3 col = vec3(0.74, 0.71, 0.66);
+      // Base aged plastic — dark warm grey
+      vec3 col = vec3(0.38, 0.36, 0.33);
 
       // Large-scale discoloration / yellowing stains
       float stain = fbm(uv * 3.0 + 42.0);
@@ -72,21 +72,21 @@
       float grain = noise(uv * 350.0);
       col += (grain - 0.5) * 0.035;
 
-      // Scratches — horizontal bias
-      for (int i = 0; i < 6; i++) {
+      // Scratches — horizontal bias (subtle on dark surface)
+      for (int i = 0; i < 4; i++) {
         float fi = float(i);
-        vec2 suv = uv * vec2(0.8, 40.0 + fi * 8.0) + vec2(fi * 17.3, fi * 31.7);
+        vec2 suv = uv * vec2(0.8, 50.0 + fi * 12.0) + vec2(fi * 17.3, fi * 31.7);
         float s = noise(suv);
-        float scratch = smoothstep(0.49, 0.5, s) * 0.06;
+        float scratch = smoothstep(0.49, 0.5, s) * 0.03;
         col += scratch;
       }
 
-      // Deep scratches — fewer, more visible
-      for (int i = 0; i < 3; i++) {
+      // Deep scratches — fewer, subtle
+      for (int i = 0; i < 2; i++) {
         float fi = float(i);
-        vec2 suv = uv * vec2(1.0, 80.0) + vec2(fi * 53.1, fi * 97.3);
+        vec2 suv = uv * vec2(1.0, 90.0) + vec2(fi * 53.1, fi * 97.3);
         float s = noise(suv);
-        float scratch = smoothstep(0.495, 0.5, s) * 0.1;
+        float scratch = smoothstep(0.495, 0.5, s) * 0.05;
         col += scratch;
       }
 

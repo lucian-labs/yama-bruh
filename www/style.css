@@ -40,15 +40,15 @@ html, body {
   font-size: 28px;
   font-weight: bold;
   letter-spacing: 4px;
-  color: #3a3530;
+  color: #e0dcd4;
   text-shadow:
-    1px 1px 0 rgba(255,255,255,0.15),
-    -0.5px -0.5px 0 rgba(0,0,0,0.2);
+    1px 1px 0 rgba(0,0,0,0.4),
+    -0.5px -0.5px 0 rgba(255,255,255,0.08);
 }
 
 .model-text {
   font-size: 11px;
-  color: #7a7060;
+  color: #a09888;
   letter-spacing: 2px;
 }
 
@@ -143,8 +143,8 @@ html, body {
   font-size: 14px;
   font-weight: bold;
   cursor: pointer;
-  color: #2a2820;
-  background: linear-gradient(180deg, #d4cfc5 0%, #bfb9ad 60%, #a8a294 100%);
+  color: #1a1815;
+  background: linear-gradient(180deg, #908880 0%, #7a7268 60%, #686058 100%);
   box-shadow:
     0 2px 4px rgba(0,0,0,0.25),
     inset 0 1px 0 rgba(255,255,255,0.3),
@@ -237,7 +237,7 @@ html, body {
 .section-label {
   font-size: 10px;
   letter-spacing: 3px;
-  color: #5a5248;
+  color: #b0a898;
   margin-bottom: 6px;
   margin-top: 12px;
   font-weight: bold;
@@ -258,10 +258,10 @@ html, body {
 .id-field {
   flex: 1;
   padding: 7px 10px;
-  border: 1px solid #8a8278;
+  border: 1px solid #9a9488;
   border-radius: 3px;
-  background: rgba(255,255,255,0.15);
-  color: #3a3530;
+  background: rgba(255,255,255,0.85);
+  color: #1a1815;
   font-family: 'Courier New', monospace;
   font-size: 12px;
   letter-spacing: 0.5px;
@@ -271,7 +271,7 @@ html, body {
 .id-field:focus {
   outline: none;
   border-color: #6a8a5a;
-  background: rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.95);
 }
 
 .id-field[readonly] {
