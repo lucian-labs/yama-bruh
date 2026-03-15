@@ -1,0 +1,36 @@
+import XCTest
+@testable import YamaBruh
+
+final class RingtoneTests: XCTestCase {
+    func testDeterministic() {
+        let a = Ringtone.generate(seed: 42, presetIndex: 0)
+        let b = Ringtone.generate(seed: 42, presetIndex: 0)
+        XCTAssertEqual(a, b, "Same seed must produce identical WAV data")
+    }
+
+    func testDifferentSeeds() {
+        let a = Ringtone.generate(seed: 42, presetIndex: 0)
+        let b = Ringtone.generate(seed: 99, presetIndex: 0)
+        XCTAssertNotEqual(a, b, "Different seeds must produce different audio")
+    }
+
+    func testWavHeader() {
+        let wav = Ringtone.generate(seed: 1)
+        XCTAssertGreaterThan(wav.count, 44, "WAV must have at least a header")
+        let riff = String(data: wav[0..<4], encoding: .ascii)
+        XCTAssertEqual(riff, "RIFF")
+        let wave = String(data: wav[8..<12], encoding: .ascii)
+        XCTAssertEqual(wave, "WAVE")
+    }
+
+    func testDJB2Hash() {
+        let hash = SequenceGenerator.djb2Hash("test")
+        XCTAssertEqual(hash, 2090756197, "DJB2 hash must match known value")
+    }
+
+    func testStringGeneration() {
+        let a = Ringtone.generate(from: "task-abc-123")
+        let b = Ringtone.generate(from: "task-abc-123")
+        XCTAssertEqual(a, b)
+    }
+}

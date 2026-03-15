@@ -2,3 +2,5 @@
 Cargo.lock
 *.swp
 *.swo
+.build/
+.swiftpm/
