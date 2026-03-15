@@ -361,6 +361,15 @@
     window.synth._sendPreset();
     localStorage.setItem('yamabruh_preset', currentPreset);
     document.getElementById('lcd-info').textContent = 'READY';
+    // Reload tweak sliders if open
+    const tb = document.getElementById('tweak-body');
+    if (tb && tb.classList.contains('open')) {
+      const params = window.synth.getPresetParams(currentPreset);
+      document.querySelectorAll('.tweak-param input[type="range"]').forEach((slider, i) => {
+        slider.value = params[i];
+        slider.nextElementSibling.textContent = params[i].toFixed(2);
+      });
+    }
   }
 
   function enterDigit(d) {
@@ -543,5 +552,54 @@
       const el = document.querySelector(`[data-midi="${midi}"]`);
       if (el) keyUp(el, midi);
     }
+  });
+
+  // ── Tweak Section ───────────────────────────────────────────────────
+  const tweakToggle = document.getElementById('tweak-toggle');
+  const tweakBody = document.getElementById('tweak-body');
+  const tweakReset = document.getElementById('tweak-reset');
+
+  const tweakIds = ['tw-carrier','tw-modratio','tw-modindex','tw-attack','tw-decay','tw-sustain','tw-release','tw-feedback'];
+  const tweakSliders = tweakIds.map(id => document.getElementById(id));
+  const tweakVals = tweakIds.map(id => document.getElementById(id + '-val'));
+
+  tweakToggle.addEventListener('click', () => {
+    const open = tweakBody.classList.toggle('open');
+    tweakToggle.classList.toggle('open', open);
+    tweakToggle.innerHTML = 'SOUND EDITOR ' + (open ? '&#9650;' : '&#9660;');
+    if (open) loadTweakFromPreset();
+  });
+
+  function loadTweakFromPreset() {
+    const params = window.synth.getPresetParams(currentPreset);
+    tweakSliders.forEach((slider, i) => {
+      slider.value = params[i];
+      tweakVals[i].textContent = params[i].toFixed(2);
+    });
+  }
+
+  function getTweakParams() {
+    return tweakSliders.map(s => parseFloat(s.value));
+  }
+
+  function sendTweakToWorklet() {
+    const params = getTweakParams();
+    if (window.synth.workletNode) {
+      window.synth.workletNode.port.postMessage({ type: 'preset', params });
+    }
+    // Update value displays
+    tweakSliders.forEach((slider, i) => {
+      tweakVals[i].textContent = parseFloat(slider.value).toFixed(2);
+    });
+  }
+
+  tweakSliders.forEach(slider => {
+    slider.addEventListener('input', sendTweakToWorklet);
+  });
+
+  tweakReset.addEventListener('click', () => {
+    window.synth._presetCache.delete(currentPreset);
+    loadTweakFromPreset();
+    window.synth._sendPreset();
   });
 })();

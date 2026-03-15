@@ -7,9 +7,8 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
     this.voices = [];
     this.preset = [1, 1, 2, 0.01, 0.3, 0.3, 0.2, 0];
     // Compressor state
-    this.comp1Env = 0;  // stage 1: gentle
-    this.comp2Env = 0;  // stage 2: heavier
-    this.limiterEnv = 0;
+    this.comp1Env = 0;
+    this.comp2Env = 0;
     this.port.onmessage = (e) => this._onMessage(e.data);
   }
 
@@ -30,6 +29,7 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
           velocity: msg.velocity,
           cp: 0, mp: 0, pm: 0,
           es: 0, el: 0, et: 0, rl: 0,
+          age: 0,
           p: msg.preset || this.preset,
         });
         break;
@@ -58,6 +58,7 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
     const sr = sampleRate;
     const TAU = 6.283185307179586;
     const len = out.length;
+    const dt = 1 / sr;
 
     for (let i = 0; i < len; i++) {
       let s = 0;
@@ -69,7 +70,10 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
         const mrf = v.freq * p[1];
         const mi = p[2];
         const atk = p[3], dec = p[4], sus = p[5], rel = p[6], fb = p[7];
-        const dt = 1 / sr;
+
+        // Track voice age — auto-kill stuck voices after 30s
+        v.age += dt;
+        if (v.age > 30) { this.voices.splice(vi, 1); continue; }
 
         // Envelope: 0=attack 1=decay 2=sustain 3=release
         let env;
@@ -104,18 +108,20 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
         if (v.mp > TAU) v.mp -= TAU;
       }
 
+      // NaN guard — reset if audio goes bad
+      if (s !== s) { s = 0; this.comp1Env = 0; this.comp2Env = 0; }
+
       // ── Two-stage compression + limiter ──────────────────────
-      const abs = s < 0 ? -s : s;
+      const abs1 = s < 0 ? -s : s;
 
       // Stage 1: gentle compression (threshold -12dB ≈ 0.25, ratio 3:1)
       const t1 = 0.25;
       const atk1 = 0.002 * sr, rel1 = 0.05 * sr;
-      this.comp1Env += (abs > this.comp1Env ? 1/atk1 : -1/rel1) * (abs - this.comp1Env);
+      this.comp1Env += (abs1 > this.comp1Env ? 1/atk1 : -1/rel1) * (abs1 - this.comp1Env);
       if (this.comp1Env < 0) this.comp1Env = 0;
       if (this.comp1Env > t1) {
         const over = this.comp1Env - t1;
-        const gain = t1 + over / 3;
-        s *= gain / this.comp1Env;
+        s *= (t1 + over / 3) / this.comp1Env;
       }
 
       // Stage 2: heavier compression (threshold -6dB ≈ 0.5, ratio 6:1)
@@ -126,14 +132,12 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
       if (this.comp2Env < 0) this.comp2Env = 0;
       if (this.comp2Env > t2) {
         const over = this.comp2Env - t2;
-        const gain = t2 + over / 6;
-        s *= gain / this.comp2Env;
+        s *= (t2 + over / 6) / this.comp2Env;
       }
 
       // Brickwall limiter at -0.1dB ≈ 0.9886
-      const limit = 0.9886;
-      if (s > limit) s = limit;
-      else if (s < -limit) s = -limit;
+      if (s > 0.9886) s = 0.9886;
+      else if (s < -0.9886) s = -0.9886;
 
       out[i] = s;
     }

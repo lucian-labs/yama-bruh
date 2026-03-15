@@ -23,7 +23,7 @@ html, body {
   z-index: 1;
   max-width: 580px;
   margin: 0 auto;
-  padding: 12px 0 32px;
+  padding: 0 0 32px;
   min-height: 100vh;
 }
 
@@ -47,12 +47,36 @@ html, body {
 #app::before { left: 0; }
 #app::after { right: 0; }
 
+/* ── Air Vents (speaker grille) ────────────────────────────────────── */
+.air-vents {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 40px;
+  margin-bottom: 4px;
+}
+
+.vent-slat {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #0a0a0a 5%,
+    #0a0a0a 95%,
+    transparent 100%
+  );
+  border-radius: 1px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 1px 0 rgba(0,0,0,0.5);
+}
+
 /* ── Header Plate ──────────────────────────────────────────────────── */
 .plate-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  padding: 16px 20px 10px;
+  padding: 8px 20px 10px;
   margin-bottom: 4px;
 }
 
@@ -214,39 +238,49 @@ html, body {
   min-height: 14px;
 }
 
-/* ── Voice Selector ────────────────────────────────────────────────── */
+/* ── Voice Selector (PSS-470 style) ────────────────────────────────── */
 .voice-selector {
   flex-shrink: 0;
 }
 
 .selector-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5px;
+  display: flex;
+  gap: 10px;
+}
+
+.sel-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.sel-label {
+  font-size: 10px;
+  font-weight: bold;
+  color: #22ccaa;
+  letter-spacing: 1px;
+  line-height: 1.4;
 }
 
 .sel-btn {
-  width: 52px;
-  height: 30px;
+  width: 48px;
+  height: 14px;
   border: none;
-  border-radius: 3px;
-  font-family: 'Courier New', monospace;
-  font-size: 15px;
-  font-weight: bold;
+  border-radius: 2px;
   cursor: pointer;
-  color: #0a2a1a;
-  background: linear-gradient(180deg, #3cc88a 0%, #2aaa6a 50%, #1a8855 100%);
+  background: linear-gradient(180deg, #3cc88a 0%, #28a068 50%, #1a7850 100%);
   box-shadow:
-    0 2px 4px rgba(0,0,0,0.4),
-    inset 0 1px 0 rgba(255,255,255,0.2),
-    inset 0 -1px 0 rgba(0,0,0,0.15);
+    0 2px 3px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.15);
   transition: transform 0.06s, box-shadow 0.06s;
+  margin-bottom: 4px;
 }
 
 .sel-btn:active {
   transform: translateY(1px);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.4);
-  background: linear-gradient(180deg, #2aaa6a 0%, #1a8855 100%);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.4);
+  background: linear-gradient(180deg, #28a068 0%, #1a7850 100%);
 }
 
 /* ── ID Sections ───────────────────────────────────────────────────── */
@@ -427,13 +461,132 @@ html, body {
     inset 0 1px 2px rgba(0,0,0,0.2);
 }
 
+/* ── Tweak Section (collapsible) ───────────────────────────────────── */
+.tweak-section {
+  margin: 16px 14px 0;
+}
+
+.tweak-toggle {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.3);
+  color: #22ccaa;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.tweak-toggle:hover {
+  background: rgba(0,0,0,0.4);
+}
+
+.tweak-toggle.open {
+  border-radius: 4px 4px 0 0;
+  border-bottom: none;
+}
+
+.tweak-body {
+  display: none;
+  padding: 14px;
+  border: 1px solid #2a2a2a;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  background: rgba(0,0,0,0.25);
+}
+
+.tweak-body.open {
+  display: block;
+}
+
+.tweak-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+}
+
+.tweak-param {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tweak-param label {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #22ccaa;
+  font-weight: bold;
+}
+
+.tweak-param input[type="range"] {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #333;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.tweak-param input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #3cc88a;
+  border: 2px solid #1a1a1a;
+  cursor: pointer;
+}
+
+.tweak-param input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #3cc88a;
+  border: 2px solid #1a1a1a;
+  cursor: pointer;
+}
+
+.tw-val {
+  font-size: 10px;
+  color: #558877;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 1px;
+}
+
+.tweak-reset {
+  margin-top: 12px;
+  padding: 8px 16px;
+  border: 1px solid #333;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+  color: #22ccaa;
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.tweak-reset:hover {
+  background: linear-gradient(180deg, #333 0%, #222 100%);
+}
+
 /* ── Responsiveness ────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .brand { font-size: 20px; letter-spacing: 3px; }
   .voice-bank-grid { column-count: 2; max-height: 200px; }
   .keyboard { height: 90px; }
-  .sel-btn { width: 42px; height: 26px; font-size: 13px; }
+  .sel-btn { width: 38px; }
   .seg-digits { font-size: 30px; }
   .controls-row { gap: 12px; }
   .id-field { font-size: 10px; padding: 5px 6px; }
+  .tweak-grid { grid-template-columns: 1fr; }
 }

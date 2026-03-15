@@ -11,6 +11,18 @@
   <canvas id="bg-canvas"></canvas>
 
   <div id="app">
+    <!-- Air vents -->
+    <div class="air-vents">
+      <div class="vent-slat"></div>
+      <div class="vent-slat"></div>
+      <div class="vent-slat"></div>
+      <div class="vent-slat"></div>
+      <div class="vent-slat"></div>
+      <div class="vent-slat"></div>
+      <div class="vent-slat"></div>
+      <div class="vent-slat"></div>
+    </div>
+
     <!-- Header plate -->
     <div class="plate-header">
       <div class="brand-group">
@@ -41,17 +53,21 @@
 
       <div class="voice-selector">
         <div class="panel-label">VOICE SELECTOR</div>
-        <div class="selector-grid">
-          <button class="sel-btn" data-num="0">0</button>
-          <button class="sel-btn" data-num="5">5</button>
-          <button class="sel-btn" data-num="1">1</button>
-          <button class="sel-btn" data-num="6">6</button>
-          <button class="sel-btn" data-num="2">2</button>
-          <button class="sel-btn" data-num="7">7</button>
-          <button class="sel-btn" data-num="3">3</button>
-          <button class="sel-btn" data-num="8">8</button>
-          <button class="sel-btn" data-num="4">4</button>
-          <button class="sel-btn" data-num="9">9</button>
+        <div class="selector-grid" id="selector-grid">
+          <div class="sel-col">
+            <span class="sel-label">0</span><button class="sel-btn" data-num="0"></button>
+            <span class="sel-label">1</span><button class="sel-btn" data-num="1"></button>
+            <span class="sel-label">2</span><button class="sel-btn" data-num="2"></button>
+            <span class="sel-label">3</span><button class="sel-btn" data-num="3"></button>
+            <span class="sel-label">4</span><button class="sel-btn" data-num="4"></button>
+          </div>
+          <div class="sel-col">
+            <span class="sel-label">5</span><button class="sel-btn" data-num="5"></button>
+            <span class="sel-label">6</span><button class="sel-btn" data-num="6"></button>
+            <span class="sel-label">7</span><button class="sel-btn" data-num="7"></button>
+            <span class="sel-label">8</span><button class="sel-btn" data-num="8"></button>
+            <span class="sel-label">9</span><button class="sel-btn" data-num="9"></button>
+          </div>
         </div>
       </div>
     </div>
@@ -73,6 +89,56 @@
         </select>
       </div>
       <div class="keyboard" id="keyboard"></div>
+    </div>
+
+    <!-- Tweak Section (collapsible) -->
+    <div class="tweak-section">
+      <button class="tweak-toggle" id="tweak-toggle">SOUND EDITOR &#9660;</button>
+      <div class="tweak-body" id="tweak-body">
+        <div class="tweak-grid">
+          <div class="tweak-param">
+            <label>CARRIER</label>
+            <input type="range" min="0.1" max="4" step="0.01" id="tw-carrier">
+            <span class="tw-val" id="tw-carrier-val">1.00</span>
+          </div>
+          <div class="tweak-param">
+            <label>MOD RATIO</label>
+            <input type="range" min="0.1" max="16" step="0.01" id="tw-modratio">
+            <span class="tw-val" id="tw-modratio-val">1.00</span>
+          </div>
+          <div class="tweak-param">
+            <label>MOD INDEX</label>
+            <input type="range" min="0" max="16" step="0.01" id="tw-modindex">
+            <span class="tw-val" id="tw-modindex-val">2.00</span>
+          </div>
+          <div class="tweak-param">
+            <label>ATTACK</label>
+            <input type="range" min="0.001" max="2" step="0.001" id="tw-attack">
+            <span class="tw-val" id="tw-attack-val">0.01</span>
+          </div>
+          <div class="tweak-param">
+            <label>DECAY</label>
+            <input type="range" min="0.01" max="4" step="0.01" id="tw-decay">
+            <span class="tw-val" id="tw-decay-val">0.30</span>
+          </div>
+          <div class="tweak-param">
+            <label>SUSTAIN</label>
+            <input type="range" min="0" max="1" step="0.01" id="tw-sustain">
+            <span class="tw-val" id="tw-sustain-val">0.30</span>
+          </div>
+          <div class="tweak-param">
+            <label>RELEASE</label>
+            <input type="range" min="0.01" max="5" step="0.01" id="tw-release">
+            <span class="tw-val" id="tw-release-val">0.20</span>
+          </div>
+          <div class="tweak-param">
+            <label>FEEDBACK</label>
+            <input type="range" min="0" max="1" step="0.01" id="tw-feedback">
+            <span class="tw-val" id="tw-feedback-val">0.00</span>
+          </div>
+        </div>
+        <button class="tweak-reset" id="tweak-reset">RESET TO PRESET</button>
+      </div>
     </div>
   </div>
 
