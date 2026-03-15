@@ -138,10 +138,13 @@ html, body {
 }
 
 .voice-bank-grid {
-  column-count: 3;
-  column-gap: 8px;
-  max-height: 260px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  max-height: 180px;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .vb-entry {
@@ -152,10 +155,11 @@ html, body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  break-inside: avoid;
   line-height: 1.7;
   border-radius: 1px;
   transition: background 0.1s;
+  width: max-content;
+  min-width: 100px;
 }
 
 .vb-entry:hover {
@@ -179,7 +183,7 @@ html, body {
 }
 
 /* Voice bank scrollbar */
-.voice-bank-grid::-webkit-scrollbar { width: 4px; }
+.voice-bank-grid::-webkit-scrollbar { height: 4px; }
 .voice-bank-grid::-webkit-scrollbar-track { background: transparent; }
 .voice-bank-grid::-webkit-scrollbar-thumb {
   background: rgba(34, 204, 170, 0.25);
@@ -724,6 +728,105 @@ html, body {
   grid-column: 1 / -1;
 }
 
+/* ── Editor Subtitles & MIDI Channel Grid ─────────────────────────── */
+.editor-subtitle {
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: #22ccaa;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.midi-subtitle {
+  margin-top: 16px;
+}
+
+.ch-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.ch-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 4px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid #2a2a2a;
+  border-radius: 3px;
+}
+
+.ch-num {
+  font-size: 8px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: #558877;
+}
+
+.ch-name {
+  font-size: 7px;
+  color: #22ccaa;
+  letter-spacing: 0.5px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1.3;
+  min-height: 10px;
+}
+
+.ch-set-btn {
+  padding: 3px 10px;
+  border: 1px solid #333;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+  color: #22ccaa;
+  font-family: 'Courier New', monospace;
+  font-size: 7px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.ch-set-btn:hover {
+  background: linear-gradient(180deg, #333 0%, #222 100%);
+  color: #77ffdd;
+}
+
+.ch-set-btn:active {
+  transform: translateY(1px);
+}
+
+/* Drum channels (13-16) — yellow accent */
+.ch-slot.drum-ch {
+  border-color: #554400;
+  background: rgba(60,40,0,0.25);
+}
+
+.ch-slot.drum-ch .ch-num {
+  color: #cc9922;
+}
+
+.ch-slot.drum-ch .ch-name {
+  color: #ddaa33;
+}
+
+.ch-slot.drum-ch .ch-set-btn {
+  color: #ddaa33;
+  border-color: #554400;
+}
+
+.ch-slot.drum-ch .ch-set-btn:hover {
+  color: #ffcc44;
+}
+
 /* ── Rhythm Section ───────────────────────────────────────────────── */
 .rhythm-section {
   margin: 0 14px 16px;
@@ -887,7 +990,7 @@ html, body {
 /* ── Responsiveness ────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .brand { font-size: 20px; letter-spacing: 3px; }
-  .voice-bank-grid { column-count: 2; max-height: 200px; }
+  .voice-bank-grid { max-height: 140px; }
   .keyboard { height: 90px; }
   .sel-btn { width: 38px; }
   .seg-digits { font-size: 30px; }

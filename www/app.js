@@ -797,7 +797,7 @@
   tweakToggle.addEventListener('click', () => {
     const open = tweakBody.classList.toggle('open');
     tweakToggle.classList.toggle('open', open);
-    tweakToggle.innerHTML = 'SOUND EDITOR ' + (open ? '&#9650;' : '&#9660;');
+    tweakToggle.innerHTML = 'EDITOR ' + (open ? '&#9650;' : '&#9660;');
     if (open) loadTweakFromPreset();
   });
 
@@ -833,6 +833,52 @@
     loadTweakFromPreset();
     window.synth._sendPreset();
   });
+
+  // ── MIDI Channel Grid ──────────────────────────────────────────────
+  const chGrid = document.getElementById('ch-grid');
+  const chNameEls = [];
+
+  function getChDisplayName(ch) {
+    if (window.midiManager.isDrumChannel(ch)) return 'DRUMS';
+    const preset = window.midiManager.getChannelPreset(ch);
+    return window.synth.getPresetName(preset);
+  }
+
+  for (let ch = 0; ch < 16; ch++) {
+    const slot = document.createElement('div');
+    const isDrum = window.midiManager.isDrumChannel(ch);
+    slot.className = 'ch-slot' + (isDrum ? ' drum-ch' : '');
+
+    const numEl = document.createElement('div');
+    numEl.className = 'ch-num';
+    numEl.textContent = 'CH' + (ch + 1);
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'ch-name';
+    nameEl.textContent = getChDisplayName(ch);
+    chNameEls.push(nameEl);
+
+    const setBtn = document.createElement('button');
+    setBtn.className = 'ch-set-btn';
+    setBtn.textContent = 'SET';
+    setBtn.dataset.ch = ch;
+
+    if (isDrum) {
+      setBtn.style.display = 'none'; // drum channels don't need SET
+    }
+
+    setBtn.addEventListener('click', () => {
+      const c = parseInt(setBtn.dataset.ch);
+      window.midiManager.setChannelPreset(c, currentPreset);
+      nameEl.textContent = window.synth.getPresetName(currentPreset);
+      document.getElementById('lcd-info').textContent = 'CH' + (c + 1) + ' = ' + window.synth.getPresetName(currentPreset);
+    });
+
+    slot.appendChild(numEl);
+    slot.appendChild(nameEl);
+    slot.appendChild(setBtn);
+    chGrid.appendChild(slot);
+  }
 
   // ── Visual Config UI ──────────────────────────────────────────────
   const visualToggle = document.getElementById('visual-toggle');

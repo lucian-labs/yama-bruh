@@ -130,17 +130,21 @@ class YamaBruhSynth {
   }
 
   // Play note via AudioWorklet — minimal latency
-  playNote(midiNote, velocity = 0.8) {
+  // Optional presetIndex overrides current preset (for MIDI channel routing)
+  playNote(midiNote, velocity = 0.8, presetIndex) {
     this.ensureContext();
     if (!this.workletNode) return midiNote;
 
+    const preset = presetIndex !== undefined
+      ? this.getPresetParams(presetIndex)
+      : this.getPresetParams(this.currentPreset);
     const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
     this.workletNode.port.postMessage({
       type: 'noteOn',
       note: midiNote,
       freq: freq,
       velocity: velocity,
-      preset: this.getPresetParams(this.currentPreset),
+      preset: preset,
     });
     return midiNote;
   }
