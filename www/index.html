@@ -47,12 +47,6 @@
         <button class="kp-btn kp-zero" data-key="0">0</button>
         <button class="kp-btn kp-func kp-clr" data-key="clr">CLR</button>
       </div>
-      <div class="midi-section">
-        <button id="midi-btn" class="midi-btn">MIDI: OFF</button>
-        <select id="midi-select" class="midi-select" disabled>
-          <option value="">-- no devices --</option>
-        </select>
-      </div>
     </div>
 
     <!-- Ringtone IDs -->
@@ -63,8 +57,14 @@
       <div id="custom-ids" class="id-list"></div>
     </div>
 
-    <!-- Piano keyboard -->
+    <!-- MIDI controls + Piano keyboard -->
     <div class="keyboard-section">
+      <div class="midi-row">
+        <button id="midi-btn" class="midi-btn">MIDI: OFF</button>
+        <select id="midi-select" class="midi-select" disabled>
+          <option value="">-- no devices --</option>
+        </select>
+      </div>
       <div class="keyboard" id="keyboard"></div>
     </div>
   </div>

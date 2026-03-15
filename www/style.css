@@ -64,12 +64,12 @@ html, body {
 }
 
 .lcd {
-  background: #3a5a2a;
+  background: #4a7a38;
   border-radius: 3px;
   padding: 10px 14px;
   font-family: 'Courier New', monospace;
   color: #1a3a10;
-  text-shadow: 0 0 4px rgba(100,180,60,0.3);
+  text-shadow: 0 0 6px rgba(120,200,70,0.4);
   min-height: 72px;
   position: relative;
   overflow: hidden;
@@ -180,11 +180,12 @@ html, body {
   aspect-ratio: 2.6;
 }
 
-/* ── MIDI Button ───────────────────────────────────────────────────── */
-.midi-section {
+/* ── MIDI Row (above keyboard) ──────────────────────────────────────── */
+.midi-row {
   display: flex;
-  flex-direction: column;
   gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
 .midi-btn {
@@ -212,7 +213,7 @@ html, body {
 }
 
 .midi-select {
-  width: 100%;
+  flex: 1;
   padding: 6px 8px;
   border: 1px solid #5a5248;
   border-radius: 3px;
@@ -221,7 +222,6 @@ html, body {
   font-family: 'Courier New', monospace;
   font-size: 10px;
   cursor: pointer;
-  margin-top: 6px;
 }
 
 .midi-select:disabled {
