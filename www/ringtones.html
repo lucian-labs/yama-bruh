@@ -36,12 +36,58 @@
     <!-- Horizontal case grooves -->
     <div class="case-grooves"></div>
 
+    <!-- Controls: Display + Voice Selector -->
+    <div class="controls-row">
+      <div class="display-unit">
+        <div class="display-label">VOICE / RINGTONE</div>
+        <div class="seg-housing">
+          <div class="seg-digits" id="seg-digits">88</div>
+        </div>
+        <div class="display-status" id="lcd-info">Telephone</div>
+      </div>
+
+      <div class="voice-selector">
+        <div class="panel-label">VOICE SELECTOR</div>
+        <div class="selector-grid" id="selector-grid">
+          <div class="sel-row">
+            <div class="sel-cell"><span class="sel-label">0</span><button class="sel-btn" data-num="0"></button></div>
+            <div class="sel-cell"><span class="sel-label">1</span><button class="sel-btn" data-num="1"></button></div>
+            <div class="sel-cell"><span class="sel-label">2</span><button class="sel-btn" data-num="2"></button></div>
+            <div class="sel-cell"><span class="sel-label">3</span><button class="sel-btn" data-num="3"></button></div>
+            <div class="sel-cell"><span class="sel-label">4</span><button class="sel-btn" data-num="4"></button></div>
+          </div>
+          <div class="sel-row">
+            <div class="sel-cell"><span class="sel-label">5</span><button class="sel-btn" data-num="5"></button></div>
+            <div class="sel-cell"><span class="sel-label">6</span><button class="sel-btn" data-num="6"></button></div>
+            <div class="sel-cell"><span class="sel-label">7</span><button class="sel-btn" data-num="7"></button></div>
+            <div class="sel-cell"><span class="sel-label">8</span><button class="sel-btn" data-num="8"></button></div>
+            <div class="sel-cell"><span class="sel-label">9</span><button class="sel-btn" data-num="9"></button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seed Config -->
+    <div class="id-section">
+      <div class="panel-label">INSTANCE SEED</div>
+      <div class="id-row">
+        <input class="id-field" type="text" id="seed-input" value="yama-bruh.lucianlabs.ca">
+      </div>
+    </div>
+
     <!-- Ringtone IDs -->
     <div class="id-section">
       <div class="panel-label">RANDOM IDs</div>
       <div id="random-ids" class="id-list"></div>
       <div class="panel-label">CUSTOM IDs</div>
       <div id="custom-ids" class="id-list"></div>
+    </div>
+
+    <!-- Code Snippet -->
+    <div class="id-section">
+      <div class="panel-label">EMBED CODE</div>
+      <pre id="code-snippet" style="background:rgba(0,0,0,0.6);border:2px solid rgba(90,234,170,0.4);border-radius:2px;padding:12px;font-family:'Courier New',monospace;font-size:11px;color:#5aeaaa;white-space:pre-wrap;word-break:break-all;line-height:1.5;"></pre>
+      <button class="tweak-reset" id="copy-btn" style="margin-top:8px;">COPY TO CLIPBOARD</button>
     </div>
 
     <!-- Footer -->
@@ -51,9 +97,195 @@
     </footer>
   </div>
 
-  <script src="synth.js"></script>
-  <script src="drums.js"></script>
-  <script src="midi.js"></script>
-  <script src="app.js"></script>
+  <script src="yamabruh-notify.js"></script>
+  <script>
+    const yb = new YamaBruhNotify({ seed: 'yama-bruh.lucianlabs.ca', preset: 88 });
+    const NAMES = YamaBruhNotify.PRESET_NAMES;
+
+    const lcdInfo = document.getElementById('lcd-info');
+    const segDigits = document.getElementById('seg-digits');
+    const randomContainer = document.getElementById('random-ids');
+    const customContainer = document.getElementById('custom-ids');
+
+    // Preset selection
+    let currentPreset = 88;
+    let presetInput = '';
+    let presetTimeout = null;
+
+    function updateDisplay() {
+      segDigits.textContent = String(currentPreset).padStart(2, '0');
+      yb.preset = currentPreset;
+    }
+
+    function selectPreset(num) {
+      currentPreset = Math.max(0, Math.min(98, num));
+      updateDisplay();
+      lcdInfo.textContent = NAMES[currentPreset] || 'Preset ' + currentPreset;
+    }
+
+    function enterDigit(d) {
+      clearTimeout(presetTimeout);
+      presetInput += d;
+      if (presetInput.length >= 2) {
+        selectPreset(parseInt(presetInput));
+        presetInput = '';
+      } else {
+        segDigits.textContent = presetInput + '_';
+        lcdInfo.textContent = '';
+        presetTimeout = setTimeout(() => {
+          if (presetInput.length === 1) {
+            selectPreset(parseInt(presetInput));
+            presetInput = '';
+          }
+        }, 1500);
+      }
+    }
+
+    // Seed input
+    const seedInput = document.getElementById('seed-input');
+    const codeSnippet = document.getElementById('code-snippet');
+    const copyBtn = document.getElementById('copy-btn');
+
+    let lastPlayedId = 'some-event-id';
+
+    function updateSnippet() {
+      const s = seedInput.value || 'my-app';
+      const p = currentPreset;
+      codeSnippet.textContent =
+`<script src="https://yama-bruh.lucianlabs.ca/yamabruh-notify.js"><\/script>
+<script>
+  const notify = new YamaBruhNotify({
+    seed: '${s}',
+    preset: ${p},  // ${NAMES[p] || 'Preset ' + p}
+  });
+  notify.play(${lastPlayedId ? "'" + lastPlayedId + "'" : ''});
+<\/script>`;
+    }
+
+    seedInput.addEventListener('input', () => {
+      yb.seed = seedInput.value;
+      updateSnippet();
+    });
+
+    // Update snippet when preset changes too
+    const _origSelectPreset = selectPreset;
+    selectPreset = function(num) {
+      _origSelectPreset(num);
+      updateSnippet();
+    };
+
+    updateSnippet();
+
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(codeSnippet.textContent).then(() => {
+        lcdInfo.textContent = 'COPIED!';
+        setTimeout(() => { lcdInfo.textContent = ''; }, 1500);
+      });
+    });
+
+    // Voice selector buttons
+    document.querySelectorAll('.sel-btn[data-num]').forEach(btn => {
+      btn.addEventListener('pointerdown', () => enterDigit(btn.dataset.num));
+    });
+
+    // Keyboard: number keys + arrows
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.key >= '0' && e.key <= '9' && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        enterDigit(e.key);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault(); presetInput = ''; clearTimeout(presetTimeout);
+        selectPreset(currentPreset + 1);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault(); presetInput = ''; clearTimeout(presetTimeout);
+        selectPreset(currentPreset - 1);
+      }
+    });
+
+    // Generate random IDs
+    function generateId() {
+      const chars = 'abcdef0123456789';
+      let id = '';
+      for (let i = 0; i < 12; i++) {
+        id += chars[Math.floor(Math.random() * chars.length)];
+        if (i === 3 || i === 7) id += '-';
+      }
+      return id;
+    }
+
+    const randomIds = Array.from({ length: 3 }, generateId);
+    const savedCustom = JSON.parse(localStorage.getItem('yamabruh_custom_ids') || '["yama-bruh-id","",""]');
+    let activeBtn = null;
+
+    // Build random ID rows
+    randomIds.forEach((id, i) => {
+      const row = document.createElement('div');
+      row.className = 'id-row';
+      row.innerHTML = `
+        <input class="id-field" type="text" value="${id}" readonly>
+        <button class="play-btn" data-rid="${i}">&#9654;</button>
+      `;
+      randomContainer.appendChild(row);
+    });
+
+    // Build custom ID rows
+    for (let i = 0; i < 3; i++) {
+      const row = document.createElement('div');
+      row.className = 'id-row';
+      row.innerHTML = `
+        <input class="id-field custom-input" type="text" value="${savedCustom[i] || ''}" placeholder="enter id..." data-ci="${i}">
+        <button class="play-btn" data-cid="${i}">&#9654;</button>
+      `;
+      customContainer.appendChild(row);
+    }
+
+    // Save custom IDs on input
+    document.querySelectorAll('.custom-input').forEach(input => {
+      input.addEventListener('input', () => {
+        savedCustom[parseInt(input.dataset.ci)] = input.value;
+        localStorage.setItem('yamabruh_custom_ids', JSON.stringify(savedCustom));
+      });
+    });
+
+    // Play buttons
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('.play-btn');
+      if (!btn) return;
+
+      let idStr = '';
+      if (btn.dataset.rid !== undefined) {
+        idStr = randomIds[parseInt(btn.dataset.rid)];
+      } else if (btn.dataset.cid !== undefined) {
+        idStr = savedCustom[parseInt(btn.dataset.cid)] || '';
+      }
+      const isRandom = !idStr;
+
+      // Stop previous
+      if (activeBtn) {
+        activeBtn.classList.remove('playing');
+        yb.stop();
+      }
+
+      btn.classList.add('playing');
+      activeBtn = btn;
+      if (isRandom) {
+        lastPlayedId = null;
+        lcdInfo.textContent = 'PLAYING: random';
+      } else {
+        lastPlayedId = idStr;
+        lcdInfo.textContent = 'PLAYING: ' + idStr.substring(0, 16);
+      }
+      updateSnippet();
+
+      yb.play(isRandom ? undefined : idStr, {
+        onDone: () => {
+          btn.classList.remove('playing');
+          if (activeBtn === btn) activeBtn = null;
+          lcdInfo.textContent = '';
+        }
+      });
+    });
+  </script>
 </body>
 </html>

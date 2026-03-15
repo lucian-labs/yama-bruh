@@ -1,0 +1,282 @@
+// ── YAMA-BRUH Notification Engine ─────────────────────────────────────
+// Drop-in FM synth ringtone player for any site.
+// No WASM, no dependencies, no UI — just sound.
+//
+// Usage:
+//   <script src="yamabruh-notify.js"></script>
+//   <script>
+//     const yb = new YamaBruhNotify();
+//     yb.play('user-abc123');
+//     yb.play('order-456', { preset: 88, bpm: 160, volume: 0.5 });
+//     yb.stop();
+//   </script>
+
+const YAMABRUH_PRESETS = [
+  [1.0,1.0,1.8,0.001,0.8,0.15,0.4,0.0],[1.0,2.0,2.5,0.001,0.6,0.2,0.35,0.0],
+  [1.0,3.0,3.5,0.001,0.4,0.25,0.3,0.05],[1.0,1.0,1.2,0.002,1.0,0.3,0.5,0.0],
+  [1.0,7.0,2.0,0.001,0.7,0.12,0.6,0.0],[1.0,5.0,4.5,0.001,0.15,0.05,0.08,0.1],
+  [1.0,3.0,3.0,0.001,0.3,0.0,0.2,0.02],[1.0,14.0,1.5,0.001,0.5,0.1,0.4,0.0],
+  [1.0,2.0,1.5,0.001,0.9,0.25,0.45,0.0],[1.0,4.0,2.8,0.002,0.7,0.18,0.5,0.03],
+  [1.0,1.0,1.5,0.005,0.02,0.9,0.05,0.12],[1.0,2.0,2.5,0.003,0.02,0.95,0.04,0.2],
+  [1.0,1.0,0.6,0.01,0.05,0.85,0.1,0.05],[1.0,3.0,1.2,0.008,0.05,0.8,0.08,0.15],
+  [1.0,1.0,0.4,0.015,0.08,0.75,0.15,0.03],[1.0,2.0,1.8,0.003,0.02,0.9,0.04,0.08],
+  [1.0,4.0,2.2,0.003,0.02,0.88,0.04,0.1],[1.0,6.0,1.0,0.001,0.3,0.6,0.05,0.15],
+  [1.0,3.0,1.5,0.005,0.02,0.92,0.06,0.3],[1.0,5.0,3.0,0.003,0.03,0.85,0.05,0.25],
+  [1.0,1.0,4.0,0.04,0.15,0.7,0.2,0.2],[1.0,1.0,3.5,0.06,0.2,0.65,0.3,0.25],
+  [1.0,1.0,2.5,0.08,0.25,0.6,0.4,0.15],[1.0,1.0,5.0,0.05,0.15,0.75,0.25,0.3],
+  [1.0,2.0,4.5,0.03,0.1,0.8,0.2,0.18],[1.0,3.0,6.0,0.02,0.08,0.85,0.15,0.22],
+  [1.0,1.0,2.0,0.03,0.12,0.4,0.15,0.1],[1.0,2.0,3.0,0.1,0.3,0.7,0.6,0.2],
+  [1.0,1.0,7.0,0.04,0.12,0.8,0.2,0.35],[1.0,1.0,8.0,0.02,0.08,0.85,0.3,0.4],
+  [1.0,2.0,1.0,0.15,0.5,0.7,0.8,0.02],[1.0,2.0,0.8,0.4,0.8,0.65,1.2,0.01],
+  [1.0,3.0,1.5,0.08,0.4,0.75,0.6,0.05],[1.0,1.0,2.0,0.12,0.5,0.7,0.8,0.08],
+  [1.0,2.0,0.5,0.2,0.6,0.8,1.5,0.03],[1.0,1.0,0.3,0.3,1.0,0.7,1.8,0.01],
+  [1.0,5.0,1.2,0.25,0.8,0.6,2.0,0.06],[1.0,7.0,2.0,0.15,0.4,0.75,1.0,0.04],
+  [1.0,3.0,3.0,0.5,1.5,0.5,2.5,0.1],[1.0,9.0,1.0,0.2,0.6,0.6,2.0,0.02],
+  [1.0,1.0,2.0,0.001,0.3,0.2,0.12,0.05],[1.0,3.0,3.5,0.001,0.15,0.1,0.08,0.1],
+  [1.0,1.0,5.0,0.001,0.08,0.05,0.06,0.2],[1.0,1.0,0.8,0.005,0.4,0.35,0.2,0.0],
+  [0.5,1.0,4.0,0.001,0.2,0.25,0.1,0.15],[0.5,2.0,6.0,0.001,0.12,0.2,0.08,0.3],
+  [0.5,3.0,8.0,0.001,0.1,0.15,0.06,0.4],[1.0,1.0,3.0,0.001,0.25,0.3,0.15,0.5],
+  [0.5,0.5,1.5,0.001,0.5,0.4,0.2,0.0],[0.5,1.0,7.0,0.001,0.08,0.3,0.1,0.6],
+  [1.0,1.0,0.5,0.01,0.08,0.8,0.15,0.0],[1.0,1.0,2.5,0.01,0.08,0.85,0.15,0.1],
+  [1.0,2.0,5.0,0.005,0.06,0.9,0.1,0.15],[2.0,1.0,1.5,0.01,0.1,0.7,0.2,0.0],
+  [1.0,4.0,3.0,0.001,0.05,0.6,0.1,0.08],[1.0,1.0,6.0,0.005,0.06,0.85,0.12,0.25],
+  [1.0,1.0,1.0,0.02,0.15,0.75,0.3,0.02],[1.5,1.0,3.0,0.01,0.08,0.8,0.15,0.12],
+  [0.5,1.0,4.0,0.005,0.1,0.8,0.15,0.2],[1.0,3.0,2.0,0.01,0.08,0.85,0.12,0.08],
+  [1.0,3.5,5.0,0.001,2.0,0.0,2.5,0.0],[1.0,5.4,3.0,0.001,1.0,0.0,1.5,0.0],
+  [1.0,7.0,2.5,0.001,1.5,0.0,2.0,0.01],[1.0,4.0,2.0,0.001,2.5,0.05,3.0,0.0],
+  [1.0,4.0,4.0,0.001,0.6,0.0,0.5,0.02],[1.0,3.0,6.0,0.001,0.4,0.0,0.3,0.03],
+  [1.0,1.41,7.0,0.001,1.2,0.0,1.5,0.05],[1.0,13.0,1.5,0.001,3.0,0.0,3.5,0.0],
+  [1.0,5.19,3.5,0.001,0.8,0.0,0.6,0.02],[1.0,11.0,2.0,0.001,2.0,0.0,2.5,0.01],
+  [1.0,1.0,2.5,0.02,0.08,0.7,0.1,0.3],[1.0,2.0,2.0,0.02,0.08,0.75,0.1,0.25],
+  [1.0,3.0,3.0,0.015,0.06,0.65,0.08,0.2],[1.0,2.0,4.0,0.02,0.08,0.6,0.1,0.15],
+  [0.5,1.0,3.5,0.03,0.1,0.55,0.12,0.2],[2.0,1.0,1.0,0.02,0.05,0.7,0.1,0.05],
+  [2.0,1.0,1.5,0.015,0.05,0.65,0.08,0.08],[2.0,1.0,0.5,0.03,0.06,0.6,0.12,0.02],
+  [2.0,1.0,0.3,0.04,0.08,0.5,0.15,0.01],[1.0,2.0,3.5,0.03,0.06,0.55,0.15,0.35],
+  [1.0,0.5,1.0,0.5,2.0,0.0,3.0,0.0],[1.0,1.41,2.0,0.3,1.5,0.4,2.5,0.1],
+  [1.0,7.0,8.0,0.01,0.5,0.6,1.5,0.5],[1.0,0.25,3.0,0.4,1.0,0.5,2.0,0.15],
+  [1.0,0.5,10.0,0.2,0.8,0.3,1.5,0.7],[1.0,3.0,2.0,0.1,3.0,0.0,4.0,0.05],
+  [1.0,5.0,4.0,0.15,1.0,0.5,2.0,0.08],[1.0,1.5,6.0,0.05,0.3,0.4,0.5,0.4],
+  [1.0,11.0,3.0,0.001,0.05,0.0,0.02,0.0],[0.1,0.3,12.0,0.8,2.0,0.3,1.0,0.9],
+  [1.0,2.0,1.0,0.001,0.05,0.4,0.05,0.3],[1.0,1.0,0.3,0.001,0.04,0.5,0.04,0.0],
+  [1.0,3.0,2.5,0.001,0.06,0.35,0.06,0.4],[1.0,8.0,1.5,0.001,0.03,0.0,0.03,0.0],
+  [1.0,0.1,15.0,0.001,0.15,0.3,0.1,0.8],[1.0,4.0,3.0,0.001,0.08,0.2,0.05,0.5],
+  [1.0,1.0,5.0,0.001,1.5,0.0,2.0,0.3],[2.0,1.0,2.0,0.001,0.4,0.0,0.3,0.0],
+  [1.0,7.0,3.0,0.01,0.1,0.6,0.15,0.15],
+];
+
+class YamaBruhNotify {
+  constructor(config = {}) {
+    this.sampleRate = config.sampleRate || 44100;
+    this.preset = config.preset ?? 88; // Telephone default — good for notifications
+    this.bpm = config.bpm || 140;
+    this.volume = config.volume ?? 0.8;
+    this.seed = config.seed || null;
+    this.ctx = null;
+    this._source = null;
+  }
+
+  _ensureCtx() {
+    if (!this.ctx) {
+      this.ctx = new AudioContext({ sampleRate: this.sampleRate });
+    }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    return this.ctx;
+  }
+
+  _hash(str) {
+    let h = 5381;
+    for (let i = 0; i < str.length; i++) {
+      h = ((h << 5) + h + str.charCodeAt(i)) >>> 0;
+    }
+    return h;
+  }
+
+  _rng(seed) {
+    let s = seed || 1;
+    return {
+      next() {
+        s ^= s << 13;
+        s = (s >>> 17) | (s << 15); // unsigned right shift
+        s ^= s << 5;
+        s >>>= 0;
+        if (s === 0) s = 1;
+        return s;
+      },
+      range(n) { return this.next() % n; },
+    };
+  }
+
+  _getPreset(index) {
+    const i = Math.max(0, Math.min(98, index));
+    return YAMABRUH_PRESETS[i] || YAMABRUH_PRESETS[0];
+  }
+
+  _midiToFreq(note) {
+    return 440 * Math.pow(2, (note - 69) / 12);
+  }
+
+  _renderNote(freq, duration, preset, buf, offset, velocity) {
+    const sr = this.sampleRate;
+    const TAU = 6.28318530717959;
+    const [cr, mr, mi, attack, decay, sustain, release, feedback] = preset;
+
+    const carrierFreq = freq * cr;
+    const modFreq = freq * mr;
+    const totalSamples = Math.floor((duration + release) * sr);
+    const noteSamples = Math.floor(duration * sr);
+    const attackSamples = Math.floor(attack * sr);
+    const decaySamples = Math.floor(decay * sr);
+
+    let carrierPhase = 0, modPhase = 0, prevMod = 0;
+    const available = buf.length - offset;
+    const count = Math.min(totalSamples, available);
+
+    for (let i = 0; i < count; i++) {
+      let env;
+      if (i < attackSamples) {
+        env = i / (attackSamples || 1);
+      } else if (i < attackSamples + decaySamples) {
+        const t = (i - attackSamples) / (decaySamples || 1);
+        env = 1 - (1 - sustain) * t;
+      } else if (i < noteSamples) {
+        env = sustain;
+      } else {
+        const relMax = Math.max(release * sr, 1);
+        const t = (i - noteSamples) / relMax;
+        env = Math.max(sustain * (1 - t), 0);
+      }
+
+      const modSignal = Math.sin(modPhase + feedback * prevMod);
+      prevMod = modSignal;
+      buf[offset + i] += Math.sin(carrierPhase + mi * modSignal) * env * velocity * 0.45;
+
+      carrierPhase += TAU * carrierFreq / sr;
+      modPhase += TAU * modFreq / sr;
+      if (carrierPhase > TAU) carrierPhase -= TAU;
+      if (modPhase > TAU) modPhase -= TAU;
+    }
+
+    return count;
+  }
+
+  _generateSequence(seed) {
+    const rng = this._rng(seed);
+    const numNotes = 3 + (seed % 3);
+    const movements = [0, 2, -2, 3, -3, 4, -4, 6, -6];
+    const durations = [0.125, 0.25, 0.5, 1.0, 2.0];
+    const octaveOffset = rng.range(3) * 12;
+    let currentNote = 54 + octaveOffset;
+    const notes = [];
+
+    for (let i = 0; i < numNotes; i++) {
+      currentNote += movements[rng.range(9)];
+      if (currentNote < 42) currentNote += 12;
+      if (currentNote > 84) currentNote -= 12;
+      notes.push({ note: currentNote, dur: durations[rng.range(5)] });
+    }
+    return notes;
+  }
+
+  /**
+   * Play a ringtone from a seed string.
+   * @param {string} seedStr - Any string (user ID, event name, etc.)
+   * @param {object} opts - Optional overrides: { preset, bpm, volume, onDone }
+   * @returns {AudioBufferSourceNode} The playing source node
+   */
+  play(seedStr, opts = {}) {
+    const ctx = this._ensureCtx();
+    const preset = this._getPreset(opts.preset ?? this.preset);
+    const bpm = opts.bpm || this.bpm;
+    const volume = opts.volume ?? this.volume;
+    const beatDuration = 60 / bpm;
+
+    // Generate a random ID from current time if none provided
+    if (seedStr === undefined || seedStr === null || seedStr === '') {
+      seedStr = 'auto-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+    }
+
+    // Combine root seed (if set) with per-call seed
+    const raw = this.seed ? this.seed + ':' + String(seedStr) : String(seedStr);
+    const seed = this._hash(raw);
+    const sequence = this._generateSequence(seed);
+
+    // Calculate total length
+    let totalBeats = 0;
+    for (const n of sequence) totalBeats += n.dur;
+    const maxRelease = preset[6];
+    const totalSamples = Math.ceil((totalBeats * beatDuration + maxRelease) * this.sampleRate);
+
+    const buf = new Float32Array(totalSamples);
+    let offset = 0;
+    for (const n of sequence) {
+      const freq = this._midiToFreq(n.note);
+      const durSecs = n.dur * beatDuration;
+      this._renderNote(freq, durSecs, preset, buf, offset, volume);
+      offset += Math.floor(durSecs * this.sampleRate);
+    }
+
+    const audioBuffer = ctx.createBuffer(1, buf.length, this.sampleRate);
+    audioBuffer.getChannelData(0).set(buf);
+
+    // Stop previous if still playing
+    this.stop();
+
+    const source = ctx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(ctx.destination);
+    source.start();
+    this._source = source;
+
+    source.onended = () => {
+      if (this._source === source) this._source = null;
+      if (opts.onDone) opts.onDone();
+    };
+
+    return source;
+  }
+
+  /** Stop current ringtone */
+  stop() {
+    if (this._source) {
+      try { this._source.stop(); } catch (_) {}
+      this._source = null;
+    }
+  }
+
+  /** Update default config */
+  configure(config) {
+    if (config.preset !== undefined) this.preset = config.preset;
+    if (config.bpm !== undefined) this.bpm = config.bpm;
+    if (config.volume !== undefined) this.volume = config.volume;
+    if (config.sampleRate !== undefined) this.sampleRate = config.sampleRate;
+  }
+
+  /** List available preset names */
+  static get PRESET_NAMES() {
+    return [
+      'Grand Piano','Bright Piano','Honky-Tonk','E.Piano 1','E.Piano 2',
+      'Clav','Harpsichord','DX Piano','Stage Piano','Vintage Keys',
+      'Jazz Organ','Rock Organ','Church Organ','Reed Organ','Pipe Organ',
+      'Drawbar 1','Drawbar 2','Perc Organ','Rotary Organ','Full Organ',
+      'Trumpet','Trombone','French Horn','Brass Sect','Synth Brass 1',
+      'Synth Brass 2','Mute Trumpet','Brass Pad','Power Brass','Fanfare',
+      'Strings','Slow Strings','Syn Strings 1','Syn Strings 2','Warm Pad',
+      'Choir Pad','Atmosphere','Brightness Pad','Sweep Pad','Ice Pad',
+      'Finger Bass','Pick Bass','Slap Bass','Fretless','Synth Bass 1',
+      'Synth Bass 2','Acid Bass','Rubber Bass','Sub Bass','Wobble Bass',
+      'Square Lead','Saw Lead','Sync Lead','Calliope','Chiffer',
+      'Charang','Solo Vox','Fifth Lead','Bass+Lead','Poly Lead',
+      'Tubular Bell','Glockenspiel','Music Box','Vibraphone','Marimba',
+      'Xylophone','Steel Drums','Crystal','Kalimba','Tinkle Bell',
+      'Harmonica','Accordion','Clarinet','Oboe','Bassoon',
+      'Flute','Recorder','Pan Flute','Bottle','Shakuhachi',
+      'Rain','Soundtrack','Sci-Fi','Atmosphere 2','Goblin',
+      'Echo Drop','Star Theme','Sitar','Telephone','Helicopter',
+      'Chiptune 1','Chiptune 2','Chiptune 3','Retro Beep','Bit Crush',
+      'Arcade','Game Over','Power Up','Digital Vox',
+    ];
+  }
+}
+
+// Auto-expose globally
+if (typeof window !== 'undefined') window.YamaBruhNotify = YamaBruhNotify;
