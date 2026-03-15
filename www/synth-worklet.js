@@ -93,6 +93,16 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
         if (msg.mult !== undefined) this.sustainMult = msg.mult;
         break;
       }
+      case 'healthCheck': {
+        this.port.postMessage({
+          type: 'health',
+          voices: this.voices.length,
+          comp1: this.comp1Env,
+          comp2: this.comp2Env,
+          crashes: this._crashCount,
+        });
+        break;
+      }
     }
   }
 

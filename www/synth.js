@@ -66,11 +66,56 @@ class YamaBruhSynth {
         console.error('[SYNTH CRASH]', e.data.reason, e.data.detail, 'total:', e.data.count);
         const lcd = document.getElementById('lcd-info');
         if (lcd) lcd.textContent = 'AUDIO ERR: ' + e.data.reason;
+      } else if (e.data?.type === 'health') {
+        this._lastHealth = e.data;
       }
     };
 
     // Send initial preset to worklet
     this._sendPreset();
+
+    // Health monitor — detect AudioContext suspension, worklet death
+    this._healthLog = [];
+    this._lastHealth = null;
+    this._monitorId = setInterval(() => {
+      const state = this.ctx.state;
+      const now = performance.now();
+      if (state !== 'running') {
+        console.warn('[AUDIO HEALTH] Context state:', state, 'at', (now/1000).toFixed(1) + 's');
+        const lcd = document.getElementById('lcd-info');
+        if (lcd && state === 'suspended') lcd.textContent = 'AUDIO SUSPENDED';
+        // Try to resume
+        this.ctx.resume().then(() => {
+          console.log('[AUDIO HEALTH] Resumed context');
+        }).catch(() => {});
+      }
+      // Ping worklet for voice count
+      if (this.workletNode) {
+        this.workletNode.port.postMessage({ type: 'healthCheck' });
+      }
+    }, 3000);
+
+    // Log state changes
+    this.ctx.onstatechange = () => {
+      console.warn('[AUDIO HEALTH] Context state changed to:', this.ctx.state);
+      if (this.ctx.state === 'suspended') {
+        const lcd = document.getElementById('lcd-info');
+        if (lcd) lcd.textContent = 'AUDIO SUSPENDED';
+      }
+    };
+
+    // Auto-resume on any user interaction
+    const resumeHandler = () => {
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume().then(() => {
+          console.log('[AUDIO HEALTH] Resumed on interaction');
+          const lcd = document.getElementById('lcd-info');
+          if (lcd) lcd.textContent = 'READY';
+        });
+      }
+    };
+    document.addEventListener('pointerdown', resumeHandler);
+    document.addEventListener('keydown', resumeHandler);
 
     this.ready = true;
   }
