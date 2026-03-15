@@ -57,8 +57,8 @@
     void main() {
       vec2 uv = gl_FragCoord.xy / u_resolution;
 
-      // Base aged plastic — dark warm grey
-      vec3 col = vec3(0.38, 0.36, 0.33);
+      // Base aged plastic — near black with warm tint
+      vec3 col = vec3(0.14, 0.13, 0.12);
 
       // Large-scale discoloration / yellowing stains
       float stain = fbm(uv * 3.0 + 42.0);
@@ -90,10 +90,10 @@
         col += scratch;
       }
 
-      // Specular highlight from mouse — subtle plastic sheen
+      // Specular highlight from mouse — plastic sheen on dark surface
       vec2 mUV = u_mouse / u_resolution;
       float highlight = 1.0 - distance(uv, mUV);
-      highlight = pow(max(highlight, 0.0), 6.0) * 0.06;
+      highlight = pow(max(highlight, 0.0), 4.0) * 0.12;
       col += highlight;
 
       // Edge shadow / bezel illusion
@@ -106,7 +106,7 @@
       col = mix(col + 0.06, col, cornerWear);
 
       // Flash response on key press
-      col += u_flash * vec3(0.08, 0.06, 0.04);
+      col += u_flash * vec3(0.12, 0.10, 0.08);
 
       // Subtle time-based variation (breathing light)
       col += sin(u_time * 0.5) * 0.005;

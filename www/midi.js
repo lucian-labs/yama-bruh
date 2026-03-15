@@ -52,8 +52,10 @@ class MIDIManager {
     if (!this.access) return [];
     const inputs = [];
     for (const input of this.access.inputs.values()) {
+      console.log(`[MIDI] Input: "${input.name}" (${input.manufacturer}) id:${input.id} state:${input.state} connection:${input.connection}`);
       inputs.push({ id: input.id, name: input.name, manufacturer: input.manufacturer });
     }
+    if (inputs.length === 0) console.log('[MIDI] No input devices found');
     return inputs;
   }
 
@@ -90,14 +92,20 @@ class MIDIManager {
 
     if (!this.selectedInputId) {
       // If nothing selected, bind ALL inputs (fallback)
+      let count = 0;
       for (const input of this.access.inputs.values()) {
         input.onmidimessage = (e) => this._handleMessage(e);
+        count++;
       }
+      console.log(`[MIDI] Listening to ALL inputs (${count} devices)`);
     } else {
       // Bind only selected
       const selected = this.access.inputs.get(this.selectedInputId);
       if (selected) {
         selected.onmidimessage = (e) => this._handleMessage(e);
+        console.log(`[MIDI] Listening to: "${selected.name}"`);
+      } else {
+        console.warn(`[MIDI] Selected input ${this.selectedInputId} not found`);
       }
     }
   }
@@ -106,9 +114,21 @@ class MIDIManager {
     if (!event.data || event.data.length < 2) return;
     const [status, note, velocity = 0] = event.data;
     const cmd = status & 0xf0;
+    const ch = status & 0x0f;
+
+    // Log all MIDI messages
+    const hex = Array.from(event.data).map(b => b.toString(16).padStart(2, '0')).join(' ');
+    console.log(`[MIDI] ch:${ch + 1} cmd:0x${cmd.toString(16)} | ${hex}`);
+
+    const lcdInfo = document.getElementById('lcd-info');
 
     if (cmd === 0x90 && velocity > 0) {
       const vel = velocity / 127;
+      const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+      const name = noteNames[note % 12] + Math.floor(note / 12 - 1);
+      if (lcdInfo) lcdInfo.textContent = `NOTE ${name} vel:${velocity}`;
+      console.log(`[MIDI] NOTE ON: ${name} (${note}) vel:${velocity}`);
+
       const noteId = this.synth.playNote(note, vel);
       this.activeNotes.set(note, noteId);
       this._highlightKey(note, true);
@@ -119,6 +139,8 @@ class MIDIManager {
         this.activeNotes.delete(note);
       }
       this._highlightKey(note, false);
+    } else if (cmd === 0xb0) {
+      console.log(`[MIDI] CC ${note} = ${velocity}`);
     }
   }
 
