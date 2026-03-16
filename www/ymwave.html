@@ -401,6 +401,13 @@ h1 {
   overflow-y: auto;
 }
 
+.preset-section-title {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #6f857a;
+  margin: 8px 0 2px;
+}
+
 .preset-item {
   padding: 10px;
 }
@@ -431,6 +438,75 @@ h1 {
   flex: 1;
   padding: 6px 8px;
   font-size: 9px;
+}
+
+/* ── Community Presets ── */
+.community-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #1d342e;
+}
+
+.community-section h2 {
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #d4a843;
+  margin-bottom: 8px;
+}
+
+.community-list {
+  display: grid;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.community-item {
+  padding: 10px;
+  border: 1px solid #2a302e;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.3);
+}
+
+.community-item .preset-name { color: #e8d8b0; }
+.community-item .preset-meta { color: #8a8870; }
+
+.community-item .preset-actions .chip-btn {
+  border-color: #4a4430;
+  color: #d4a843;
+}
+
+.admin-bar {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #2a302e;
+}
+
+.admin-bar .chip-btn {
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.admin-login {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-login input {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid #2a302e;
+  border-radius: 3px;
+  padding: 6px 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: #cfcfc4;
+}
+
+.admin-status {
+  font-size: 9px;
+  color: #28d2a7;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
 }
 
 .fun-footer {
@@ -567,6 +643,26 @@ h1 {
         <h2>PRESETS</h2>
         <div class="mini-label">Saved locally from the current YM2413 register state.</div>
         <div class="preset-list" id="preset-list"></div>
+
+        <div class="community-section">
+          <h2>COMMUNITY</h2>
+          <div class="mini-label">Curated presets from Lucian Labs.</div>
+          <div class="community-list" id="community-list">
+            <div class="community-item"><div class="preset-meta">Loading...</div></div>
+          </div>
+        </div>
+
+        <div class="admin-bar" id="admin-bar">
+          <div class="admin-login" id="admin-login">
+            <input type="password" id="admin-key" placeholder="API key">
+            <button class="chip-btn" id="btn-admin-login">LOGIN</button>
+          </div>
+          <div id="admin-panel" style="display:none">
+            <div class="admin-status" id="admin-status">AUTHENTICATED</div>
+            <button class="chip-btn" id="btn-upload-preset">UPLOAD CURRENT PRESET</button>
+            <button class="chip-btn" id="btn-admin-logout" style="margin-top:4px;border-color:#5a3030;color:#d46060">LOGOUT</button>
+          </div>
+        </div>
       </div>
     </aside>
   </div>
@@ -608,6 +704,7 @@ h1 {
   let registers = [...DEFAULT_REGISTERS];
   let activeView = 'operator';
   let activePresetId = null;
+  let activeSystemPresetIndex = null;
   let noteCounter = 0;
   const activeNotes = new Map();
   const heldKeys = new Set();
@@ -813,13 +910,93 @@ h1 {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(presets));
   }
 
+  function nearestIndex(value, table) {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < table.length; i++) {
+      const dist = Math.abs(table[i] - value);
+      if (dist < bestDist) {
+        best = i;
+        bestDist = dist;
+      }
+    }
+    return best;
+  }
+
+  function systemPresetName(index) {
+    if (window.synth && typeof window.synth.getPresetName === 'function') {
+      return window.synth.getPresetName(index);
+    }
+    return 'Preset ' + (index + 1);
+  }
+
+  function systemPresetCount() {
+    if (typeof YAMABRUH_PRESETS !== 'undefined' && Array.isArray(YAMABRUH_PRESETS)) {
+      return YAMABRUH_PRESETS.length;
+    }
+    return 0;
+  }
+
+  function paramsToRegisters(params) {
+    const p = Array.isArray(params) ? params : [];
+    const kslDb = [0, 1.5, 3, 6];
+    const feedbackBits = nearestIndex(Number(p[7]) || 0, FEEDBACK_TABLE);
+    const modWave = ((Number(p[9]) || 0) >= 1) ? 1 : 0;
+    const carWave = ((Number(p[8]) || 0) >= 1) ? 1 : 0;
+    const modSustained = !((Number(p[20]) || 0) > 0.5);
+    const carSustained = !((Number(p[15]) || 0) > 0.5);
+    const modTl = (() => {
+      const depth = Math.max(0.00001, Number(p[2]) || 0.00001);
+      const tl = Math.round((-20 / 0.75) * Math.log10(depth / (4 * Math.PI)));
+      return Math.max(0, Math.min(63, tl));
+    })();
+    return [
+      ((Number(p[10]) || 0) > 0 ? 0x80 : 0) |
+      ((Number(p[11]) || 0) > 0 ? 0x40 : 0) |
+      (modSustained ? 0x20 : 0) |
+      ((Number(p[12]) || 0) > 0 ? 0x10 : 0) |
+      (nearestIndex(Number(p[1]) || 1, MULT_TABLE) & 0x0F),
+      ((Number(p[10]) || 0) > 0 ? 0x80 : 0) |
+      ((Number(p[11]) || 0) > 0 ? 0x40 : 0) |
+      (carSustained ? 0x20 : 0) |
+      ((Number(p[12]) || 0) > 0 ? 0x10 : 0) |
+      (nearestIndex(Number(p[0]) || 1, MULT_TABLE) & 0x0F),
+      ((nearestIndex(Number(p[13]) || 0, kslDb) & 0x03) << 6) | modTl,
+      ((nearestIndex(Number(p[13]) || 0, kslDb) & 0x03) << 6) |
+      (carWave ? 0x20 : 0) |
+      (modWave ? 0x10 : 0) |
+      ((feedbackBits & 0x07) << 1),
+      ((nearestIndex(Number(p[16]) || 0.001, ATTACK_TIMES) & 0x0F) << 4) |
+      (nearestIndex(Number(p[17]) || 0.18, DECAY_TIMES) & 0x0F),
+      ((nearestIndex(Number(p[3]) || 0.01, ATTACK_TIMES) & 0x0F) << 4) |
+      (nearestIndex(Number(p[4]) || 0.18, DECAY_TIMES) & 0x0F),
+      ((nearestIndex(Number(p[18]) || 1, Array.from({ length: 16 }, (_, i) => sustainLevel(i))) & 0x0F) << 4) |
+      (nearestIndex(Number(p[19]) || 0.3, DECAY_TIMES) & 0x0F),
+      ((nearestIndex(Number(p[5]) || 1, Array.from({ length: 16 }, (_, i) => sustainLevel(i))) & 0x0F) << 4) |
+      (nearestIndex(Number(p[6]) || 0.3, DECAY_TIMES) & 0x0F),
+    ];
+  }
+
+  function systemPresetItems() {
+    const count = systemPresetCount();
+    const items = [];
+    for (let i = 0; i < count; i++) {
+      const params = window.synth.getPresetParams(i);
+      items.push({
+        id: 'system-' + i,
+        index: i,
+        name: systemPresetName(i),
+        registers: paramsToRegisters(params),
+      });
+    }
+    return items;
+  }
+
   function renderPresetList() {
     const presets = loadSavedPresets();
-    if (!presets.length) {
-      presetListEl.innerHTML = '<div class="preset-item"><div class="preset-meta">No saved presets yet.</div></div>';
-      return;
-    }
-    presetListEl.innerHTML = presets.map((preset) => `
+    const system = systemPresetItems();
+    const savedHtml = presets.length
+      ? presets.map((preset) => `
       <div class="preset-item${preset.id === activePresetId ? ' active' : ''}">
         <div class="preset-name">${preset.name}</div>
         <div class="preset-meta">${preset.registerHex}</div>
@@ -828,7 +1005,23 @@ h1 {
           <button class="chip-btn" data-delete-preset="${preset.id}">DEL</button>
         </div>
       </div>
+    `).join('')
+      : '<div class="preset-item"><div class="preset-meta">No saved presets yet.</div></div>';
+    const systemHtml = system.map((preset) => `
+      <div class="preset-item${preset.index === activeSystemPresetIndex ? ' active' : ''}">
+        <div class="preset-name">${String(preset.index).padStart(2, '0')} ${preset.name}</div>
+        <div class="preset-meta">${preset.registers.map(hexByte).join(' ')}</div>
+        <div class="preset-actions">
+          <button class="chip-btn" data-load-system-preset="${preset.index}">LOAD</button>
+        </div>
+      </div>
     `).join('');
+    presetListEl.innerHTML = `
+      <div class="preset-section-title">USER</div>
+      ${savedHtml}
+      <div class="preset-section-title">SYSTEM</div>
+      ${systemHtml}
+    `;
   }
 
   function saveCurrentPreset() {
@@ -846,6 +1039,7 @@ h1 {
     });
     writeSavedPresets(presets);
     activePresetId = id;
+    activeSystemPresetIndex = null;
     renderPresetList();
   }
 
@@ -854,6 +1048,15 @@ h1 {
     if (!preset) return;
     registers = preset.registers.map(v => Math.max(0, Math.min(255, v | 0)));
     activePresetId = preset.id;
+    activeSystemPresetIndex = null;
+    syncAll({ rerenderEditor: true, renderPresets: true });
+  }
+
+  function loadSystemPreset(index) {
+    const params = window.synth.getPresetParams(index);
+    registers = paramsToRegisters(params);
+    activePresetId = null;
+    activeSystemPresetIndex = index;
     syncAll({ rerenderEditor: true, renderPresets: true });
   }
 
@@ -948,6 +1151,7 @@ h1 {
     if (registers[index] === next) return;
     const shouldClearPreset = options.clearPreset !== false && activePresetId !== null;
     if (shouldClearPreset) activePresetId = null;
+    if (options.clearSystemPreset !== false && activeSystemPresetIndex !== null) activeSystemPresetIndex = null;
     registers[index] = next;
     const interactiveView = activeView === 'operator' || activeView === 'registers';
     syncAll({
@@ -1377,6 +1581,7 @@ h1 {
       if (!Array.isArray(data.registers) || data.registers.length !== 8) throw new Error('Expected 8 register bytes');
       registers = data.registers.map(v => Math.max(0, Math.min(255, v | 0)));
       activePresetId = null;
+      activeSystemPresetIndex = null;
       syncAll({ rerenderEditor: true, renderPresets: true });
       exportOutput.style.display = 'none';
     } catch (error) {
@@ -1398,6 +1603,7 @@ h1 {
     }
     registers = parsed;
     activePresetId = null;
+    activeSystemPresetIndex = null;
     syncAll({ rerenderEditor: true, renderPresets: true });
   });
 
@@ -1413,6 +1619,11 @@ h1 {
     const loadBtn = event.target.closest('[data-load-preset]');
     if (loadBtn) {
       loadPreset(loadBtn.dataset.loadPreset);
+      return;
+    }
+    const loadSystemBtn = event.target.closest('[data-load-system-preset]');
+    if (loadSystemBtn) {
+      loadSystemPreset(Number(loadSystemBtn.dataset.loadSystemPreset));
       return;
     }
     const deleteBtn = event.target.closest('[data-delete-preset]');
@@ -1541,6 +1752,130 @@ h1 {
   }
 
   syncAll({ rerenderEditor: true, renderPresets: true });
+
+  // ── Community Presets (control.lucianlabs.ca) ──
+  const GC_API = 'https://control.lucianlabs.ca';
+  const communityListEl = document.getElementById('community-list');
+  const adminLoginEl = document.getElementById('admin-login');
+  const adminPanelEl = document.getElementById('admin-panel');
+  let adminApiKey = sessionStorage.getItem('ymwave_admin_key') || '';
+
+  if (adminApiKey) showAdminPanel();
+
+  async function fetchCommunityPresets() {
+    try {
+      const res = await fetch(GC_API + '/api/presets?app=ymwave');
+      if (!res.ok) throw new Error('API ' + res.status);
+      const data = await res.json();
+      renderCommunityPresets(data.presets || []);
+    } catch (err) {
+      communityListEl.innerHTML = '<div class="community-item"><div class="preset-meta">Could not load presets.</div></div>';
+    }
+  }
+
+  function renderCommunityPresets(presets) {
+    if (!presets.length) {
+      communityListEl.innerHTML = '<div class="community-item"><div class="preset-meta">No community presets yet.</div></div>';
+      return;
+    }
+    communityListEl.innerHTML = presets.map(p => `
+      <div class="community-item">
+        <div class="preset-name">${escapeHtml(p.name)}</div>
+        <div class="preset-meta">${escapeHtml(p.registerHex || '')}</div>
+        <div class="preset-actions">
+          <button class="chip-btn" data-community-load='${JSON.stringify(p.registers)}'>LOAD</button>
+          ${adminApiKey ? '<button class="chip-btn" data-community-delete="' + p.id + '" style="border-color:#5a3030;color:#d46060">DEL</button>' : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  communityListEl.addEventListener('click', async (event) => {
+    const loadBtn = event.target.closest('[data-community-load]');
+    if (loadBtn) {
+      try {
+        const regs = JSON.parse(loadBtn.dataset.communityLoad);
+        if (Array.isArray(regs) && regs.length === 8) {
+          registers = regs.map(v => Math.max(0, Math.min(255, v | 0)));
+          activePresetId = null;
+          syncAll({ rerenderEditor: true, renderPresets: true });
+        }
+      } catch {}
+      return;
+    }
+    const delBtn = event.target.closest('[data-community-delete]');
+    if (delBtn && adminApiKey) {
+      if (!confirm('Delete this community preset?')) return;
+      try {
+        await fetch(GC_API + '/api/presets/' + delBtn.dataset.communityDelete, {
+          method: 'DELETE',
+          headers: { 'X-API-Key': adminApiKey },
+        });
+        fetchCommunityPresets();
+      } catch {}
+    }
+  });
+
+  function showAdminPanel() {
+    adminLoginEl.style.display = 'none';
+    adminPanelEl.style.display = 'block';
+  }
+
+  document.getElementById('btn-admin-login').addEventListener('click', async () => {
+    const key = document.getElementById('admin-key').value.trim();
+    if (!key) return;
+    try {
+      const res = await fetch(GC_API + '/api/presets/auth', { headers: { 'X-API-Key': key } });
+      if (!res.ok) throw new Error();
+      adminApiKey = key;
+      sessionStorage.setItem('ymwave_admin_key', key);
+      showAdminPanel();
+      fetchCommunityPresets();
+    } catch {
+      alert('Invalid API key');
+    }
+  });
+
+  document.getElementById('btn-admin-logout').addEventListener('click', () => {
+    adminApiKey = '';
+    sessionStorage.removeItem('ymwave_admin_key');
+    adminLoginEl.style.display = 'grid';
+    adminPanelEl.style.display = 'none';
+    document.getElementById('admin-key').value = '';
+    fetchCommunityPresets();
+  });
+
+  document.getElementById('btn-upload-preset').addEventListener('click', async () => {
+    if (!adminApiKey) return;
+    const name = prompt('Community preset name?', 'Preset ' + registersToHex());
+    if (!name) return;
+    try {
+      const res = await fetch(GC_API + '/api/presets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': adminApiKey,
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          app: 'ymwave',
+          registers: [...registers],
+          registerHex: registersToHex(),
+          author: 'Lucian Labs',
+        }),
+      });
+      if (!res.ok) throw new Error('Upload failed: ' + res.status);
+      fetchCommunityPresets();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  fetchCommunityPresets();
 })();
 </script>
 </body>
