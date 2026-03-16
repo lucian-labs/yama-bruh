@@ -17,7 +17,7 @@ struct Voice {
     note: i32, freq: f32, velocity: f32,
     cp: f32, mp: f32, pm: f32,
     es: u8, el: f32, et: f32, rl: f32,
-    age: f32, p: [f32; 8],
+    age: f32, p: [f32; 16],
 }
 
 const RING_SIZE: usize = 64;
@@ -57,6 +57,7 @@ const NONE_VOICE: Option<Voice> = None;
 struct Engine {
     voices: [Option<Voice>; MAX_VOICES],
     total_samples: u64,
+    current_preset: u32,
     sr: f32,
     ring: Arc<Ring>,
     sc: Arc<AtomicU64>,
@@ -65,7 +66,7 @@ struct Engine {
 
 impl Engine {
     fn new(sr: f32, ring: Arc<Ring>, sc: Arc<AtomicU64>, cc: Arc<AtomicU64>) -> Self {
-        Engine { voices: [NONE_VOICE; MAX_VOICES], total_samples: 0, sr, ring, sc, cc }
+        Engine { voices: [NONE_VOICE; MAX_VOICES], total_samples: 0, current_preset: 0, sr, ring, sc, cc }
     }
     fn process(&mut self, data: &mut [f32], channels: usize) {
         while let Some(cmd) = self.ring.pop() {
@@ -101,7 +102,7 @@ impl Engine {
                     let vel = d[2];
                     if status == 0x90 && vel > 0 {
                         let freq = 440.0 * libm::powf(2.0, (note as f32 - 69.0) / 12.0);
-                        let preset = get_preset_data(0);
+                        let preset = get_preset_data(self.current_preset);
                         for slot in &mut self.voices {
                             if slot.is_none() {
                                 *slot = Some(Voice {
@@ -119,6 +120,10 @@ impl Engine {
                                 if v.note == note as i32 && v.es < 3 { v.es = 3; v.et = 0.0; v.rl = v.el; }
                             }
                         }
+                    } else if status == 0xC0 {
+                        // Program Change
+                        let program = note as u32;
+                        self.current_preset = if program > 99 { program % 100 } else { program };
                     }
                 }
                 _ => {}

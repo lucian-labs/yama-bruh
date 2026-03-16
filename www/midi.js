@@ -20,6 +20,8 @@ class MIDIManager {
     // Active channel — auto-set by incoming MIDI, used for preset assignment
     this.activeChannel = 0;
     this.onChannelChange = null; // (channel) => {}
+    this.onPresetChange = null;  // (preset) => {}
+    this.onCC = null;            // (cc, value) => {} — for MIDI learn
 
     this._loadChannelMap();
   }
@@ -186,26 +188,159 @@ class MIDIManager {
         }
         this._highlightKey(note, false);
       }
+    } else if (cmd === 0xC0) {
+      // Program Change — map MIDI program to our preset
+      const program = note; // byte 1 is program number for PC messages
+      const preset = program > 99 ? program % 100 : program;
+      this.channelMap[ch] = preset;
+      // If this is the active channel, update the UI preset selector
+      if (ch === this.activeChannel) {
+        this.synth.currentPreset = preset;
+        this.synth._presetCache.clear();
+        this.synth._sendPreset();
+        if (this.onPresetChange) this.onPresetChange(preset);
+      }
+    } else if (cmd === 0xE0) {
+      // Pitch Bend — 14-bit value from two data bytes
+      const bendVal = (vel << 7) | note; // LSB=note, MSB=vel for pitch bend
+      if (this.synth && this.synth.workletNode) {
+        this.synth.workletNode.port.postMessage({ type: 'pitchBend', value: bendVal });
+      }
+    } else if (cmd === 0xB0) {
+      // Control Change
+      const cc = note;  // CC number
+      const val = vel;  // CC value 0-127
+      this._handleCC(ch, cc, val);
     }
   }
 
-  // Map GM drum notes to our drum sounds
+  _handleCC(ch, cc, val) {
+    // Fire onCC for MIDI learn mode (before handling built-in CCs)
+    if (this.onCC) this.onCC(cc, val);
+
+    switch (cc) {
+      case 1: // Mod Wheel
+        if (this.synth && this.synth.workletNode) {
+          this.synth.workletNode.port.postMessage({ type: 'modWheel', value: val / 127 });
+        }
+        break;
+      case 64: // Sustain Pedal
+        if (this.synth && this.synth.workletNode) {
+          this.synth.workletNode.port.postMessage({ type: 'sustain', on: val >= 64, mult: 3.0 });
+        }
+        break;
+      case 65: // Portamento On/Off
+        if (this.synth && this.synth.workletNode) {
+          this.synth.workletNode.port.postMessage({ type: 'portamento', on: val >= 64 });
+        }
+        break;
+      case 5: // Portamento Time
+        if (this.synth && this.synth.workletNode) {
+          this.synth.workletNode.port.postMessage({ type: 'portamento', on: true, time: val / 127 * 0.5 });
+        }
+        break;
+      // Bank select could switch drum banks
+      case 0: // Bank Select MSB — use for drum bank on drum channels
+        if (this.isDrumChannel(ch) && window.drums) {
+          window.drums.setBank(val % 8);
+        }
+        break;
+    }
+  }
+
+  // Full GM drum map — note number passed through for pitch variation
   _triggerDrum(note, velocity) {
     if (!window.drums) return;
+    // Map GM percussion notes to our sound types
+    // Pitched sounds (tom, kick variants) pass the MIDI note for frequency derivation
     const drumMap = {
-      36: 'kick', 35: 'kick',         // Bass Drum
-      38: 'snare', 40: 'snare',       // Snare
-      42: 'hihat_c', 44: 'hihat_c',   // Closed Hi-Hat
-      46: 'hihat_o',                   // Open Hi-Hat
-      39: 'clap',                      // Hand Clap
-      48: 'tom_hi', 50: 'tom_hi',     // High Tom
-      45: 'tom_lo', 47: 'tom_lo', 43: 'tom_lo', 41: 'tom_lo', // Low/Mid Toms
-      37: 'rimshot',                   // Side Stick
-      56: 'cowbell',                   // Cowbell
-      49: 'cymbal', 51: 'cymbal', 52: 'cymbal', 57: 'cymbal', // Cymbals
+      // Kicks (vary pitch by note)
+      35: 'kick',  // Acoustic Bass Drum (lower)
+      36: 'kick',  // Bass Drum 1
+      // Rimshot / Cross Stick
+      37: 'rimshot',
+      // Snares
+      38: 'snare', // Acoustic Snare
+      39: 'clap',  // Hand Clap
+      40: 'snare', // Electric Snare
+      // Toms — all use 'tom' with MIDI note for pitch
+      41: 'tom',   // Low Floor Tom
+      43: 'tom',   // High Floor Tom
+      45: 'tom',   // Low Tom
+      47: 'tom',   // Low-Mid Tom
+      48: 'tom',   // Hi-Mid Tom
+      50: 'tom',   // High Tom
+      // Hi-Hats
+      42: 'hihat_c', // Closed Hi-Hat
+      44: 'hihat_c', // Pedal Hi-Hat
+      46: 'hihat_o', // Open Hi-Hat
+      // Cymbals
+      49: 'cymbal',  // Crash Cymbal 1
+      51: 'cymbal',  // Ride Cymbal 1
+      52: 'cymbal',  // Chinese Cymbal
+      53: 'cymbal',  // Ride Bell
+      55: 'cymbal',  // Splash Cymbal
+      57: 'cymbal',  // Crash Cymbal 2
+      59: 'cymbal',  // Ride Cymbal 2
+      // Percussion
+      54: 'rimshot',  // Tambourine (bright rim sound)
+      56: 'cowbell',  // Cowbell
+      // Extended — fill the rest of the keyboard
+      58: 'rimshot',  // Vibraslap (use rimshot approximation)
+      60: 'tom',      // Hi Bongo
+      61: 'tom',      // Low Bongo
+      62: 'tom',      // Mute Hi Conga
+      63: 'tom',      // Open Hi Conga
+      64: 'tom',      // Low Conga
+      65: 'tom',      // High Timbale
+      66: 'tom',      // Low Timbale
+      67: 'cowbell',  // High Agogo
+      68: 'cowbell',  // Low Agogo
+      69: 'hihat_c',  // Cabasa
+      70: 'hihat_c',  // Maracas
+      71: 'rimshot',  // Short Whistle
+      72: 'rimshot',  // Long Whistle
+      73: 'hihat_c',  // Short Guiro
+      74: 'hihat_o',  // Long Guiro
+      75: 'rimshot',  // Claves
+      76: 'tom',      // Hi Wood Block
+      77: 'tom',      // Low Wood Block
+      78: 'tom',      // Mute Cuica
+      79: 'tom',      // Open Cuica
+      80: 'rimshot',  // Mute Triangle
+      81: 'rimshot',  // Open Triangle
+      // ── Extended Wild SFX (below & above GM range) ──
+      // Low range (notes 24-34)
+      24: 'bomb',      // Explosion
+      25: 'bomb',      // Explosion variant
+      26: 'whoosh',    // Whoosh sweep
+      27: 'riser',     // Rising sweep
+      28: 'riser',     // Rising sweep variant
+      29: 'scratch',   // Vinyl scratch
+      30: 'scratch',   // Scratch variant
+      31: 'noise_burst', // Noise hit
+      32: 'zap',       // Laser zap
+      33: 'zap',       // Zap variant
+      34: 'glitch',    // Digital glitch
+      // High range (notes 82+)
+      82: 'blip',      // Retro blip
+      83: 'blip',      // Blip variant
+      84: 'chirp',     // Synth chirp
+      85: 'chirp',     // Chirp variant
+      86: 'metallic',  // Metallic ring
+      87: 'metallic',  // Metallic variant
+      88: 'zap',       // High zap
+      89: 'glitch',    // High glitch
+      90: 'riser',     // High riser
+      91: 'whoosh',    // High whoosh
+      92: 'bomb',      // Big boom
+      93: 'noise_burst', // Static burst
+      94: 'scratch',   // Turntable
+      95: 'blip',      // High blip
+      96: 'chirp',     // Chirp high
     };
     const sound = drumMap[note];
-    if (sound) window.drums.trigger(sound, velocity);
+    if (sound) window.drums.trigger(sound, velocity, note);
   }
 
   _highlightKey(midiNote, on) {

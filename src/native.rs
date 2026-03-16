@@ -16,8 +16,23 @@ use midir::{MidiInput, Ignore};
 use yama_bruh::get_preset_data;
 
 const TAU: f32 = 6.283185307179586;
+const HALF_PI: f32 = 1.5707963;
 const MAX_VOICES: usize = 16;
 const MAX_DRUM_HITS: usize = 32;
+
+// YM2413 waveform types: 0=sine, 1=half-sine, 2=abs-sine, 3=quarter-sine
+fn ym2413_wave(phase: f32, wtype: u32) -> f32 {
+    match wtype {
+        1 => { let s = libm::sinf(phase); if s > 0.0 { s } else { 0.0 } }
+        2 => { let s = libm::sinf(phase); if s < 0.0 { -s } else { s } }
+        3 => {
+            let p = phase % TAU;
+            let p = if p < 0.0 { p + TAU } else { p };
+            if p < HALF_PI { libm::sinf(p) } else { 0.0 }
+        }
+        _ => libm::sinf(phase),
+    }
+}
 
 // ── Lock-free trace log ring (audio thread writes, main thread reads) ──
 const TRACE_RING_SIZE: usize = 1024;
@@ -213,11 +228,11 @@ struct Voice {
     cp: f32, mp: f32, pm: f32,
     es: u8, el: f32, et: f32, rl: f32,
     age: f32,
-    p: [f32; 8],
+    p: [f32; 16],
 }
 
 impl Voice {
-    fn new(note: i32, freq: f32, vel: f32, preset: [f32; 8]) -> Self {
+    fn new(note: i32, freq: f32, vel: f32, preset: [f32; 16]) -> Self {
         Voice {
             note, freq, velocity: vel,
             cp: 0.0, mp: 0.0, pm: 0.0,
@@ -236,13 +251,14 @@ struct DrumHit {
     decay: f32, noise_amt: f32, click_amt: f32,
 }
 
-fn make_drum(name: &str, vel: f32) -> Option<DrumHit> {
+fn make_drum(name: &str, vel: f32, midi_note: u8) -> Option<DrumHit> {
     let base = DrumHit {
         t: 0.0, vel, cp: 0.0, mp: 0.0,
         carrier_freq: 0.0, mod_freq: 0.0, mod_index: 0.0,
-        pitch_sweep: 0.0, pitch_decay: 0.0,
+        pitch_sweep: 0.0, pitch_decay: 0.01,
         decay: 0.0, noise_amt: 0.0, click_amt: 0.0,
     };
+    let note_freq = 440.0 * libm::powf(2.0, (midi_note as f32 - 69.0) / 12.0);
     match name {
         "kick" => Some(DrumHit { carrier_freq: 60.0, mod_freq: 90.0, mod_index: 3.0,
             pitch_sweep: 160.0, pitch_decay: 0.015, decay: 0.25, click_amt: 0.3, ..base }),
@@ -254,10 +270,8 @@ fn make_drum(name: &str, vel: f32) -> Option<DrumHit> {
             decay: 0.22, noise_amt: 0.5, ..base }),
         "clap" => Some(DrumHit { carrier_freq: 1200.0, mod_freq: 2400.0, mod_index: 1.5,
             decay: 0.2, noise_amt: 0.85, ..base }),
-        "tom_hi" => Some(DrumHit { carrier_freq: 240.0, mod_freq: 360.0, mod_index: 2.0,
-            pitch_sweep: 80.0, pitch_decay: 0.02, decay: 0.2, click_amt: 0.1, ..base }),
-        "tom_lo" => Some(DrumHit { carrier_freq: 130.0, mod_freq: 195.0, mod_index: 2.0,
-            pitch_sweep: 60.0, pitch_decay: 0.025, decay: 0.25, click_amt: 0.1, ..base }),
+        "tom" => Some(DrumHit { carrier_freq: note_freq, mod_freq: note_freq * 1.5, mod_index: 2.0,
+            pitch_sweep: note_freq * 0.5, pitch_decay: 0.02, decay: 0.22, click_amt: 0.1, ..base }),
         "rimshot" => Some(DrumHit { carrier_freq: 500.0, mod_freq: 1600.0, mod_index: 2.0,
             pitch_sweep: 200.0, pitch_decay: 0.005, decay: 0.06, noise_amt: 0.2, click_amt: 0.5, ..base }),
         "cowbell" => Some(DrumHit { carrier_freq: 587.0, mod_freq: 829.0, mod_index: 1.8,
@@ -278,14 +292,14 @@ fn midi_drum(note: u8) -> Option<&'static str> {
     match note {
         35 | 36 => Some("kick"),
         38 | 40 => Some("snare"),
-        42 | 44 => Some("hihat_c"),
-        46 => Some("hihat_o"),
+        42 | 44 | 69 | 70 | 73 => Some("hihat_c"),
+        46 | 74 => Some("hihat_o"),
         39 => Some("clap"),
-        48 | 50 => Some("tom_hi"),
-        41 | 43 | 45 | 47 => Some("tom_lo"),
-        37 => Some("rimshot"),
-        56 => Some("cowbell"),
-        49 | 51 | 52 | 57 => Some("cymbal"),
+        41 | 43 | 45 | 47 | 48 | 50 |
+        60 | 61 | 62 | 63 | 64 | 65 | 66 | 76 | 77 | 78 | 79 => Some("tom"),
+        37 | 54 | 58 | 71 | 72 | 75 | 80 | 81 => Some("rimshot"),
+        56 | 67 | 68 => Some("cowbell"),
+        49 | 51 | 52 | 53 | 55 | 57 | 59 => Some("cymbal"),
         _ => None,
     }
 }
@@ -310,6 +324,8 @@ struct Engine {
     current_preset: u32,
     channel_map: [u32; 16],
     active_channel: u8,
+    pitch_bend: f32,     // frequency multiplier (1.0 = no bend)
+    mod_wheel: f32,      // 0-1 normalized
     ring: Arc<CmdRing>,
     trace: Arc<TraceRing>,
     stats: Arc<Stats>,
@@ -336,6 +352,8 @@ impl Engine {
             current_preset: 0,
             channel_map: [0; 16],
             active_channel: 0,
+            pitch_bend: 1.0,
+            mod_wheel: 0.0,
             ring, trace, stats, sr,
             trace_sample_counter: 0,
         }
@@ -446,7 +464,7 @@ impl Engine {
             let vel_f = vel as f32 / 127.0;
             if ch >= 12 {
                 if let Some(sound) = midi_drum(note) {
-                    if let Some(hit) = make_drum(sound, vel_f) {
+                    if let Some(hit) = make_drum(sound, vel_f, note) {
                         self.add_drum(hit);
                     }
                 }
@@ -467,6 +485,28 @@ impl Engine {
                         }
                     }
                 }
+            }
+        } else if cmd == 0xC0 {
+            // Program Change
+            let program = note as u32;
+            let preset_idx = if program > 99 { program % 100 } else { program };
+            self.channel_map[ch as usize] = preset_idx;
+            if ch == self.active_channel {
+                self.current_preset = preset_idx;
+                self.stats.current_preset.store(preset_idx, Ordering::Relaxed);
+            }
+        } else if cmd == 0xE0 {
+            // Pitch Bend — 14-bit value
+            let bend_val = ((vel as u16) << 7) | (note as u16);
+            let centered = (bend_val as f32 - 8192.0) / 8192.0; // -1 to +1
+            self.pitch_bend = libm::powf(2.0, centered * 2.0 / 12.0); // ±2 semitones
+        } else if cmd == 0xB0 {
+            // Control Change
+            match note {
+                1 => { // Mod Wheel
+                    self.mod_wheel = vel as f32 / 127.0;
+                }
+                _ => {}
             }
         }
     }
@@ -497,10 +537,45 @@ impl Engine {
             for i in 0..MAX_VOICES {
                 let voice_alive = if let Some(ref mut v) = self.voices[i] {
                     let p = v.p;
-                    let crf = v.freq * p[0];
-                    let mrf = v.freq * p[1];
                     let mi = p[2];
                     let (atk, dec, sus, rel, fb) = (p[3], p[4], p[5], p[6], p[7]);
+                    let c_wave = p[8] as u32;
+                    let m_wave = p[9] as u32;
+                    let trem_depth = p[10];
+                    let chip_vib = p[11];
+                    let ksr = p[12];
+                    let ksl = p[13];
+                    let mod_level = p[14];
+                    let eg_type = p[15];
+
+                    // KSR: scale envelope times
+                    let ksr_factor = if ksr > 0.0 {
+                        libm::powf(2.0, -ksr * libm::log2f(v.freq / 440.0))
+                    } else { 1.0 };
+                    let atk = atk * ksr_factor;
+                    let dec = dec * ksr_factor;
+                    let rel = rel * ksr_factor;
+
+                    // KSL: volume attenuation
+                    let ksl_atten = if ksl > 0.0 {
+                        let oct = libm::log2f(v.freq / 440.0);
+                        if oct > 0.0 { libm::powf(10.0, -ksl * oct / 20.0) } else { 1.0 }
+                    } else { 1.0 };
+
+                    // Chip vibrato at 6.4Hz
+                    let t = v.age;
+                    let vib_mod = if chip_vib > 0.0 {
+                        chip_vib * libm::sinf(TAU * 6.4 * t)
+                    } else { 0.0 };
+                    let freq_mult = 1.0 + vib_mod;
+                    let bent_freq = v.freq * self.pitch_bend;
+                    let crf = bent_freq * p[0] * freq_mult;
+                    let mrf = bent_freq * p[1] * freq_mult;
+
+                    // Tremolo at 3.7Hz
+                    let trem = if trem_depth > 0.0 {
+                        1.0 - trem_depth * (1.0 + libm::sinf(TAU * 3.7 * t)) * 0.5
+                    } else { 1.0 };
 
                     v.age += dt;
                     if v.age > 30.0 { false }
@@ -514,10 +589,18 @@ impl Engine {
                             }
                             1 => {
                                 let t = if dec > 0.0001 { v.et / dec } else { 1.0 };
-                                let e = if t >= 1.0 { v.es = 2; sus } else { 1.0 - (1.0 - sus) * t };
+                                let e = if t >= 1.0 { v.es = 2; v.et = 0.0; sus } else { 1.0 - (1.0 - sus) * t };
                                 v.el = e; (e, false)
                             }
-                            2 => { v.el = sus; (sus, false) }
+                            2 => {
+                                if eg_type > 0.5 {
+                                    let perc = sus * libm::powf(0.5, v.et / (p[4] * 2.0 + 0.01));
+                                    if perc > 0.001 { v.el = perc; (perc, false) }
+                                    else { (0.0, true) }
+                                } else {
+                                    v.el = sus; (sus, false)
+                                }
+                            }
                             _ => {
                                 let t = if rel > 0.0001 { v.et / rel } else { 1.0 };
                                 if t >= 1.0 { (0.0, true) }
@@ -527,9 +610,9 @@ impl Engine {
 
                         if dead { false }
                         else {
-                            let ms = libm::sinf(v.mp + fb * v.pm);
+                            let ms = ym2413_wave(v.mp + fb * v.pm, m_wave) * mod_level;
                             v.pm = ms;
-                            let sample = libm::sinf(v.cp + mi * ms) * env * v.velocity * 0.35;
+                            let sample = ym2413_wave(v.cp + mi * ms, c_wave) * env * v.velocity * 0.35 * trem * ksl_atten;
 
                             if sample.is_nan() || !v.cp.is_finite() || !v.mp.is_finite() {
                                 self.nan_count += 1;

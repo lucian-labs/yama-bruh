@@ -74,8 +74,7 @@ const PATTERNS = {
 // Fill pattern — 1-bar percussion break
 const FILL_PATTERN = {
   snare:   [0,0,1,0, 0,1,0,1, 1,0,1,0, 1,1,1,1],
-  tom_hi:  [1,0,0,0, 1,0,0,0, 0,0,0,1, 0,0,0,0],
-  tom_lo:  [0,0,0,1, 0,0,1,0, 0,1,0,0, 0,0,0,0],
+  tom:     [1,0,0,1, 1,0,1,0, 0,1,0,1, 0,0,0,0],
   kick:    [1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1],
   cymbal:  [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1],
 };
@@ -100,6 +99,9 @@ class YamaBruhDrums {
     this._nextStepTime = 0;
     this._timerId = null;
 
+    // Drum bank
+    this.currentBank = 0;
+
     // Callbacks
     this.onStep = null;     // (step, totalSteps) => {}
     this.onStop = null;     // () => {}
@@ -121,10 +123,24 @@ class YamaBruhDrums {
     this.ready = true;
   }
 
-  trigger(sound, velocity) {
+  trigger(sound, velocity, midiNote) {
     if (!this.drumNode) return;
-    this.drumNode.port.postMessage({ type: 'drum', sound, velocity });
+    this.drumNode.port.postMessage({ type: 'drum', sound, velocity, note: midiNote || 0 });
   }
+
+  setBank(index) {
+    this.currentBank = Math.max(0, Math.min(7, index));
+    if (this.drumNode) {
+      this.drumNode.port.postMessage({ type: 'setBank', bank: this.currentBank });
+    }
+  }
+
+  getBankName(index) {
+    const names = ['Standard', 'Electronic', 'Power', 'Brush', 'Orchestra', 'Synth', 'Latin', 'Lo-Fi'];
+    return names[index] || 'Unknown';
+  }
+
+  getBankCount() { return 8; }
 
   getPatternName(index) {
     return RHYTHM_NAMES[index] || 'Unknown';
@@ -207,7 +223,7 @@ class YamaBruhDrums {
     const steps = this.filling ? 16 : (activePat._steps || 16);
 
     // Trigger sounds for this step
-    const sounds = ['kick','snare','hihat_c','hihat_o','clap','tom_hi','tom_lo','rimshot','cowbell','cymbal'];
+    const sounds = ['kick','snare','hihat_c','hihat_o','clap','tom','rimshot','cowbell','cymbal'];
     for (const sound of sounds) {
       const row = activePat[sound];
       if (!row) continue;

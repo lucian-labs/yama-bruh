@@ -150,16 +150,21 @@
       float fineGrn = noise(uv * 800.0);
       col += (fineGrn - 0.5) * 0.012 * u_grain;
 
-      // Scratches — horizontal bias
-      for (int i = 0; i < 4; i++) {
+      // Scratches — tight random hairlines at varied angles
+      for (int i = 0; i < 8; i++) {
         float fi = float(i);
-        vec2 suv = uv * vec2(0.8, 50.0 + fi * 12.0) + vec2(fi * 17.3, fi * 31.7);
+        float angle = hash(vec2(fi * 73.1, fi * 29.3)) * 3.14159;
+        float ca = cos(angle); float sa = sin(angle);
+        vec2 ruv = vec2(ca * uv.x + sa * uv.y, -sa * uv.x + ca * uv.y);
+        vec2 suv = ruv * vec2(1.2, 120.0 + fi * 40.0) + vec2(fi * 17.3, fi * 31.7);
         float s = noise(suv);
-        col += smoothstep(0.49, 0.5, s) * 0.025 * u_scratches;
+        col += smoothstep(0.49, 0.50, s) * 0.02 * u_scratches;
       }
-      // Diagonal micro-scratches
-      float diag = noise(uv * vec2(30.0, 30.0) + vec2(uv.y * 20.0, uv.x * 20.0));
-      col += smoothstep(0.48, 0.5, diag) * 0.015 * u_scratches;
+      // Fine cross-hatching micro-scratches
+      float diag1 = noise(uv * vec2(60.0, 80.0) + vec2(uv.y * 40.0, uv.x * 15.0));
+      col += smoothstep(0.49, 0.50, diag1) * 0.012 * u_scratches;
+      float diag2 = noise(uv * vec2(80.0, 60.0) + vec2(uv.y * 15.0, -uv.x * 40.0));
+      col += smoothstep(0.49, 0.50, diag2) * 0.010 * u_scratches;
 
       // Dust — heavier in corners and edges
       float edgeDist = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
@@ -168,9 +173,20 @@
       float dustPattern = dustBase * 0.4 + dustEdge * 0.6;
       vec3 dustCol = vec3(0.15, 0.14, 0.12);
       col = mix(col, dustCol, dustPattern * u_dust * 0.15);
-      // Dust specks
-      float specks = noise(uv * 200.0 + 500.0);
-      col += smoothstep(0.7, 0.72, specks) * vec3(0.04, 0.035, 0.03) * u_dust;
+      // Dust particles — long thin fibres at random angles
+      for (int i = 0; i < 6; i++) {
+        float fi = float(i);
+        float angle = hash(vec2(fi * 53.7, fi * 91.2 + 7.0)) * 3.14159;
+        float ca = cos(angle); float sa = sin(angle);
+        vec2 ruv = vec2(ca * uv.x + sa * uv.y, -sa * uv.x + ca * uv.y);
+        // Stretch heavily on one axis for long thin fibres
+        vec2 duv = ruv * vec2(3.0, 600.0 + fi * 200.0) + vec2(fi * 43.1, fi * 67.9 + 500.0);
+        float fibre = noise(duv);
+        col += smoothstep(0.48, 0.50, fibre) * vec3(0.035, 0.03, 0.025) * u_dust;
+      }
+      // Fine dust specks
+      float specks = noise(uv * 300.0 + 500.0);
+      col += smoothstep(0.72, 0.73, specks) * vec3(0.03, 0.025, 0.02) * u_dust;
 
       // Specular highlight from mouse (lamp effect)
       vec2 mUV = u_mouse / u_resolution;
@@ -438,17 +454,21 @@
     const entry = vbGrid.querySelector(`[data-preset="${currentPreset}"]`);
     if (entry) {
       entry.classList.add('active');
-      // Scroll into view if needed
+      // Scroll horizontally into view (column-wrap grid scrolls on x-axis)
       const gridRect = vbGrid.getBoundingClientRect();
       const entryRect = entry.getBoundingClientRect();
-      if (entryRect.top < gridRect.top || entryRect.bottom > gridRect.bottom) {
-        entry.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      if (entryRect.left < gridRect.left || entryRect.right > gridRect.right) {
+        entry.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
       }
     }
   }
 
   function selectPreset(num) {
-    currentPreset = Math.max(0, Math.min(98, num));
+    // Clear any tweaked cache for the old preset so it reverts to defaults
+    window.synth._presetCache.delete(currentPreset);
+    currentPreset = Math.max(0, Math.min(99, num));
+    // Also clear cache for the new preset (in case it was tweaked in a prior session)
+    window.synth._presetCache.delete(currentPreset);
     updateDisplay();
     window.synth._sendPreset();
     localStorage.setItem('yamabruh_preset', currentPreset);
@@ -459,8 +479,10 @@
     if (tb && tb.classList.contains('open')) {
       const params = window.synth.getPresetParams(currentPreset);
       document.querySelectorAll('.tweak-param input[type="range"]').forEach((slider, i) => {
-        slider.value = params[i];
-        slider.nextElementSibling.textContent = params[i].toFixed(2);
+        if (i < params.length) {
+          slider.value = params[i];
+          slider.nextElementSibling.textContent = params[i].toFixed(2);
+        }
       });
     }
     // Auto-save preset to active MIDI channel
@@ -474,6 +496,16 @@
         }
       }
     }
+    // Scroll voice bank grid to show selected preset
+    const vbGrid = document.getElementById('vb-grid');
+    if (vbGrid) {
+      const entry = vbGrid.children[currentPreset];
+      if (entry) entry.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    // Highlight active entry in voice bank
+    document.querySelectorAll('.vb-entry').forEach((el, i) => {
+      el.classList.toggle('active', i === currentPreset);
+    });
   }
 
   function enterDigit(d) {
@@ -804,7 +836,13 @@
   }
 
   function getTweakParams() {
-    return tweakSliders.map(s => parseFloat(s.value));
+    // Get slider values (first 8 params) and merge with full preset's extended params [8-15]
+    const base = window.synth.getPresetParams(currentPreset);
+    const params = base.slice(); // copy all 16
+    tweakSliders.forEach((s, i) => {
+      params[i] = parseFloat(s.value);
+    });
+    return params;
   }
 
   function sendTweakToWorklet() {
@@ -812,6 +850,8 @@
     if (window.synth.workletNode) {
       window.synth.workletNode.port.postMessage({ type: 'preset', params });
     }
+    // Override preset cache so MIDI/keyboard notes also use tweaked values
+    window.synth._presetCache.set(currentPreset, params);
     // Update value displays
     tweakSliders.forEach((slider, i) => {
       tweakVals[i].textContent = parseFloat(slider.value).toFixed(2);
@@ -827,6 +867,75 @@
     loadTweakFromPreset();
     window.synth._sendPreset();
   });
+
+  // ── MIDI Learn Mode ────────────────────────────────────────────────
+  const learnBtn = document.getElementById('tweak-learn');
+  let learnMode = false;
+  let learnTarget = null; // index of slider waiting for CC
+  const ccMap = JSON.parse(localStorage.getItem('yamabruh_cc_map') || '{}');
+  // Reverse map: CC number → slider index
+  const ccToSlider = {};
+  for (const [idx, cc] of Object.entries(ccMap)) {
+    ccToSlider[cc] = parseInt(idx);
+  }
+
+  function setLearnMode(on) {
+    learnMode = on;
+    learnTarget = null;
+    learnBtn.classList.toggle('active', on);
+    learnBtn.textContent = on ? 'LEARNING...' : 'LEARN';
+    // Remove any pending highlight
+    tweakSliders.forEach(s => s.classList.remove('learn-waiting'));
+    document.getElementById('lcd-info').textContent = on ? 'CLICK A FADER, THEN MOVE A KNOB' : 'LEARN OFF';
+  }
+
+  learnBtn.addEventListener('click', () => {
+    setLearnMode(!learnMode);
+  });
+
+  // Click a slider in learn mode → mark it as waiting for CC
+  tweakSliders.forEach((slider, i) => {
+    slider.addEventListener('pointerdown', () => {
+      if (!learnMode) return;
+      learnTarget = i;
+      tweakSliders.forEach(s => s.classList.remove('learn-waiting'));
+      slider.classList.add('learn-waiting');
+      const paramName = tweakIds[i].replace('tw-', '').toUpperCase();
+      document.getElementById('lcd-info').textContent = 'MOVE KNOB FOR: ' + paramName;
+    });
+  });
+
+  // CC callback — learn or apply mapped CCs
+  window.midiManager.onCC = (cc, val) => {
+    if (learnMode && learnTarget !== null) {
+      // Map this CC to the selected slider
+      // Remove any old mapping for this CC
+      for (const [idx, oldCc] of Object.entries(ccMap)) {
+        if (oldCc === cc) {
+          delete ccMap[idx];
+          delete ccToSlider[cc];
+        }
+      }
+      ccMap[learnTarget] = cc;
+      ccToSlider[cc] = learnTarget;
+      localStorage.setItem('yamabruh_cc_map', JSON.stringify(ccMap));
+      const paramName = tweakIds[learnTarget].replace('tw-', '').toUpperCase();
+      document.getElementById('lcd-info').textContent = 'CC' + cc + ' → ' + paramName;
+      tweakSliders[learnTarget].classList.remove('learn-waiting');
+      learnTarget = null;
+      return;
+    }
+
+    // Apply mapped CCs to sliders
+    const sliderIdx = ccToSlider[cc];
+    if (sliderIdx !== undefined && tweakSliders[sliderIdx]) {
+      const slider = tweakSliders[sliderIdx];
+      const min = parseFloat(slider.min);
+      const max = parseFloat(slider.max);
+      slider.value = min + (val / 127) * (max - min);
+      sendTweakToWorklet();
+    }
+  };
 
   // ── MIDI Channel Grid ──────────────────────────────────────────────
   const chGrid = document.getElementById('ch-grid');
@@ -889,6 +998,11 @@
       const chPreset = window.midiManager.getChannelPreset(ch);
       selectPreset(chPreset);
     }
+  };
+
+  // MIDI Program Change: update preset selector when PC message received
+  window.midiManager.onPresetChange = (preset) => {
+    selectPreset(preset);
   };
 
   // ── Visual Config UI ──────────────────────────────────────────────

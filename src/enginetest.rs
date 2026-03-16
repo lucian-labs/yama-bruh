@@ -17,7 +17,7 @@ struct Voice {
     note: i32, freq: f32, velocity: f32,
     cp: f32, mp: f32, pm: f32,
     es: u8, el: f32, et: f32, rl: f32,
-    age: f32, p: [f32; 8],
+    age: f32, p: [f32; 16],
 }
 
 // Minimal ring buffer

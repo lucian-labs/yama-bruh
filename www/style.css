@@ -814,6 +814,55 @@ pre.code-snippet {
   background: linear-gradient(180deg, #333 0%, #222 100%);
 }
 
+.tweak-btn-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tweak-btn-row .tweak-reset {
+  margin-top: 0;
+  flex: 1;
+}
+
+.tweak-learn {
+  padding: 8px 16px;
+  border: 1px solid #333;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+  color: #888;
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.tweak-learn:hover {
+  background: linear-gradient(180deg, #333 0%, #222 100%);
+  color: #cc8822;
+}
+
+.tweak-learn.active {
+  background: linear-gradient(180deg, #3a2a1a 0%, #2a1a0a 100%);
+  color: #ffaa33;
+  border-color: #cc8822;
+  animation: learn-pulse 1s ease-in-out infinite;
+}
+
+@keyframes learn-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Slider waiting for CC assignment */
+.tweak-param input[type="range"].learn-waiting {
+  outline: 2px solid #ffaa33;
+  outline-offset: 2px;
+  animation: learn-pulse 0.8s ease-in-out infinite;
+}
+
 /* ── Visual Config TOD Controls ───────────────────────────────────── */
 .tod-controls {
   display: flex;

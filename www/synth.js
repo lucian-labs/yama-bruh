@@ -140,16 +140,10 @@ class YamaBruhSynth {
 
   getPresetParams(index) {
     if (this._presetCache.has(index)) return this._presetCache.get(index);
-    const params = [
-      this.wasm.get_preset_param(index, 0),
-      this.wasm.get_preset_param(index, 1),
-      this.wasm.get_preset_param(index, 2),
-      this.wasm.get_preset_param(index, 3),
-      this.wasm.get_preset_param(index, 4),
-      this.wasm.get_preset_param(index, 5),
-      this.wasm.get_preset_param(index, 6),
-      this.wasm.get_preset_param(index, 7),
-    ];
+    const params = [];
+    for (let pi = 0; pi < 16; pi++) {
+      params.push(this.wasm.get_preset_param(index, pi));
+    }
     this._presetCache.set(index, params);
     return params;
   }
@@ -229,7 +223,8 @@ class YamaBruhSynth {
   }
 
   setCustomParams(params) {
-    const keys = ['carrierRatio','modRatio','modIndex','attack','decay','sustain','release','feedback'];
+    const keys = ['carrierRatio','modRatio','modIndex','attack','decay','sustain','release','feedback',
+      'carrierWave','modWave','tremolo','chipVibrato','ksr','ksl','modLevel','egType'];
     keys.forEach((k, i) => {
       if (params[k] !== undefined) {
         this.wasm.set_custom_param(i, params[k]);
