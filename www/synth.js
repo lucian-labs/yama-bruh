@@ -21,7 +21,7 @@ const PRESET_NAMES = [
   'Handsaw','Synth Brass','Metallic Synth','Sine Wave','Reverse',
   'Human Voice 1','Human Voice 2','Human Voice 3','Whisper','Whistle',
   'Gurgle','Bubble','Raindrop','Popcorn','Drip',
-  'Dog Pianist','Duck','Babydoll','Telephone Bell','Emergency Alarm',
+  'Dog Pianist','Duck','Baby Doll','Telephone Bell','Emergency Alarm',
   'Leaf Spring','Comet','Fireworks','Crystal','Ghost',
   'Hand Bell','Chimes','Bell','Steel Drum','Cowbell',
   'Synth Tom 1','Synth Tom 2','Snare Drum','Machine Gun','Wave'
@@ -140,9 +140,16 @@ class YamaBruhSynth {
 
   getPresetParams(index) {
     if (this._presetCache.has(index)) return this._presetCache.get(index);
-    const params = [];
-    for (let pi = 0; pi < 16; pi++) {
-      params.push(this.wasm.get_preset_param(index, pi));
+    // Use JS preset array (includes modulator envelope at indices 16-20)
+    const idx = Math.max(0, Math.min(99, index));
+    const params = (typeof YAMABRUH_PRESETS !== 'undefined' && YAMABRUH_PRESETS[idx])
+      ? [...YAMABRUH_PRESETS[idx]]
+      : [];
+    // Fallback to WASM for base 16 params if JS array missing
+    if (params.length === 0) {
+      for (let pi = 0; pi < 16; pi++) {
+        params.push(this.wasm.get_preset_param(index, pi));
+      }
     }
     this._presetCache.set(index, params);
     return params;

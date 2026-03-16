@@ -22,6 +22,7 @@ class MIDIManager {
     this.onChannelChange = null; // (channel) => {}
     this.onPresetChange = null;  // (preset) => {}
     this.onCC = null;            // (cc, value) => {} — for MIDI learn
+    this.lastError = null;       // last connection error message
 
     this._loadChannelMap();
   }
@@ -58,7 +59,10 @@ class MIDIManager {
   }
 
   async connect() {
-    if (!navigator.requestMIDIAccess) return false;
+    if (!navigator.requestMIDIAccess) {
+      this.lastError = 'MIDI API blocked (disable MetaMask or use Incognito)';
+      return false;
+    }
 
     try {
       this.access = await navigator.requestMIDIAccess({ sysex: false });
@@ -66,9 +70,11 @@ class MIDIManager {
       this._updateDeviceList();
       await this._openAllAndBind();
       this.connected = true;
+      this.lastError = null;
       if (this.onStateChange) this.onStateChange(true);
       return true;
     } catch (e) {
+      this.lastError = e.message || 'MIDI access denied';
       return false;
     }
   }

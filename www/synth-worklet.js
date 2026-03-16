@@ -58,7 +58,10 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
           curFreq: startFreq,
           velocity: msg.velocity,
           cp: 0, mp: 0, pm: 0,
+          // Carrier envelope
           es: 0, el: 0, et: 0, rl: 0,
+          // Modulator envelope
+          mes: 0, mel: 0, met: 0, mrl: 0,
           age: 0,
           p: msg.preset || this.preset,
         });
@@ -70,6 +73,12 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
             v.es = 3;
             v.et = 0;
             v.rl = v.el;
+            // Modulator release too
+            if (v.mes < 3) {
+              v.mes = 3;
+              v.met = 0;
+              v.mrl = v.mel;
+            }
           }
         }
         break;
@@ -206,6 +215,12 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
         const ksl = p[13] || 0;          // key scale level (dB/oct)
         const modLevel = p[14] !== undefined ? p[14] : 1;  // mod output level
         const egType = p[15] || 0;       // 0=sustained, 1=percussive
+        // Modulator envelope (indices 16-19), defaults = carrier envelope if absent
+        const mAtk = p[16] !== undefined ? p[16] : atk;
+        const mDec = p[17] !== undefined ? p[17] : dec;
+        const mSus = p[18] !== undefined ? p[18] : sus;
+        const mRel = p[19] !== undefined ? p[19] : rel;
+        const mEgType = p[20] !== undefined ? p[20] : egType;
 
         // Chip vibrato + user vibrato combined
         const freqMult = 1 + (chipVib > 0 ? chipVib * chipVibVal : 0) + vibMod;
@@ -238,7 +253,43 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
         v.age += dt;
         if (v.age > 30) { this.voices.splice(vi, 1); continue; }
 
-        // ── Envelope (ADSR with KSR scaling) ──
+        // ── Modulator Envelope (separate ADSR) ──
+        let mEnv;
+        v.met += dt;
+
+        // KSR scaling for modulator too
+        let mAtkS = mAtk, mDecS = mDec, mRelS = mRel;
+        if (ksr > 0) {
+          const octave = Math.log2(baseFreq / 440);
+          const ksrFactor = Math.pow(2, -ksr * octave);
+          mAtkS *= ksrFactor;
+          mDecS *= ksrFactor;
+          mRelS *= ksrFactor;
+        }
+
+        if (v.mes === 0) {
+          mEnv = mAtkS > 0.0001 ? v.met / mAtkS : 1;
+          if (mEnv >= 1) { mEnv = 1; v.mes = 1; v.met = 0; }
+          v.mel = mEnv;
+        } else if (v.mes === 1) {
+          const t = mDecS > 0.0001 ? v.met / mDecS : 1;
+          mEnv = t >= 1 ? mSus : 1 - (1 - mSus) * t;
+          if (t >= 1) { v.mes = 2; v.met = 0; }
+          v.mel = mEnv;
+        } else if (v.mes === 2) {
+          if (mEgType > 0.5) {
+            const percDecay = mSus * Math.pow(0.5, v.met / (mDec * 2 + 0.01));
+            mEnv = percDecay > 0.001 ? percDecay : 0;
+          } else {
+            mEnv = mSus;
+          }
+          v.mel = mEnv;
+        } else {
+          const t = mRelS > 0.0001 ? v.met / mRelS : 1;
+          mEnv = t >= 1 ? 0 : v.mrl * (1 - t);
+        }
+
+        // ── Carrier Envelope (ADSR with KSR scaling) ──
         let env;
         v.et += dt;
 
@@ -268,8 +319,10 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
         }
 
         // ── 2-op FM with YM2413 waveforms ──
-        const ms = _waveform(v.mp + fb * v.pm, mWave) * modLevel;
-        v.pm = ms;
+        // Feedback uses raw (pre-envelope) modulator — hardware-accurate
+        const msRaw = _waveform(v.mp + fb * v.pm, mWave);
+        v.pm = msRaw; // feedback loop stays alive regardless of mod envelope
+        const ms = msRaw * modLevel * mEnv; // envelope only scales output to carrier
         const voiceSample = _waveform(v.cp + mi * ms, cWave) * env * v.velocity * 0.35 * trem * kslAtten;
 
         // NaN guard
