@@ -640,11 +640,7 @@ h1 {
 
     <aside class="sidebar">
       <div class="preset-sidebar">
-        <h2>PRESETS</h2>
-        <div class="mini-label">Saved locally from the current YM2413 register state.</div>
-        <div class="preset-list" id="preset-list"></div>
-
-        <div class="community-section">
+        <div class="community-section" style="margin-top:0;padding-top:0;border-top:none">
           <h2>COMMUNITY</h2>
           <div class="mini-label">Curated presets from Lucian Labs.</div>
           <div class="community-list" id="community-list">
@@ -654,7 +650,8 @@ h1 {
 
         <div class="admin-bar" id="admin-bar">
           <div class="admin-login" id="admin-login">
-            <input type="password" id="admin-key" placeholder="API key">
+            <input type="text" id="admin-user" placeholder="username" autocomplete="username">
+            <input type="password" id="admin-key" placeholder="password" autocomplete="current-password">
             <button class="chip-btn" id="btn-admin-login">LOGIN</button>
           </div>
           <div id="admin-panel" style="display:none">
@@ -662,6 +659,12 @@ h1 {
             <button class="chip-btn" id="btn-upload-preset">UPLOAD CURRENT PRESET</button>
             <button class="chip-btn" id="btn-admin-logout" style="margin-top:4px;border-color:#5a3030;color:#d46060">LOGOUT</button>
           </div>
+        </div>
+
+        <div class="community-section">
+          <h2>PRESETS</h2>
+          <div class="mini-label">Saved locally from the current YM2413 register state.</div>
+          <div class="preset-list" id="preset-list"></div>
         </div>
       </div>
     </aside>
@@ -1150,13 +1153,14 @@ h1 {
     const next = Math.max(0, Math.min(255, value | 0));
     if (registers[index] === next) return;
     const shouldClearPreset = options.clearPreset !== false && activePresetId !== null;
+    const shouldClearSystemPreset = options.clearSystemPreset !== false && activeSystemPresetIndex !== null;
     if (shouldClearPreset) activePresetId = null;
-    if (options.clearSystemPreset !== false && activeSystemPresetIndex !== null) activeSystemPresetIndex = null;
+    if (shouldClearSystemPreset) activeSystemPresetIndex = null;
     registers[index] = next;
     const interactiveView = activeView === 'operator' || activeView === 'registers';
     syncAll({
       rerenderEditor: options.rerenderEditor ?? !interactiveView,
-      renderPresets: options.renderPresets ?? shouldClearPreset,
+      renderPresets: options.renderPresets ?? (shouldClearPreset || shouldClearSystemPreset),
     });
   }
 
@@ -1759,6 +1763,7 @@ h1 {
   const adminLoginEl = document.getElementById('admin-login');
   const adminPanelEl = document.getElementById('admin-panel');
   let adminApiKey = sessionStorage.getItem('ymwave_admin_key') || '';
+  let adminUser = sessionStorage.getItem('ymwave_admin_user') || '';
 
   if (adminApiKey) showAdminPanel();
 
@@ -1823,28 +1828,35 @@ h1 {
   function showAdminPanel() {
     adminLoginEl.style.display = 'none';
     adminPanelEl.style.display = 'block';
+    document.getElementById('admin-status').textContent = adminUser ? adminUser.toUpperCase() : 'AUTHENTICATED';
   }
 
   document.getElementById('btn-admin-login').addEventListener('click', async () => {
+    const user = document.getElementById('admin-user').value.trim();
     const key = document.getElementById('admin-key').value.trim();
-    if (!key) return;
+    if (!user || !key) return;
     try {
       const res = await fetch(GC_API + '/api/presets/auth', { headers: { 'X-API-Key': key } });
       if (!res.ok) throw new Error();
       adminApiKey = key;
+      adminUser = user;
       sessionStorage.setItem('ymwave_admin_key', key);
+      sessionStorage.setItem('ymwave_admin_user', user);
       showAdminPanel();
       fetchCommunityPresets();
     } catch {
-      alert('Invalid API key');
+      alert('Invalid credentials');
     }
   });
 
   document.getElementById('btn-admin-logout').addEventListener('click', () => {
     adminApiKey = '';
+    adminUser = '';
     sessionStorage.removeItem('ymwave_admin_key');
+    sessionStorage.removeItem('ymwave_admin_user');
     adminLoginEl.style.display = 'grid';
     adminPanelEl.style.display = 'none';
+    document.getElementById('admin-user').value = '';
     document.getElementById('admin-key').value = '';
     fetchCommunityPresets();
   });
@@ -1865,7 +1877,7 @@ h1 {
           app: 'ymwave',
           registers: [...registers],
           registerHex: registersToHex(),
-          author: 'Lucian Labs',
+          author: adminUser || 'Lucian Labs',
         }),
       });
       if (!res.ok) throw new Error('Upload failed: ' + res.status);
