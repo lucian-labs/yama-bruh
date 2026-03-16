@@ -1,5 +1,7 @@
 # YAMA-BRUH
 
+![YAMA-BRUH](https://lucianlabs.ca/blog/img/yama-bruh/nameplate.webp)
+
 WebAssembly 2-op FM synth ringtone generator. Generates deterministic 3-5 tone ringtones from unique IDs using a seeded PRNG and FM synthesis — 99 presets inspired by 90s Yamaha keyboards.
 
 **[Synth Demo →](https://yama-bruh.lucianlabs.ca/)** · **[Ringtones Demo →](https://yama-bruh.lucianlabs.ca/ringtones.html)**
