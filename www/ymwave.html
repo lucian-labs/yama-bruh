@@ -3,853 +3,1526 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YMWAVE — Sound Designer</title>
+  <title>YMWAVE — YM2413 Views</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-HJPFEY11D7"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-HJPFEY11D7')</script>
   <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; font-family: 'Courier New', monospace; background: #111; color: #ccc; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  min-height: 100%;
+  font-family: 'Courier New', monospace;
+  background:
+    radial-gradient(circle at top, rgba(32, 96, 78, 0.16), transparent 36%),
+    linear-gradient(180deg, #111 0%, #090909 100%);
+  color: #cfcfc4;
+}
 
 #app {
-  max-width: 720px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 20px 16px 60px;
+  padding: 24px 16px 64px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+  align-items: start;
+}
+
+.main-column {
+  min-width: 0;
+}
+
+.sidebar {
+  position: sticky;
+  top: 20px;
 }
 
 h1 {
   font-size: 18px;
   letter-spacing: 6px;
-  color: #22ccaa;
-  margin-bottom: 4px;
+  color: #28d2a7;
+  margin-bottom: 6px;
 }
+
 .subtitle {
   font-size: 10px;
-  color: #555;
+  color: #5e746c;
   letter-spacing: 2px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
-/* ── Layer tabs ── */
-.layer-bar {
+.hero {
+  padding: 14px;
+  margin-bottom: 18px;
+  border: 1px solid #1d342e;
+  border-radius: 4px;
+  background: rgba(8, 16, 14, 0.85);
+  color: #95ad9f;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.view-bar,
+.export-bar,
+.midi-bar,
+.rhythm-row,
+.register-strip {
   display: flex;
-  gap: 6px;
-  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
 }
-.layer-tab {
-  padding: 6px 14px;
-  border: 1px solid #333;
-  border-radius: 3px;
-  background: rgba(0,0,0,0.3);
-  color: #888;
+
+.view-bar { margin-bottom: 14px; }
+
+.view-tab,
+.export-btn,
+.chip-btn {
+  padding: 7px 12px;
+  border: 1px solid #28453d;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.28);
+  color: #6e8a7f;
   font-family: inherit;
   font-size: 10px;
-  font-weight: bold;
-  letter-spacing: 2px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.layer-tab.active {
-  color: #22ccaa;
-  border-color: #22ccaa;
-  background: rgba(34,204,170,0.08);
-}
-.layer-tab.muted { opacity: 0.35; }
-.layer-add {
-  padding: 6px 10px;
-  border: 1px dashed #444;
-  border-radius: 3px;
-  background: none;
-  color: #555;
-  font-family: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-.layer-add:hover { color: #22ccaa; border-color: #22ccaa; }
-.layer-remove {
-  padding: 6px 10px;
-  border: 1px solid #442222;
-  border-radius: 3px;
-  background: rgba(80,20,20,0.2);
-  color: #884444;
-  font-family: inherit;
-  font-size: 9px;
   letter-spacing: 1px;
   cursor: pointer;
+  transition: all 0.12s;
 }
-.layer-remove:hover { color: #cc4444; border-color: #cc4444; }
 
-/* ── Section headers ── */
-.section-title {
-  font-size: 9px;
+.view-tab.active,
+.export-btn:hover,
+.chip-btn:hover,
+.chip-btn.active {
+  color: #28d2a7;
+  border-color: #28d2a7;
+  background: rgba(40, 210, 167, 0.08);
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.status-card,
+.panel,
+.operator-card,
+.register-row,
+.derived-grid .derived-card,
+.rhythm-pad,
+.preset-sidebar,
+.preset-item {
+  border: 1px solid #202826;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.status-card {
+  padding: 12px;
+}
+
+.status-card span,
+.panel-label,
+.operator-card label,
+.register-row label,
+.param label,
+.mini-label {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #5d7b70;
+  margin-bottom: 5px;
+}
+
+.status-card strong {
+  display: block;
+  color: #d9f6e8;
+  font-size: 11px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+#editor {
+  min-height: 320px;
+}
+
+.panel {
+  padding: 14px;
+}
+
+.operator-grid,
+.derived-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.operator-card,
+.derived-card {
+  padding: 14px;
+}
+
+.operator-card h2,
+.panel h2 {
+  font-size: 10px;
   letter-spacing: 3px;
-  color: #22ccaa;
-  font-weight: bold;
-  margin: 16px 0 8px;
-  border-bottom: 1px solid #222;
-  padding-bottom: 4px;
+  color: #28d2a7;
+  margin-bottom: 12px;
 }
 
-/* ── Param grid ── */
 .param-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px 16px;
-  margin-bottom: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
 }
+
 .param {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-}
-.param label {
-  font-size: 8px;
-  letter-spacing: 2px;
-  color: #22ccaa;
-  font-weight: bold;
-}
-.param input[type="range"] {
-  width: 100%;
-  height: 4px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: #333;
-  border-radius: 2px;
-  outline: none;
-  cursor: pointer;
-}
-.param input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: #3cc88a;
-  border: 2px solid #111;
-  cursor: pointer;
-}
-.param input[type="range"]::-moz-range-thumb {
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: #3cc88a;
-  border: 2px solid #111;
-  cursor: pointer;
-}
-.param .val {
-  font-size: 9px;
-  color: #666;
-  text-align: right;
-}
-
-/* ── Ratio row (step slider + fine offset) ── */
-.ratio-row {
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-}
-.ratio-row .param { flex: 1; }
-.ratio-row .param:last-child { flex: 0.6; }
-
-/* ── Wave selector (multi-button) ── */
-.wave-select {
-  display: flex;
   gap: 4px;
-  margin-top: 2px;
 }
-.wave-btn {
-  flex: 1;
-  padding: 5px 2px;
-  border: 1px solid #333;
-  border-radius: 3px;
-  background: rgba(0,0,0,0.3);
-  color: #666;
-  font-family: inherit;
-  font-size: 8px;
-  font-weight: bold;
-  letter-spacing: 1px;
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.1s;
-}
-.wave-btn.active {
-  color: #22ccaa;
-  border-color: #22ccaa;
-  background: rgba(34,204,170,0.12);
-}
-.wave-btn:hover { border-color: #555; }
 
-/* ── Toggle buttons ── */
-.toggle-row {
+.param select,
+.param input[type="range"],
+.param input[type="text"],
+.midi-bar select {
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid #25312d;
+  border-radius: 4px;
+  background: #0f1312;
+  color: #d9f6e8;
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.param input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+}
+
+.check-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.check-tile {
+  padding: 8px;
+  border: 1px solid #22352f;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.wave-row {
   display: flex;
   gap: 6px;
-  margin: 8px 0;
-}
-.toggle-btn {
-  padding: 5px 12px;
-  border: 1px solid #333;
-  border-radius: 3px;
-  background: rgba(0,0,0,0.3);
-  color: #555;
-  font-family: inherit;
-  font-size: 8px;
-  font-weight: bold;
-  letter-spacing: 2px;
-  cursor: pointer;
-  transition: all 0.1s;
-}
-.toggle-btn.active {
-  color: #22ccaa;
-  border-color: #22ccaa;
-  background: rgba(34,204,170,0.1);
-}
-
-/* ── Export section ── */
-.export-bar {
-  display: flex;
-  gap: 8px;
-  margin-top: 24px;
-}
-.export-btn {
-  padding: 8px 20px;
-  border: 1px solid #22ccaa;
-  border-radius: 3px;
-  background: rgba(34,204,170,0.08);
-  color: #22ccaa;
-  font-family: inherit;
-  font-size: 10px;
-  font-weight: bold;
-  letter-spacing: 2px;
-  cursor: pointer;
-}
-.export-btn:hover { background: rgba(34,204,170,0.15); }
-.export-btn.secondary { border-color: #555; color: #888; background: rgba(0,0,0,0.2); }
-.export-btn.secondary:hover { border-color: #888; }
-#export-output {
   margin-top: 12px;
-  padding: 12px;
-  background: rgba(0,0,0,0.4);
-  border: 1px solid #222;
-  border-radius: 3px;
-  font-size: 10px;
-  color: #3cc88a;
-  white-space: pre-wrap;
-  word-break: break-all;
-  display: none;
-  max-height: 300px;
-  overflow-y: auto;
 }
 
-/* ── Keyboard ── */
+.wave-btn {
+  flex: 1;
+  padding: 8px;
+  font-size: 9px;
+}
+
+.register-strip {
+  margin-bottom: 12px;
+}
+
+.register-pill {
+  padding: 7px 10px;
+  border: 1px solid #20322d;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.24);
+  color: #d2f3e5;
+  font-size: 10px;
+}
+
+.register-list {
+  display: grid;
+  gap: 10px;
+}
+
+.register-row {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 100px 100px minmax(180px, 1fr) 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.register-meta {
+  font-size: 10px;
+  color: #96ada1;
+  line-height: 1.5;
+}
+
+.bitline {
+  font-size: 9px;
+  color: #6f857a;
+  margin-top: 4px;
+}
+
+.derived-grid .derived-card {
+  padding: 12px;
+}
+
+.derived-grid dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 10px;
+  font-size: 10px;
+}
+
+.derived-grid dt { color: #7c9488; }
+.derived-grid dd { color: #d7f3e6; }
+
+.rhythm-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.rhythm-pad {
+  padding: 14px 10px;
+  text-align: center;
+}
+
+.rhythm-pad .chip-btn {
+  width: 100%;
+}
+
+.rhythm-note {
+  margin-top: 10px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #9ab2a6;
+}
+
+.midi-bar {
+  margin: 18px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #202826;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.26);
+}
+
+.midi-bar select { flex: 1; }
+
+.midi-status {
+  font-size: 9px;
+  color: #6f857a;
+  letter-spacing: 1px;
+}
+
 .keyboard {
   display: flex;
-  height: 80px;
-  margin-top: 16px;
+  height: 88px;
+  margin-top: 14px;
   position: relative;
   user-select: none;
 }
+
 .key {
   flex: 1;
-  border: 1px solid #333;
+  border: 1px solid #2a302e;
   border-radius: 0 0 3px 3px;
-  background: linear-gradient(180deg, #e8e4dc, #d0ccc4);
+  background: linear-gradient(180deg, #ede9dc, #d2cdc1);
   cursor: pointer;
   position: relative;
 }
-.key:active, .key.pressed { background: linear-gradient(180deg, #c0bbb3, #a8a49c); }
+
 .key.black {
-  background: linear-gradient(180deg, #2a2a2a, #1a1a1a);
-  height: 55px;
+  background: linear-gradient(180deg, #2b2b2b, #181818);
+  height: 58px;
   margin: 0 -6px;
   z-index: 2;
-  flex: 0 0 20px;
-  border-color: #111;
+  flex: 0 0 22px;
+  border-color: #0d0d0d;
 }
-.key.black:active, .key.black.pressed { background: linear-gradient(180deg, #333, #222); }
 
-/* ── Mute toggle on layer tab ── */
-.mute-indicator { font-size: 7px; margin-left: 4px; opacity: 0.6; }
+.key.pressed { filter: brightness(0.88); }
 
-/* ── MIDI bar ── */
-.midi-bar {
-  display: flex;
+.export-bar {
+  margin-top: 20px;
+}
+
+.export-btn {
+  border-color: #355248;
+  color: #c4dbcf;
+}
+
+#export-output {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid #1d2422;
+  border-radius: 4px;
+  font-size: 10px;
+  color: #aef0d4;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: none;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.preset-sidebar {
+  padding: 14px;
+}
+
+.preset-sidebar h2 {
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #28d2a7;
+  margin-bottom: 12px;
+}
+
+.preset-sidebar .mini-label {
+  margin-bottom: 10px;
+}
+
+.preset-list {
+  display: grid;
   gap: 8px;
-  align-items: center;
-  margin: 16px 0 8px;
-  padding: 8px 12px;
-  background: rgba(0,0,0,0.3);
-  border: 1px solid #222;
-  border-radius: 3px;
-}
-.midi-bar select {
-  flex: 1;
-  padding: 4px 8px;
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 3px;
-  color: #888;
-  font-family: inherit;
-  font-size: 9px;
-}
-.midi-status {
-  font-size: 9px;
-  color: #555;
-  letter-spacing: 1px;
+  max-height: 620px;
+  overflow-y: auto;
 }
 
-@media (max-width: 500px) {
-  .param-grid { grid-template-columns: 1fr; }
+.preset-item {
+  padding: 10px;
+}
+
+.preset-item.active {
+  border-color: #28d2a7;
+  background: rgba(40, 210, 167, 0.08);
+}
+
+.preset-name {
+  font-size: 10px;
+  color: #d9f6e8;
+  margin-bottom: 4px;
+}
+
+.preset-meta {
+  font-size: 9px;
+  color: #81988d;
+  margin-bottom: 8px;
+}
+
+.preset-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.preset-actions .chip-btn {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 9px;
+}
+
+.fun-footer {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px dashed #3a4d47;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.fun-footer-title {
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: #8aa095;
+  margin-bottom: 10px;
+}
+
+.fun-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fun-copy {
+  font-size: 10px;
+  color: #a6bbb1;
+  line-height: 1.5;
+}
+
+.fun-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #d9f6e8;
+}
+
+@media (max-width: 760px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+  }
+
+  .status-grid,
+  .operator-grid,
+  .derived-grid,
+  .rhythm-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .param-grid,
+  .check-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .register-row {
+    grid-template-columns: 1fr;
+  }
 }
   </style>
 </head>
 <body>
 <div id="app">
-  <h1>YMWAVE</h1>
-  <div class="subtitle">YM2413 OPLL SOUND DESIGNER</div>
+  <div class="layout">
+    <div class="main-column">
+      <h1>YMWAVE</h1>
+      <div class="subtitle">MULTIPLE VIEWS OF THE YM2413 USER TONE</div>
 
-  <!-- Layer tabs -->
-  <div class="layer-bar" id="layer-bar">
-    <button class="layer-tab active" data-layer="0">LAYER 1</button>
-    <button class="layer-add" id="add-layer">+</button>
-    <button class="layer-remove" id="remove-layer">DEL</button>
+      <div class="hero">
+        `ymwave` is now the chip-facing view: one YM2413 user tone, shown as synchronized operator controls, raw R#00-R#07 bytes, decoded timing/level data, and rhythm-mode preview pads.
+        The old freeform editor has been split out to <a href="simplym.html" style="color:#28d2a7">`simplym.html`</a>.
+      </div>
+
+      <div class="view-bar" id="view-bar">
+        <button class="view-tab active" data-view="operator">OPERATOR</button>
+        <button class="view-tab" data-view="registers">REGISTERS</button>
+        <button class="view-tab" data-view="derived">DERIVED</button>
+        <button class="view-tab" data-view="rhythm">RHYTHM</button>
+      </div>
+
+      <div class="status-grid">
+        <div class="status-card">
+          <span>MODE</span>
+          <strong>USER TONE / 9-CH MELODY</strong>
+        </div>
+        <div class="status-card">
+          <span>REGISTER BYTES</span>
+          <strong id="register-readout"></strong>
+        </div>
+        <div class="status-card">
+          <span>SUMMARY</span>
+          <strong id="voice-summary"></strong>
+        </div>
+      </div>
+
+      <div id="editor"></div>
+
+      <div class="midi-bar">
+        <button class="chip-btn" id="midi-toggle">MIDI: OFF</button>
+        <select id="midi-device"><option>-- no devices --</option></select>
+        <span class="midi-status" id="midi-status"></span>
+      </div>
+
+      <div class="keyboard" id="keyboard"></div>
+
+      <div class="export-bar">
+        <button class="export-btn" id="btn-save">SAVE</button>
+        <button class="export-btn" id="btn-export">EXPORT JSON</button>
+        <button class="export-btn" id="btn-copy">COPY JSON</button>
+        <button class="export-btn" id="btn-import">LOAD JSON</button>
+        <button class="export-btn" id="btn-copy-regs">COPY REGS</button>
+        <button class="export-btn" id="btn-load-regs">LOAD REGS</button>
+      </div>
+      <pre id="export-output"></pre>
+
+      <div class="fun-footer">
+        <div class="fun-footer-title">FUN</div>
+        <div class="fun-row">
+          <div class="fun-copy">Optional non-chip behavior for layered retriggers.</div>
+          <label class="fun-toggle">
+            <input type="checkbox" id="toggle-choke-same-notes">
+            <span>CHOKE SAME NOTES</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="preset-sidebar">
+        <h2>PRESETS</h2>
+        <div class="mini-label">Saved locally from the current YM2413 register state.</div>
+        <div class="preset-list" id="preset-list"></div>
+      </div>
+    </aside>
   </div>
-
-  <!-- Editor (populated by JS) -->
-  <div id="editor"></div>
-
-  <!-- MIDI -->
-  <div class="midi-bar" id="midi-bar">
-    <button class="toggle-btn" id="midi-toggle">MIDI: OFF</button>
-    <select id="midi-device"><option>-- no devices --</option></select>
-    <span class="midi-status" id="midi-status"></span>
-  </div>
-
-  <!-- Mini keyboard -->
-  <div class="keyboard" id="keyboard"></div>
-
-  <!-- Export -->
-  <div class="export-bar">
-    <button class="export-btn" id="btn-export">EXPORT JSON</button>
-    <button class="export-btn secondary" id="btn-copy">COPY</button>
-    <button class="export-btn secondary" id="btn-import">IMPORT</button>
-  </div>
-  <pre id="export-output"></pre>
 </div>
 
 <script src="yamabruh-notify.js"></script>
 <script src="synth.js"></script>
+<script src="drums.js"></script>
 <script>
 (async function() {
+  const ATTACK_TIMES = [99, 5, 3, 1.8, 1.0, 0.6, 0.35, 0.2, 0.12, 0.07, 0.04, 0.02, 0.01, 0.005, 0.003, 0.001];
+  const DECAY_TIMES = [99, 30, 18, 10, 6, 3.5, 2.0, 1.0, 0.5, 0.3, 0.15, 0.08, 0.04, 0.02, 0.01, 0.005];
+  const MULT_TABLE = [0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 12, 12, 15, 15];
+  const KSL_LABELS = ['0 dB/oct', '1.5 dB/oct', '3 dB/oct', '6 dB/oct'];
+  const FEEDBACK_TABLE = [0, Math.PI / 16, Math.PI / 8, Math.PI / 4, Math.PI / 2, Math.PI, Math.PI * 2, Math.PI * 4];
+  const REGISTER_LABELS = [
+    'R#00 Mod AM/VIB/EG/KSR/MULT',
+    'R#01 Car AM/VIB/EG/KSR/MULT',
+    'R#02 Mod KSL/TL',
+    'R#03 Car KSL/WF/FB',
+    'R#04 Mod AR/DR',
+    'R#05 Car AR/DR',
+    'R#06 Mod SL/RR',
+    'R#07 Car SL/RR',
+  ];
+  const RHYTHM_SOUNDS = [
+    { id: 'kick', label: 'BD', note: 36, name: 'Bass Drum' },
+    { id: 'snare', label: 'SD', note: 38, name: 'Snare Drum' },
+    { id: 'tom', label: 'TOM', note: 45, name: 'Tom' },
+    { id: 'cymbal', label: 'CYM', note: 49, name: 'Cymbal' },
+    { id: 'hihat_c', label: 'HH', note: 42, name: 'Hi-Hat' },
+  ];
+  const DEFAULT_REGISTERS = [0x21, 0x21, 0x14, 0x05, 0xF2, 0xB4, 0x56, 0x74];
+  const STORAGE_KEY = 'ymwave_saved_presets_v1';
+  const CURRENT_STATE_KEY = 'ymwave_current_registers_v1';
+  const MIDI_STATE_KEY = 'ymwave_midi_state_v1';
+  const CHOKE_STATE_KEY = 'ymwave_choke_same_notes_v1';
 
-  // ── Layer state ──
-  const MAX_LAYERS = 8;
-  let layers = [defaultLayer()];
-  let activeLayer = 0;
+  let registers = [...DEFAULT_REGISTERS];
+  let activeView = 'operator';
+  let activePresetId = null;
+  let noteCounter = 0;
+  const activeNotes = new Map();
+  const heldKeys = new Set();
+  let chokeSameNotes = false;
 
-  function defaultLayer() {
+  const synth = new YamaBruhSynth();
+  await synth.init();
+  const drums = new YamaBruhDrums();
+  await drums.init(synth.ctx);
+
+  const editorEl = document.getElementById('editor');
+  const exportOutput = document.getElementById('export-output');
+  const registerReadoutEl = document.getElementById('register-readout');
+  const voiceSummaryEl = document.getElementById('voice-summary');
+  const presetListEl = document.getElementById('preset-list');
+  const chokeToggleEl = document.getElementById('toggle-choke-same-notes');
+
+  function multValue(index) {
+    return MULT_TABLE[Math.max(0, Math.min(15, index | 0))];
+  }
+
+  function rateToAttack(rate) {
+    return ATTACK_TIMES[Math.max(0, Math.min(15, rate | 0))];
+  }
+
+  function rateToDecay(rate) {
+    return DECAY_TIMES[Math.max(0, Math.min(15, rate | 0))];
+  }
+
+  function sustainLevel(sl) {
+    return Math.pow(10, (-3 * sl) / 20);
+  }
+
+  function hexByte(value) {
+    return (value & 0xFF).toString(16).toUpperCase().padStart(2, '0');
+  }
+
+  function registersToHex(values = registers) {
+    return values.map(hexByte).join(' ');
+  }
+
+  function parseRegisters(text) {
+    const trimmed = String(text || '').trim();
+    if (!trimmed) return null;
+    const compact = trimmed.replace(/0x/gi, '').replace(/[^0-9a-f]/gi, '');
+    if (compact.length === 16) {
+      const bytes = [];
+      for (let i = 0; i < 16; i += 2) bytes.push(parseInt(compact.slice(i, i + 2), 16));
+      return bytes;
+    }
+    const parts = trimmed.split(/[\s,]+/).filter(Boolean);
+    if (parts.length !== 8) return null;
+    const bytes = parts.map(part => parseInt(part.replace(/^0x/i, ''), 16));
+    return bytes.every(v => Number.isInteger(v) && v >= 0 && v <= 255) ? bytes : null;
+  }
+
+  function toneState() {
+    const r = registers;
     return {
-      name: 'LAYER 1',
-      muted: false,
-      carrier: { ratio: 1, ratioFine: 0, attack: 0.01, decay: 0.06, sustain: 0.5, release: 0.1, wave: 0, egType: 1, tremolo: false, vibrato: false, sustained: false, ksl: 1, ksr: 0.3 },
-      modulator: { ratio: 1, ratioFine: 0, attack: 0.001, decay: 0.18, sustain: 0.708, release: 0.3, wave: 0, egType: 1, tremolo: false, vibrato: false, sustained: false },
-      modDepth: 0.515,
-      feedback: 0,
-      modLevel: 1,
+      modulator: {
+        am: !!(r[0] & 0x80),
+        vib: !!(r[0] & 0x40),
+        sustained: !!(r[0] & 0x20),
+        ksr: !!(r[0] & 0x10),
+        multIndex: r[0] & 0x0F,
+        mult: multValue(r[0] & 0x0F),
+        ksl: (r[2] >> 6) & 0x03,
+        tl: r[2] & 0x3F,
+        wave: (r[3] & 0x10) ? 1 : 0,
+        ar: (r[4] >> 4) & 0x0F,
+        dr: r[4] & 0x0F,
+        sl: (r[6] >> 4) & 0x0F,
+        rr: r[6] & 0x0F,
+      },
+      carrier: {
+        am: !!(r[1] & 0x80),
+        vib: !!(r[1] & 0x40),
+        sustained: !!(r[1] & 0x20),
+        ksr: !!(r[1] & 0x10),
+        multIndex: r[1] & 0x0F,
+        mult: multValue(r[1] & 0x0F),
+        ksl: (r[3] >> 6) & 0x03,
+        wave: (r[3] & 0x20) ? 1 : 0,
+        ar: (r[5] >> 4) & 0x0F,
+        dr: r[5] & 0x0F,
+        sl: (r[7] >> 4) & 0x0F,
+        rr: r[7] & 0x0F,
+      },
+      feedbackBits: (r[3] >> 1) & 0x07,
     };
   }
 
-  // ── Convert layer to 21-param array ──
-  function layerToParams(l) {
-    const c = l.carrier, m = l.modulator;
-    return [
-      c.ratio + c.ratioFine,
-      m.ratio + m.ratioFine,
-      l.modDepth,
-      c.attack, c.decay, c.sustain, c.release,
-      l.feedback,
-      c.wave, m.wave,
-      c.tremolo ? 0.5 : 0,
-      c.vibrato ? 0.5 : 0,
-      c.ksr,
-      c.ksl,
-      l.modLevel,
-      c.egType,
-      m.attack, m.decay, m.sustain, m.release,
-      m.egType,
-    ];
+  function buildPreset() {
+    const state = toneState();
+    return {
+      feedback: FEEDBACK_TABLE[state.feedbackBits],
+      modDepth: Math.pow(10, (-0.75 * state.modulator.tl) / 20) * 4 * Math.PI,
+      modLevel: 1,
+      modulator: {
+        mult: state.modulator.mult,
+        attack: rateToAttack(state.modulator.ar),
+        decay: rateToDecay(state.modulator.dr),
+        sustain: sustainLevel(state.modulator.sl),
+        release: rateToDecay(state.modulator.rr),
+        wave: state.modulator.wave,
+        tremolo: state.modulator.am,
+        vibrato: state.modulator.vib,
+        sustained: state.modulator.sustained,
+        ksr: state.modulator.ksr,
+        ksl: state.modulator.ksl,
+      },
+      carrier: {
+        mult: state.carrier.mult,
+        attack: rateToAttack(state.carrier.ar),
+        decay: rateToDecay(state.carrier.dr),
+        sustain: sustainLevel(state.carrier.sl),
+        release: rateToDecay(state.carrier.rr),
+        wave: state.carrier.wave,
+        tremolo: state.carrier.am,
+        vibrato: state.carrier.vib,
+        sustained: state.carrier.sustained,
+        ksr: state.carrier.ksr,
+        ksl: state.carrier.ksl,
+      },
+    };
   }
 
-  // ── Synth init ──
-  const synth = new YamaBruhSynth();
-  await synth.init();
-  window.synth = synth;
-
-  // ── Wave labels ──
-  const CARRIER_WAVES = ['SIN', 'HALF', 'ABS', 'PULSE', 'NOISE', 'N+SIN'];
-  const MOD_WAVES = ['SIN', 'HALF', 'ABS', 'PULSE', 'NOISE'];
-
-  // ── Build editor UI ──
-  const editorEl = document.getElementById('editor');
-
-  function buildEditor() {
-    const l = layers[activeLayer];
-    const c = l.carrier, m = l.modulator;
-
-    editorEl.innerHTML = `
-      <div class="section-title">CARRIER</div>
-      <div class="ratio-row">
-        <div class="param">
-          <label>RATIO</label>
-          <input type="range" min="0.5" max="8" step="0.5" value="${c.ratio}" data-path="carrier.ratio">
-          <span class="val">${c.ratio}</span>
-        </div>
-        <div class="param">
-          <label>FINE</label>
-          <input type="range" min="-0.5" max="0.5" step="0.01" value="${c.ratioFine}" data-path="carrier.ratioFine">
-          <span class="val">${c.ratioFine.toFixed(2)}</span>
-        </div>
-      </div>
-      <div class="param-grid">
-        <div class="param">
-          <label>ATTACK</label>
-          <input type="range" min="0.001" max="3" step="0.001" value="${c.attack}" data-path="carrier.attack">
-          <span class="val">${c.attack}</span>
-        </div>
-        <div class="param">
-          <label>DECAY</label>
-          <input type="range" min="0.00005" max="0.99" step="0.00005" value="${c.decay}" data-path="carrier.decay">
-          <span class="val">${c.decay}</span>
-        </div>
-        <div class="param">
-          <label>SUSTAIN</label>
-          <input type="range" min="0.006" max="1" step="0.001" value="${c.sustain}" data-path="carrier.sustain">
-          <span class="val">${c.sustain}</span>
-        </div>
-        <div class="param">
-          <label>RELEASE</label>
-          <input type="range" min="0.0015" max="0.99" step="0.0005" value="${c.release}" data-path="carrier.release">
-          <span class="val">${c.release}</span>
-        </div>
-        <div class="param">
-          <label>KSL</label>
-          <input type="range" min="0" max="3" step="0.5" value="${c.ksl}" data-path="carrier.ksl">
-          <span class="val">${c.ksl}</span>
-        </div>
-        <div class="param">
-          <label>KSR</label>
-          <input type="range" min="0" max="1" step="0.1" value="${c.ksr}" data-path="carrier.ksr">
-          <span class="val">${c.ksr}</span>
-        </div>
-      </div>
-      <div class="param">
-        <label>WAVEFORM</label>
-        <div class="wave-select" data-path="carrier.wave">
-          ${CARRIER_WAVES.map((w, i) => `<button class="wave-btn${c.wave === i ? ' active' : ''}" data-val="${i}">${w}</button>`).join('')}
-        </div>
-      </div>
-      <div class="toggle-row">
-        <button class="toggle-btn${c.egType ? ' active' : ''}" data-toggle="carrier.egType">PERC</button>
-        <button class="toggle-btn${c.tremolo ? ' active' : ''}" data-toggle="carrier.tremolo">TREM</button>
-        <button class="toggle-btn${c.vibrato ? ' active' : ''}" data-toggle="carrier.vibrato">VIB</button>
-        <button class="toggle-btn${c.sustained ? ' active' : ''}" data-toggle="carrier.sustained">SUS</button>
-      </div>
-
-      <div class="section-title">MODULATOR</div>
-      <div class="ratio-row">
-        <div class="param">
-          <label>RATIO</label>
-          <input type="range" min="0.5" max="9" step="0.5" value="${m.ratio}" data-path="modulator.ratio">
-          <span class="val">${m.ratio}</span>
-        </div>
-        <div class="param">
-          <label>FINE</label>
-          <input type="range" min="-0.5" max="0.5" step="0.01" value="${m.ratioFine}" data-path="modulator.ratioFine">
-          <span class="val">${m.ratioFine.toFixed(2)}</span>
-        </div>
-      </div>
-      <div class="param-grid">
-        <div class="param">
-          <label>DEPTH</label>
-          <input type="range" min="0" max="12.566" step="0.001" value="${l.modDepth}" data-path="modDepth">
-          <span class="val">${l.modDepth}</span>
-        </div>
-        <div class="param">
-          <label>FEEDBACK</label>
-          <input type="range" min="0" max="12.566" step="0.001" value="${l.feedback}" data-path="feedback">
-          <span class="val">${l.feedback}</span>
-        </div>
-        <div class="param">
-          <label>MOD LEVEL</label>
-          <input type="range" min="0" max="1" step="0.01" value="${l.modLevel}" data-path="modLevel">
-          <span class="val">${l.modLevel}</span>
-        </div>
-        <div class="param">
-          <label>ATTACK</label>
-          <input type="range" min="0.001" max="5" step="0.001" value="${m.attack}" data-path="modulator.attack">
-          <span class="val">${m.attack}</span>
-        </div>
-        <div class="param">
-          <label>DECAY</label>
-          <input type="range" min="0.00005" max="0.99" step="0.00005" value="${m.decay}" data-path="modulator.decay">
-          <span class="val">${m.decay}</span>
-        </div>
-        <div class="param">
-          <label>SUSTAIN</label>
-          <input type="range" min="0.006" max="1" step="0.001" value="${m.sustain}" data-path="modulator.sustain">
-          <span class="val">${m.sustain}</span>
-        </div>
-        <div class="param">
-          <label>RELEASE</label>
-          <input type="range" min="0.00005" max="0.99" step="0.0005" value="${m.release}" data-path="modulator.release">
-          <span class="val">${m.release}</span>
-        </div>
-      </div>
-      <div class="param">
-        <label>WAVEFORM</label>
-        <div class="wave-select" data-path="modulator.wave">
-          ${MOD_WAVES.map((w, i) => `<button class="wave-btn${m.wave === i ? ' active' : ''}" data-val="${i}">${w}</button>`).join('')}
-        </div>
-      </div>
-      <div class="toggle-row">
-        <button class="toggle-btn${m.egType ? ' active' : ''}" data-toggle="modulator.egType">PERC</button>
-        <button class="toggle-btn${m.tremolo ? ' active' : ''}" data-toggle="modulator.tremolo">TREM</button>
-        <button class="toggle-btn${m.vibrato ? ' active' : ''}" data-toggle="modulator.vibrato">VIB</button>
-        <button class="toggle-btn${m.sustained ? ' active' : ''}" data-toggle="modulator.sustained">SUS</button>
-      </div>
-    `;
-
-    // Bind sliders
-    editorEl.querySelectorAll('input[type="range"]').forEach(s => {
-      s.addEventListener('input', () => {
-        const path = s.dataset.path;
-        const val = parseFloat(s.value);
-        setPath(layers[activeLayer], path, val);
-        s.nextElementSibling.textContent = val < 0.01 && val > 0 ? val.toFixed(5) : val < 1 ? val.toFixed(3) : val;
-        sendPreset();
-      });
-    });
-
-    // Bind wave selectors
-    editorEl.querySelectorAll('.wave-select').forEach(ws => {
-      ws.querySelectorAll('.wave-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          ws.querySelectorAll('.wave-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          setPath(layers[activeLayer], ws.dataset.path, parseInt(btn.dataset.val));
-          sendPreset();
-        });
-      });
-    });
-
-    // Bind toggles
-    editorEl.querySelectorAll('.toggle-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const path = btn.dataset.toggle;
-        const cur = getPath(layers[activeLayer], path);
-        const next = typeof cur === 'boolean' ? !cur : (cur ? 0 : 1);
-        setPath(layers[activeLayer], path, next);
-        btn.classList.toggle('active');
-        sendPreset();
-      });
-    });
+  function exportData() {
+    const state = toneState();
+    return {
+      version: 2,
+      format: 'ym2413-user-tone',
+      registers: [...registers],
+      registerHex: registersToHex(),
+      decoded: state,
+      preset: buildPreset(),
+    };
   }
 
-  function setPath(obj, path, val) {
-    const parts = path.split('.');
-    let o = obj;
-    for (let i = 0; i < parts.length - 1; i++) o = o[parts[i]];
-    o[parts[parts.length - 1]] = val;
-  }
-
-  function getPath(obj, path) {
-    const parts = path.split('.');
-    let o = obj;
-    for (const p of parts) o = o[p];
-    return o;
-  }
-
-  function sendPreset() {
-    // Send all non-muted layers as preset to worklet
-    // For now, just send active layer (multi-layer mixing happens at note level)
-    if (synth.workletNode) {
-      const params = layerToParams(layers[activeLayer]);
-      synth.workletNode.port.postMessage({ type: 'preset', params });
+  function loadSavedPresets() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.filter(item =>
+        item && typeof item.name === 'string' && Array.isArray(item.registers) && item.registers.length === 8
+      ) : [];
+    } catch (error) {
+      return [];
     }
   }
 
-  // ── Layer tabs ──
-  function renderLayerTabs() {
-    const bar = document.getElementById('layer-bar');
-    const addBtn = document.getElementById('add-layer');
-    const removeBtn = document.getElementById('remove-layer');
-    // Remove existing tabs
-    bar.querySelectorAll('.layer-tab').forEach(t => t.remove());
-    // Add tabs before the + button
-    layers.forEach((l, i) => {
-      const tab = document.createElement('button');
-      tab.className = 'layer-tab' + (i === activeLayer ? ' active' : '') + (l.muted ? ' muted' : '');
-      tab.dataset.layer = i;
-      tab.innerHTML = 'L' + (i + 1) + (l.muted ? '<span class="mute-indicator">M</span>' : '');
-      tab.addEventListener('click', (e) => {
-        if (e.shiftKey) {
-          l.muted = !l.muted;
-          renderLayerTabs();
-          return;
-        }
-        activeLayer = i;
-        renderLayerTabs();
-        buildEditor();
-      });
-      bar.insertBefore(tab, addBtn);
-    });
-    addBtn.style.display = layers.length >= MAX_LAYERS ? 'none' : '';
-    removeBtn.style.display = layers.length <= 1 ? 'none' : '';
+  function loadCurrentRegisters() {
+    try {
+      const raw = localStorage.getItem(CURRENT_STATE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length !== 8) return null;
+      const bytes = parsed.map(v => Math.max(0, Math.min(255, v | 0)));
+      return bytes.length === 8 ? bytes : null;
+    } catch (error) {
+      return null;
+    }
   }
 
-  document.getElementById('add-layer').addEventListener('click', () => {
-    if (layers.length >= MAX_LAYERS) return;
-    const l = defaultLayer();
-    l.name = 'LAYER ' + (layers.length + 1);
-    layers.push(l);
-    activeLayer = layers.length - 1;
-    renderLayerTabs();
-    buildEditor();
-  });
+  function persistCurrentRegisters() {
+    localStorage.setItem(CURRENT_STATE_KEY, JSON.stringify(registers));
+  }
 
-  document.getElementById('remove-layer').addEventListener('click', () => {
-    if (layers.length <= 1) return;
-    layers.splice(activeLayer, 1);
-    if (activeLayer >= layers.length) activeLayer = layers.length - 1;
-    renderLayerTabs();
-    buildEditor();
-  });
+  function loadChokeState() {
+    try {
+      return localStorage.getItem(CHOKE_STATE_KEY) === '1';
+    } catch (error) {
+      return false;
+    }
+  }
 
-  // ── Keyboard ──
-  const kbEl = document.getElementById('keyboard');
-  const notes = [
-    { note: 60, black: false }, { note: 61, black: true },
-    { note: 62, black: false }, { note: 63, black: true },
-    { note: 64, black: false },
-    { note: 65, black: false }, { note: 66, black: true },
-    { note: 67, black: false }, { note: 68, black: true },
-    { note: 69, black: false }, { note: 70, black: true },
-    { note: 71, black: false },
-    { note: 72, black: false }, { note: 73, black: true },
-    { note: 74, black: false }, { note: 75, black: true },
-    { note: 76, black: false },
-  ];
-  const activeNotes = new Set();
+  function persistChokeState() {
+    localStorage.setItem(CHOKE_STATE_KEY, chokeSameNotes ? '1' : '0');
+  }
 
-  notes.forEach(n => {
-    const key = document.createElement('div');
-    key.className = 'key' + (n.black ? ' black' : '');
-    key.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      key.classList.add('pressed');
-      playNote(n.note);
+  function loadMidiState() {
+    try {
+      const raw = localStorage.getItem(MIDI_STATE_KEY);
+      if (!raw) return { enabled: false, selectedDeviceId: '' };
+      const parsed = JSON.parse(raw);
+      return {
+        enabled: !!parsed?.enabled,
+        selectedDeviceId: typeof parsed?.selectedDeviceId === 'string' ? parsed.selectedDeviceId : '',
+      };
+    } catch (error) {
+      return { enabled: false, selectedDeviceId: '' };
+    }
+  }
+
+  function persistMidiState(enabled, selectedDeviceId) {
+    localStorage.setItem(MIDI_STATE_KEY, JSON.stringify({
+      enabled: !!enabled,
+      selectedDeviceId: selectedDeviceId || '',
+    }));
+  }
+
+  function writeSavedPresets(presets) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(presets));
+  }
+
+  function renderPresetList() {
+    const presets = loadSavedPresets();
+    if (!presets.length) {
+      presetListEl.innerHTML = '<div class="preset-item"><div class="preset-meta">No saved presets yet.</div></div>';
+      return;
+    }
+    presetListEl.innerHTML = presets.map((preset) => `
+      <div class="preset-item${preset.id === activePresetId ? ' active' : ''}">
+        <div class="preset-name">${preset.name}</div>
+        <div class="preset-meta">${preset.registerHex}</div>
+        <div class="preset-actions">
+          <button class="chip-btn" data-load-preset="${preset.id}">LOAD</button>
+          <button class="chip-btn" data-delete-preset="${preset.id}">DEL</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function saveCurrentPreset() {
+    const name = prompt('Preset name?', 'Preset ' + new Date().toLocaleString());
+    if (!name) return;
+    const presets = loadSavedPresets();
+    const data = exportData();
+    const id = 'preset-' + Date.now();
+    presets.unshift({
+      id,
+      name: name.trim(),
+      registers: data.registers,
+      registerHex: data.registerHex,
+      createdAt: new Date().toISOString(),
     });
-    key.addEventListener('pointerup', () => {
-      key.classList.remove('pressed');
-      stopNote(n.note);
-    });
-    key.addEventListener('pointerleave', () => {
-      key.classList.remove('pressed');
-      stopNote(n.note);
-    });
-    kbEl.appendChild(key);
-  });
+    writeSavedPresets(presets);
+    activePresetId = id;
+    renderPresetList();
+  }
 
-  function playNote(note) {
-    if (activeNotes.has(note)) return;
-    activeNotes.add(note);
-    const freq = 440 * Math.pow(2, (note - 69) / 12);
-    // Play all non-muted layers
-    layers.forEach((l, i) => {
-      if (l.muted) return;
-      const params = layerToParams(l);
-      synth.workletNode.port.postMessage({
-        type: 'noteOn',
-        note: note + i * 1000, // unique note ID per layer
-        freq,
-        velocity: 0.8,
-        preset: params,
+  function loadPreset(id) {
+    const preset = loadSavedPresets().find(item => item.id === id);
+    if (!preset) return;
+    registers = preset.registers.map(v => Math.max(0, Math.min(255, v | 0)));
+    activePresetId = preset.id;
+    syncAll({ rerenderEditor: true, renderPresets: true });
+  }
+
+  function deletePreset(id) {
+    const presets = loadSavedPresets().filter(item => item.id !== id);
+    writeSavedPresets(presets);
+    if (activePresetId === id) activePresetId = null;
+    renderPresetList();
+  }
+
+  function renderEditor() {
+    editorEl.innerHTML = renderView();
+  }
+
+  function pushPreset() {
+    if (synth.workletNode) {
+      synth.workletNode.port.postMessage({ type: 'preset', params: buildPreset() });
+      synth.workletNode.port.postMessage({ type: 'chokeSameNotes', on: chokeSameNotes });
+    }
+  }
+
+  function refreshEditorMirrors() {
+    if (activeView === 'registers') {
+      const rows = editorEl.querySelectorAll('.register-row');
+      registers.forEach((value, i) => {
+        const row = rows[i];
+        if (!row) return;
+        const hexInput = row.querySelector('[data-register]');
+        const decInput = row.querySelector('[data-register-dec]');
+        const meta = row.querySelector('.register-meta:last-child');
+        if (hexInput) hexInput.value = hexByte(value);
+        if (decInput) decInput.value = String(value);
+        if (meta) meta.innerHTML = registerBits(i, value) + '<div class="bitline">' + REGISTER_LABELS[i] + '</div>';
       });
+      return;
+    }
+
+    if (activeView === 'operator') {
+      const state = toneState();
+      [
+        ['modulator', state.modulator],
+        ['carrier', state.carrier],
+      ].forEach(([key, op]) => {
+        const setValue = (field, value) => {
+          editorEl.querySelectorAll('[data-op="' + key + '"][data-field="' + field + '"]').forEach((el) => {
+            if (el.type === 'checkbox') el.checked = !!value;
+            else el.value = String(value);
+          });
+        };
+
+        setValue('mult', op.multIndex);
+        setValue('ksl', op.ksl);
+        setValue('ar', op.ar);
+        setValue('dr', op.dr);
+        setValue('sl', op.sl);
+        setValue('rr', op.rr);
+        setValue('am', op.am);
+        setValue('vib', op.vib);
+        setValue('sustained', op.sustained);
+        setValue('ksr', op.ksr);
+        if (key === 'modulator') {
+          setValue('tl', op.tl);
+          setValue('tl-text', op.tl);
+        }
+        editorEl.querySelectorAll('[data-op="' + key + '"][data-field="wave"]').forEach((btn) => {
+          btn.classList.toggle('active', Number(btn.dataset.value) === op.wave);
+        });
+      });
+
+      const feedbackRange = editorEl.querySelector('[data-global="feedback"]');
+      const feedbackText = editorEl.querySelector('[data-global="feedback-text"]');
+      if (feedbackRange) feedbackRange.value = String(state.feedbackBits);
+      if (feedbackText) feedbackText.value = String(state.feedbackBits);
+    }
+  }
+
+  function syncAll(options = {}) {
+    const {
+      rerenderEditor = true,
+      renderPresets = true,
+    } = options;
+    updateStatus();
+    persistCurrentRegisters();
+    if (rerenderEditor) renderEditor();
+    else refreshEditorMirrors();
+    if (renderPresets) renderPresetList();
+    pushPreset();
+  }
+
+  function setByte(index, value, options = {}) {
+    const next = Math.max(0, Math.min(255, value | 0));
+    if (registers[index] === next) return;
+    const shouldClearPreset = options.clearPreset !== false && activePresetId !== null;
+    if (shouldClearPreset) activePresetId = null;
+    registers[index] = next;
+    const interactiveView = activeView === 'operator' || activeView === 'registers';
+    syncAll({
+      rerenderEditor: options.rerenderEditor ?? !interactiveView,
+      renderPresets: options.renderPresets ?? shouldClearPreset,
+    });
+  }
+
+  function updateBits(index, mask, on) {
+    setByte(index, on ? (registers[index] | mask) : (registers[index] & ~mask));
+  }
+
+  function updateNibble(index, value, high) {
+    const clamped = Math.max(0, Math.min(15, value | 0));
+    const next = high
+      ? ((registers[index] & 0x0F) | (clamped << 4))
+      : ((registers[index] & 0xF0) | clamped);
+    setByte(index, next);
+  }
+
+  function updateTwoBits(index, shift, value) {
+    const clamped = Math.max(0, Math.min(3, value | 0));
+    const mask = 0x03 << shift;
+    setByte(index, (registers[index] & ~mask) | (clamped << shift));
+  }
+
+  function setOperatorField(op, field, rawValue) {
+    const mod = op === 'modulator';
+    const value = typeof rawValue === 'boolean' ? rawValue : Number(rawValue);
+    if (field === 'am') return updateBits(mod ? 0 : 1, 0x80, !!value);
+    if (field === 'vib') return updateBits(mod ? 0 : 1, 0x40, !!value);
+    if (field === 'sustained') return updateBits(mod ? 0 : 1, 0x20, !!value);
+    if (field === 'ksr') return updateBits(mod ? 0 : 1, 0x10, !!value);
+    if (field === 'mult') return setByte(mod ? 0 : 1, (registers[mod ? 0 : 1] & 0xF0) | Math.max(0, Math.min(15, value | 0)));
+    if (field === 'wave') return updateBits(3, mod ? 0x10 : 0x20, !!value);
+    if (field === 'ksl') return updateTwoBits(mod ? 2 : 3, 6, value);
+    if (field === 'tl' && mod) return setByte(2, (registers[2] & 0xC0) | Math.max(0, Math.min(63, value | 0)));
+    if (field === 'ar') return updateNibble(mod ? 4 : 5, value, true);
+    if (field === 'dr') return updateNibble(mod ? 4 : 5, value, false);
+    if (field === 'sl') return updateNibble(mod ? 6 : 7, value, true);
+    if (field === 'rr') return updateNibble(mod ? 6 : 7, value, false);
+  }
+
+  function setFeedbackBits(value) {
+    const bits = Math.max(0, Math.min(7, value | 0));
+    setByte(3, (registers[3] & 0xF1) | (bits << 1));
+  }
+
+  function updateStatus() {
+    const state = toneState();
+    registerReadoutEl.textContent = registersToHex();
+    voiceSummaryEl.textContent = 'MOD ' + state.modulator.mult + 'x / CAR ' + state.carrier.mult + 'x | TL ' + state.modulator.tl + ' | FB ' + state.feedbackBits;
+  }
+
+  function operatorOptions(selected) {
+    return MULT_TABLE.map((mult, i) => '<option value="' + i + '"' + (selected === i ? ' selected' : '') + '>' + i + ' -> ' + mult + 'x</option>').join('');
+  }
+
+  function kslOptions(selected) {
+    return KSL_LABELS.map((label, i) => '<option value="' + i + '"' + (selected === i ? ' selected' : '') + '>' + label + '</option>').join('');
+  }
+
+  function rateOptions(selected, times) {
+    return times.map((value, i) => '<option value="' + i + '"' + (selected === i ? ' selected' : '') + '>' + i + ' -> ' + value + 's</option>').join('');
+  }
+
+  function operatorCard(title, key, op, showTotalLevel) {
+    return `
+      <div class="operator-card">
+        <h2>${title}</h2>
+        <div class="param-grid">
+          <div class="param">
+            <label>MULT</label>
+            <select data-op="${key}" data-field="mult">${operatorOptions(op.multIndex)}</select>
+          </div>
+          <div class="param">
+            <label>KSL</label>
+            <select data-op="${key}" data-field="ksl">${kslOptions(op.ksl)}</select>
+          </div>
+          ${showTotalLevel ? `
+          <div class="param">
+            <label>TOTAL LEVEL</label>
+            <input type="range" min="0" max="63" step="1" value="${op.tl}" data-op="${key}" data-field="tl">
+          </div>
+          <div class="param">
+            <label>TL VALUE</label>
+            <input type="text" value="${op.tl}" data-op="${key}" data-field="tl-text">
+          </div>
+          ` : ''}
+          <div class="param">
+            <label>ATTACK</label>
+            <select data-op="${key}" data-field="ar">${rateOptions(op.ar, ATTACK_TIMES)}</select>
+          </div>
+          <div class="param">
+            <label>DECAY</label>
+            <select data-op="${key}" data-field="dr">${rateOptions(op.dr, DECAY_TIMES)}</select>
+          </div>
+          <div class="param">
+            <label>SUSTAIN LEVEL</label>
+            <input type="range" min="0" max="15" step="1" value="${op.sl}" data-op="${key}" data-field="sl">
+          </div>
+          <div class="param">
+            <label>RELEASE</label>
+            <select data-op="${key}" data-field="rr">${rateOptions(op.rr, DECAY_TIMES)}</select>
+          </div>
+        </div>
+        <div class="wave-row">
+          <button class="chip-btn wave-btn${op.wave === 0 ? ' active' : ''}" data-op="${key}" data-field="wave" data-value="0">SINE</button>
+          <button class="chip-btn wave-btn${op.wave === 1 ? ' active' : ''}" data-op="${key}" data-field="wave" data-value="1">HALF</button>
+        </div>
+        <div class="check-grid">
+          <label class="check-tile">
+            <span class="mini-label">AM</span>
+            <input type="checkbox" data-op="${key}" data-field="am"${op.am ? ' checked' : ''}>
+          </label>
+          <label class="check-tile">
+            <span class="mini-label">VIB</span>
+            <input type="checkbox" data-op="${key}" data-field="vib"${op.vib ? ' checked' : ''}>
+          </label>
+          <label class="check-tile">
+            <span class="mini-label">EG</span>
+            <input type="checkbox" data-op="${key}" data-field="sustained"${op.sustained ? ' checked' : ''}>
+          </label>
+          <label class="check-tile">
+            <span class="mini-label">KSR</span>
+            <input type="checkbox" data-op="${key}" data-field="ksr"${op.ksr ? ' checked' : ''}>
+          </label>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderOperatorView() {
+    const state = toneState();
+    return `
+      <div class="panel">
+        <div class="register-strip">
+          ${registers.map((value, i) => `<div class="register-pill">R${i}: ${hexByte(value)}</div>`).join('')}
+        </div>
+        <div class="operator-grid">
+          ${operatorCard('MODULATOR', 'modulator', state.modulator, true)}
+          <div class="operator-card">
+            <h2>GLOBAL / CARRIER</h2>
+            <div class="param-grid">
+              <div class="param">
+                <label>FEEDBACK</label>
+                <input type="range" min="0" max="7" step="1" value="${state.feedbackBits}" data-global="feedback">
+              </div>
+              <div class="param">
+                <label>FEEDBACK VALUE</label>
+                <input type="text" value="${state.feedbackBits}" data-global="feedback-text">
+              </div>
+            </div>
+            <div class="rhythm-note">
+              EG bit follows the real chip here: checked means sustained, unchecked means percussive.
+              Only the user tone is editable; preset ROM instruments are separate chip data.
+            </div>
+            ${operatorCard('CARRIER', 'carrier', state.carrier, false)}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function registerBits(index, value) {
+    return 'b' + value.toString(2).padStart(8, '0') + '  /  d' + value;
+  }
+
+  function renderRegistersView() {
+    return `
+      <div class="panel">
+        <h2>R#00-R#07</h2>
+        <div class="register-list">
+          ${registers.map((value, i) => `
+            <div class="register-row">
+              <div>
+                <label>${REGISTER_LABELS[i]}</label>
+                <div class="register-meta">R${i}</div>
+              </div>
+              <div class="param">
+                <label>HEX BYTE</label>
+                <input type="text" value="${hexByte(value)}" data-register="${i}">
+              </div>
+              <div class="param">
+                <label>BYTE SLIDER</label>
+                <input type="range" min="0" max="255" step="1" value="${value}" data-register-dec="${i}">
+              </div>
+              <div class="register-meta">
+                ${registerBits(i, value)}
+                <div class="bitline">${REGISTER_LABELS[i]}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderDerivedView() {
+    const preset = buildPreset();
+    const state = toneState();
+    return `
+      <div class="panel">
+        <h2>DECODED CHIP VALUES</h2>
+        <div class="derived-grid">
+          <div class="derived-card">
+            <h2>MODULATOR</h2>
+            <dl>
+              <dt>Multiplier</dt><dd>${state.modulator.mult}x</dd>
+              <dt>Attack</dt><dd>${preset.modulator.attack}s</dd>
+              <dt>Decay</dt><dd>${preset.modulator.decay}s</dd>
+              <dt>Sustain</dt><dd>${preset.modulator.sustain.toFixed(3)}</dd>
+              <dt>Release</dt><dd>${preset.modulator.release}s</dd>
+              <dt>Wave</dt><dd>${state.modulator.wave ? 'Half-sine' : 'Sine'}</dd>
+            </dl>
+          </div>
+          <div class="derived-card">
+            <h2>CARRIER</h2>
+            <dl>
+              <dt>Multiplier</dt><dd>${state.carrier.mult}x</dd>
+              <dt>Attack</dt><dd>${preset.carrier.attack}s</dd>
+              <dt>Decay</dt><dd>${preset.carrier.decay}s</dd>
+              <dt>Sustain</dt><dd>${preset.carrier.sustain.toFixed(3)}</dd>
+              <dt>Release</dt><dd>${preset.carrier.release}s</dd>
+              <dt>Wave</dt><dd>${state.carrier.wave ? 'Half-sine' : 'Sine'}</dd>
+            </dl>
+          </div>
+          <div class="derived-card">
+            <h2>FM CORE</h2>
+            <dl>
+              <dt>Mod Depth</dt><dd>${preset.modDepth.toFixed(3)} rad</dd>
+              <dt>Feedback</dt><dd>${preset.feedback.toFixed(3)} rad</dd>
+              <dt>Mod TL</dt><dd>${state.modulator.tl}</dd>
+              <dt>Carrier KSL</dt><dd>${KSL_LABELS[state.carrier.ksl]}</dd>
+              <dt>Mod KSL</dt><dd>${KSL_LABELS[state.modulator.ksl]}</dd>
+              <dt>Registers</dt><dd>${registersToHex()}</dd>
+            </dl>
+          </div>
+          <div class="derived-card">
+            <h2>ENVELOPE BITS</h2>
+            <dl>
+              <dt>Mod EG</dt><dd>${state.modulator.sustained ? 'Sustained' : 'Percussive'}</dd>
+              <dt>Car EG</dt><dd>${state.carrier.sustained ? 'Sustained' : 'Percussive'}</dd>
+              <dt>Mod AM/VIB</dt><dd>${state.modulator.am ? 'AM ' : ''}${state.modulator.vib ? 'VIB' : '' || 'Off'}</dd>
+              <dt>Car AM/VIB</dt><dd>${state.carrier.am ? 'AM ' : ''}${state.carrier.vib ? 'VIB' : '' || 'Off'}</dd>
+              <dt>Real Rhythm Split</dt><dd>6 melody + 5 rhythm</dd>
+              <dt>Editable Here</dt><dd>1 user tone</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderRhythmView() {
+    return `
+      <div class="panel">
+        <h2>RHYTHM MODE PREVIEW</h2>
+        <div class="rhythm-note">
+          The real YM2413 can switch from 9 melody channels to 6 melody channels plus 5 rhythm voices.
+          This view previews those five rhythm voices directly so the chip split is visible from the same page.
+        </div>
+        <div class="rhythm-grid">
+          ${RHYTHM_SOUNDS.map(sound => `
+            <div class="rhythm-pad">
+              <div class="mini-label">${sound.name}</div>
+              <button class="chip-btn" data-rhythm="${sound.id}" data-note="${sound.note}">${sound.label}</button>
+            </div>
+          `).join('')}
+        </div>
+        <div class="rhythm-note">
+          These pads use the repo's drum engine for preview. They are intentionally separate from the editable user tone registers above.
+        </div>
+      </div>
+    `;
+  }
+
+  function renderView() {
+    if (activeView === 'registers') return renderRegistersView();
+    if (activeView === 'derived') return renderDerivedView();
+    if (activeView === 'rhythm') return renderRhythmView();
+    return renderOperatorView();
+  }
+
+  function playNote(note, velocity = 0.8) {
+    const noteId = note * 1000 + (noteCounter++ % 1000);
+    const freq = 440 * Math.pow(2, (note - 69) / 12);
+    const stack = activeNotes.get(note) || [];
+    stack.push(noteId);
+    activeNotes.set(note, stack);
+    synth.workletNode.port.postMessage({
+      type: 'noteOn',
+      note: noteId,
+      sourceNote: note,
+      freq,
+      velocity,
+      preset: buildPreset(),
     });
   }
 
   function stopNote(note) {
-    if (!activeNotes.has(note)) return;
-    activeNotes.delete(note);
-    layers.forEach((l, i) => {
-      if (l.muted) return;
-      synth.workletNode.port.postMessage({
-        type: 'noteOff',
-        note: note + i * 1000,
-      });
-    });
+    const stack = activeNotes.get(note);
+    if (!stack || !stack.length) return;
+    const noteId = stack.pop();
+    if (!stack.length) activeNotes.delete(note);
+    synth.workletNode.port.postMessage({ type: 'noteOff', note: noteId });
   }
 
-  // Computer keyboard support
-  const keyMap = { 'a':60,'w':61,'s':62,'e':63,'d':64,'f':65,'t':66,'g':67,'y':68,'h':69,'u':70,'j':71,'k':72,'o':73,'l':74,'p':75 };
-  const heldKeys = new Set();
-  document.addEventListener('keydown', e => {
-    if (e.repeat || e.target.tagName === 'INPUT') return;
-    const note = keyMap[e.key.toLowerCase()];
-    if (note !== undefined && !heldKeys.has(e.key)) {
-      heldKeys.add(e.key);
+  document.getElementById('view-bar').addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-view]');
+    if (!btn) return;
+    activeView = btn.dataset.view;
+    document.querySelectorAll('.view-tab').forEach(tab => tab.classList.toggle('active', tab === btn));
+    syncAll();
+  });
+
+  editorEl.addEventListener('click', (event) => {
+    const waveBtn = event.target.closest('[data-field="wave"]');
+    if (waveBtn) {
+      setOperatorField(waveBtn.dataset.op, 'wave', Number(waveBtn.dataset.value));
+      return;
+    }
+    const rhythmBtn = event.target.closest('[data-rhythm]');
+    if (rhythmBtn) {
+      drums.trigger(rhythmBtn.dataset.rhythm, 0.9, Number(rhythmBtn.dataset.note));
+    }
+  });
+
+  function handleEditorValue(target) {
+    if (target.dataset.register !== undefined) {
+      const parsed = parseInt(String(target.value).replace(/^0x/i, ''), 16);
+      if (!Number.isNaN(parsed)) setByte(Number(target.dataset.register), parsed);
+      return;
+    }
+    if (target.dataset.registerDec !== undefined) {
+      const parsed = parseInt(target.value, 10);
+      if (!Number.isNaN(parsed)) setByte(Number(target.dataset.registerDec), parsed);
+      return;
+    }
+    if (target.dataset.op) {
+      const field = target.dataset.field;
+      if (field === 'tl-text') {
+        const value = parseInt(target.value, 10);
+        if (!Number.isNaN(value)) setOperatorField(target.dataset.op, 'tl', value);
+        return;
+      }
+      const value = target.type === 'checkbox' ? target.checked : target.value;
+      setOperatorField(target.dataset.op, field, value);
+      return;
+    }
+    if (target.dataset.global) {
+      const value = parseInt(target.value, 10);
+      if (!Number.isNaN(value)) setFeedbackBits(value);
+    }
+  }
+
+  editorEl.addEventListener('input', (event) => handleEditorValue(event.target));
+  editorEl.addEventListener('change', (event) => handleEditorValue(event.target));
+
+  const keyboardEl = document.getElementById('keyboard');
+  const notes = [
+    { note: 60, black: false }, { note: 61, black: true },
+    { note: 62, black: false }, { note: 63, black: true },
+    { note: 64, black: false }, { note: 65, black: false },
+    { note: 66, black: true }, { note: 67, black: false },
+    { note: 68, black: true }, { note: 69, black: false },
+    { note: 70, black: true }, { note: 71, black: false },
+    { note: 72, black: false }, { note: 73, black: true },
+    { note: 74, black: false }, { note: 75, black: true },
+    { note: 76, black: false },
+  ];
+
+  notes.forEach((entry) => {
+    const key = document.createElement('div');
+    key.className = 'key' + (entry.black ? ' black' : '');
+    key.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      key.classList.add('pressed');
+      playNote(entry.note);
+    });
+    key.addEventListener('pointerup', () => {
+      key.classList.remove('pressed');
+      stopNote(entry.note);
+    });
+    key.addEventListener('pointerleave', () => {
+      key.classList.remove('pressed');
+      stopNote(entry.note);
+    });
+    keyboardEl.appendChild(key);
+  });
+
+  const keyMap = { a:60, w:61, s:62, e:63, d:64, f:65, t:66, g:67, y:68, h:69, u:70, j:71, k:72, o:73, l:74, p:75 };
+  document.addEventListener('keydown', (event) => {
+    if (event.repeat || event.target.tagName === 'INPUT' || event.target.tagName === 'SELECT') return;
+    const note = keyMap[event.key.toLowerCase()];
+    if (note !== undefined && !heldKeys.has(event.key)) {
+      heldKeys.add(event.key);
       playNote(note);
     }
   });
-  document.addEventListener('keyup', e => {
-    const note = keyMap[e.key.toLowerCase()];
+  document.addEventListener('keyup', (event) => {
+    const note = keyMap[event.key.toLowerCase()];
     if (note !== undefined) {
-      heldKeys.delete(e.key);
+      heldKeys.delete(event.key);
       stopNote(note);
     }
   });
 
-  // ── Export ──
-  function exportJSON() {
-    const out = {
-      version: 1,
-      layers: layers.map((l, i) => ({
-        name: 'Layer ' + (i + 1),
-        muted: l.muted,
-        carrier: { ...l.carrier },
-        modulator: { ...l.modulator },
-        modDepth: l.modDepth,
-        feedback: l.feedback,
-        modLevel: l.modLevel,
-        // Also include the 21-param array for direct use
-        params: layerToParams(l),
-      })),
-    };
-    return JSON.stringify(out, null, 2);
-  }
-
-  const exportOutput = document.getElementById('export-output');
-
   document.getElementById('btn-export').addEventListener('click', () => {
-    const json = exportJSON();
-    exportOutput.textContent = json;
+    exportOutput.textContent = JSON.stringify(exportData(), null, 2);
     exportOutput.style.display = 'block';
   });
 
-  document.getElementById('btn-copy').addEventListener('click', () => {
-    const json = exportJSON();
-    navigator.clipboard.writeText(json).then(() => {
-      const btn = document.getElementById('btn-copy');
-      btn.textContent = 'COPIED';
-      setTimeout(() => btn.textContent = 'COPY', 1500);
-    });
+  document.getElementById('btn-copy').addEventListener('click', async () => {
+    await navigator.clipboard.writeText(JSON.stringify(exportData(), null, 2));
+  });
+
+  document.getElementById('btn-save').addEventListener('click', () => {
+    saveCurrentPreset();
   });
 
   document.getElementById('btn-import').addEventListener('click', () => {
-    const input = prompt('Paste YMWAVE JSON:');
+    const input = prompt('Paste YMWAVE JSON');
     if (!input) return;
     try {
       const data = JSON.parse(input);
-      if (data.layers && data.layers.length) {
-        layers = data.layers.map(l => ({
-          name: l.name || 'LAYER',
-          muted: l.muted || false,
-          carrier: { ratio: 1, ratioFine: 0, attack: 0.01, decay: 0.06, sustain: 0.5, release: 0.1, wave: 0, egType: 1, tremolo: false, vibrato: false, sustained: false, ksl: 1, ksr: 0.3, ...l.carrier },
-          modulator: { ratio: 1, ratioFine: 0, attack: 0.001, decay: 0.18, sustain: 0.708, release: 0.3, wave: 0, egType: 1, tremolo: false, vibrato: false, sustained: false, ...l.modulator },
-          modDepth: l.modDepth ?? 0.515,
-          feedback: l.feedback ?? 0,
-          modLevel: l.modLevel ?? 1,
-        }));
-        activeLayer = 0;
-        renderLayerTabs();
-        buildEditor();
-        exportOutput.style.display = 'none';
-      }
-    } catch (e) {
-      alert('Invalid JSON: ' + e.message);
+      if (!Array.isArray(data.registers) || data.registers.length !== 8) throw new Error('Expected 8 register bytes');
+      registers = data.registers.map(v => Math.max(0, Math.min(255, v | 0)));
+      activePresetId = null;
+      syncAll({ rerenderEditor: true, renderPresets: true });
+      exportOutput.style.display = 'none';
+    } catch (error) {
+      alert('Invalid JSON: ' + error.message);
     }
   });
 
-  // ── MIDI ──
+  document.getElementById('btn-copy-regs').addEventListener('click', async () => {
+    await navigator.clipboard.writeText(registersToHex());
+  });
+
+  document.getElementById('btn-load-regs').addEventListener('click', () => {
+    const input = prompt('Paste 8 register bytes (example: 21 21 14 05 F2 B4 56 74)');
+    if (!input) return;
+    const parsed = parseRegisters(input);
+    if (!parsed) {
+      alert('Expected 8 hexadecimal bytes');
+      return;
+    }
+    registers = parsed;
+    activePresetId = null;
+    syncAll({ rerenderEditor: true, renderPresets: true });
+  });
+
+  chokeToggleEl.addEventListener('change', () => {
+    chokeSameNotes = chokeToggleEl.checked;
+    persistChokeState();
+    if (synth.workletNode) {
+      synth.workletNode.port.postMessage({ type: 'chokeSameNotes', on: chokeSameNotes });
+    }
+  });
+
+  presetListEl.addEventListener('click', (event) => {
+    const loadBtn = event.target.closest('[data-load-preset]');
+    if (loadBtn) {
+      loadPreset(loadBtn.dataset.loadPreset);
+      return;
+    }
+    const deleteBtn = event.target.closest('[data-delete-preset]');
+    if (deleteBtn) {
+      deletePreset(deleteBtn.dataset.deletePreset);
+    }
+  });
+
   let midiAccess = null;
   let midiConnected = false;
+  let midiState = loadMidiState();
   const midiToggle = document.getElementById('midi-toggle');
   const midiDevice = document.getElementById('midi-device');
   const midiStatus = document.getElementById('midi-status');
 
-  midiToggle.addEventListener('click', async () => {
-    if (midiConnected) {
-      // Disconnect
-      if (midiAccess) {
-        for (const input of midiAccess.inputs.values()) input.onmidimessage = null;
+  function updateMidiUi() {
+    midiToggle.textContent = midiConnected ? 'MIDI: ON' : 'MIDI: OFF';
+    midiToggle.classList.toggle('active', midiConnected);
+  }
+
+  function populateMidiDevices(inputs) {
+    midiDevice.innerHTML = '<option value="">All devices</option>';
+    inputs.forEach(input => {
+      const option = document.createElement('option');
+      option.value = input.id;
+      option.textContent = input.name;
+      midiDevice.appendChild(option);
+    });
+    const hasSaved = midiState.selectedDeviceId && inputs.some(input => input.id === midiState.selectedDeviceId);
+    midiDevice.value = hasSaved ? midiState.selectedDeviceId : '';
+    if (!hasSaved) midiState.selectedDeviceId = '';
+  }
+
+  async function bindMidiInputs() {
+    if (!midiAccess) return [];
+    const inputs = Array.from(midiAccess.inputs.values());
+    populateMidiDevices(inputs);
+    for (const input of inputs) {
+      input.onmidimessage = null;
+      if (input.connection !== 'open') await input.open();
+      if (!midiState.selectedDeviceId || input.id === midiState.selectedDeviceId) {
+        input.onmidimessage = handleMIDI;
       }
-      midiConnected = false;
-      midiToggle.textContent = 'MIDI: OFF';
-      midiToggle.classList.remove('active');
-      midiStatus.textContent = '';
-      return;
     }
+    persistMidiState(midiConnected, midiState.selectedDeviceId);
+    return inputs;
+  }
+
+  async function enableMidi() {
     if (!navigator.requestMIDIAccess) {
-      midiStatus.textContent = 'MIDI blocked (disable MetaMask)';
-      return;
+      midiStatus.textContent = 'Web MIDI unavailable';
+      return false;
     }
     try {
       midiAccess = await navigator.requestMIDIAccess({ sysex: false });
-      // Populate device list
-      const inputs = [];
-      for (const input of midiAccess.inputs.values()) inputs.push(input);
-      midiDevice.innerHTML = '<option value="">All devices</option>';
-      inputs.forEach(inp => {
-        const opt = document.createElement('option');
-        opt.value = inp.id;
-        opt.textContent = inp.name;
-        midiDevice.appendChild(opt);
-      });
-      // Bind all inputs
-      for (const input of midiAccess.inputs.values()) {
-        if (input.connection !== 'open') await input.open();
-        input.onmidimessage = handleMIDI;
-      }
+      const inputs = await bindMidiInputs();
       midiConnected = true;
-      midiToggle.textContent = 'MIDI: ON';
-      midiToggle.classList.add('active');
+      updateMidiUi();
       midiStatus.textContent = inputs.length + ' device(s)';
-    } catch (e) {
-      midiStatus.textContent = e.message;
+      persistMidiState(true, midiState.selectedDeviceId);
+      return true;
+    } catch (error) {
+      midiConnected = false;
+      updateMidiUi();
+      midiStatus.textContent = error.message;
+      persistMidiState(false, midiState.selectedDeviceId);
+      return false;
     }
+  }
+
+  function disableMidi() {
+    if (midiAccess) {
+      for (const input of midiAccess.inputs.values()) input.onmidimessage = null;
+    }
+    midiConnected = false;
+    updateMidiUi();
+    midiStatus.textContent = '';
+    persistMidiState(false, midiState.selectedDeviceId);
+  }
+
+  midiToggle.addEventListener('click', async () => {
+    if (midiConnected) {
+      disableMidi();
+      return;
+    }
+    await enableMidi();
   });
 
-  midiDevice.addEventListener('change', () => {
+  midiDevice.addEventListener('change', async () => {
     if (!midiAccess) return;
-    for (const input of midiAccess.inputs.values()) input.onmidimessage = null;
-    const selected = midiDevice.value;
-    for (const input of midiAccess.inputs.values()) {
-      if (!selected || input.id === selected) {
-        input.onmidimessage = handleMIDI;
-      }
-    }
+    midiState.selectedDeviceId = midiDevice.value;
+    await bindMidiInputs();
   });
 
   function handleMIDI(event) {
     const d = event.data;
     if (!d || d.length < 2) return;
-    const cmd = d[0] & 0xf0;
+    const cmd = d[0] & 0xF0;
     const note = d[1];
     const vel = d.length > 2 ? d[2] : 0;
-
     if (cmd === 0x90 && vel > 0) {
-      playNote(note);
+      playNote(note, vel / 127);
       midiStatus.textContent = 'N' + note + ' V' + vel;
     } else if (cmd === 0x80 || (cmd === 0x90 && vel === 0)) {
       stopNote(note);
-    } else if (cmd === 0xE0) {
-      // Pitch bend
-      const bendVal = (vel << 7) | note;
-      if (synth.workletNode) {
-        synth.workletNode.port.postMessage({ type: 'pitchBend', value: bendVal });
-      }
+    } else if (cmd === 0xE0 && synth.workletNode) {
+      synth.workletNode.port.postMessage({ type: 'pitchBend', value: ((vel << 7) | note) });
     }
   }
 
-  // ── Init ──
-  // Resume audio context on first interaction (Chrome autoplay policy)
   document.addEventListener('pointerdown', () => {
     if (synth.ctx && synth.ctx.state === 'suspended') synth.ctx.resume();
   }, { once: true });
@@ -857,10 +1530,17 @@ h1 {
     if (synth.ctx && synth.ctx.state === 'suspended') synth.ctx.resume();
   }, { once: true });
 
-  renderLayerTabs();
-  buildEditor();
-  sendPreset();
+  const restoredRegisters = loadCurrentRegisters();
+  if (restoredRegisters) registers = restoredRegisters;
+  chokeSameNotes = loadChokeState();
+  chokeToggleEl.checked = chokeSameNotes;
 
+  updateMidiUi();
+  if (midiState.enabled) {
+    enableMidi();
+  }
+
+  syncAll({ rerenderEditor: true, renderPresets: true });
 })();
 </script>
 </body>

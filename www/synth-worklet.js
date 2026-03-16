@@ -1,12 +1,138 @@
-// ── YAMA-BRUH AudioWorklet FM Synth (YM2413 Extended) ──────────────────
-// Full YM2413 OPLL capabilities: waveform selection, tremolo, chip vibrato,
-// KSR, KSL, mod level, EG type. Runs on audio thread — zero overhead.
+// ── YAMA-BRUH AudioWorklet FM Synth (YM2413 Views) ─────────────────────
+// Accepts either the legacy param array or a chip-shaped preset object.
+
+const CHIP_TREM_DEPTH = 0.28;
+const CHIP_VIB_DEPTH = 0.008;
+const KSL_DB_PER_OCT = [0, 1.5, 3, 6];
+const FEEDBACK_TABLE = [0, Math.PI / 16, Math.PI / 8, Math.PI / 4, Math.PI / 2, Math.PI, Math.PI * 2, Math.PI * 4];
+const CHOKE_FADE_SECONDS = 0.006;
+
+function makeOperator(overrides = {}) {
+  return {
+    mult: 1,
+    attack: 0.01,
+    decay: 0.2,
+    sustain: 0.7,
+    release: 0.2,
+    wave: 0,
+    tremolo: false,
+    vibrato: false,
+    sustained: true,
+    ksr: 0,
+    ksl: 0,
+    ...overrides,
+  };
+}
+
+function makePreset(overrides = {}) {
+  return {
+    modDepth: 1.0,
+    feedback: 0,
+    modLevel: 1,
+    carrier: makeOperator(),
+    modulator: makeOperator(),
+    ...overrides,
+  };
+}
+
+function normalizeBool(value, fallback = false) {
+  return value === undefined ? fallback : !!value;
+}
+
+function normalizeNumber(value, fallback) {
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeOperator(op, fallback) {
+  const src = op || {};
+  return makeOperator({
+    mult: normalizeNumber(src.mult ?? src.ratio, fallback.mult),
+    attack: normalizeNumber(src.attack, fallback.attack),
+    decay: normalizeNumber(src.decay, fallback.decay),
+    sustain: normalizeNumber(src.sustain ?? src.sustainLevel, fallback.sustain),
+    release: normalizeNumber(src.release, fallback.release),
+    wave: normalizeNumber(src.wave ?? src.waveform, fallback.wave) | 0,
+    tremolo: normalizeBool(src.tremolo, fallback.tremolo),
+    vibrato: normalizeBool(src.vibrato, fallback.vibrato),
+    sustained: normalizeBool(src.sustained, fallback.sustained),
+    ksr: normalizeBool(src.ksr, fallback.ksr) ? 1 : 0,
+    ksl: Math.max(0, Math.min(3, normalizeNumber(src.ksl, fallback.ksl) | 0)),
+  });
+}
+
+function arrayToPreset(params) {
+  const p = Array.isArray(params) ? params : [];
+  const carrierPerc = (p[15] || 0) > 0.5;
+  const modPerc = (p[20] || 0) > 0.5;
+  return makePreset({
+    modDepth: normalizeNumber(p[2], 1.0),
+    feedback: normalizeNumber(p[7], 0),
+    modLevel: normalizeNumber(p[14], 1),
+    carrier: makeOperator({
+      mult: normalizeNumber(p[0], 1),
+      attack: normalizeNumber(p[3], 0.01),
+      decay: normalizeNumber(p[4], 0.3),
+      sustain: normalizeNumber(p[5], 0.7),
+      release: normalizeNumber(p[6], 0.2),
+      wave: normalizeNumber(p[8], 0) | 0,
+      tremolo: (p[10] || 0) > 0,
+      vibrato: (p[11] || 0) > 0,
+      sustained: !carrierPerc,
+      ksr: (p[12] || 0) > 0,
+      ksl: Math.max(0, Math.min(3, normalizeNumber(p[13], 0) | 0)),
+    }),
+    modulator: makeOperator({
+      mult: normalizeNumber(p[1], 1),
+      attack: normalizeNumber(p[16], normalizeNumber(p[3], 0.01)),
+      decay: normalizeNumber(p[17], normalizeNumber(p[4], 0.3)),
+      sustain: normalizeNumber(p[18], normalizeNumber(p[5], 0.7)),
+      release: normalizeNumber(p[19], normalizeNumber(p[6], 0.2)),
+      wave: normalizeNumber(p[9], 0) | 0,
+      tremolo: false,
+      vibrato: false,
+      sustained: !modPerc,
+      ksr: (p[12] || 0) > 0,
+      ksl: 0,
+    }),
+  });
+}
+
+function normalizePreset(data) {
+  if (Array.isArray(data)) return arrayToPreset(data);
+  const fallback = makePreset();
+  const src = data || {};
+  return makePreset({
+    modDepth: normalizeNumber(src.modDepth, fallback.modDepth),
+    feedback: normalizeNumber(src.feedback, fallback.feedback),
+    modLevel: normalizeNumber(src.modLevel, fallback.modLevel),
+    carrier: normalizeOperator(src.carrier, fallback.carrier),
+    modulator: normalizeOperator(src.modulator, fallback.modulator),
+  });
+}
+
+function tremoloGain(enabled, tremVal, modWheel, modTarget) {
+  if (!enabled && modTarget !== 'tremolo') return 1;
+  const depth = CHIP_TREM_DEPTH + (modTarget === 'tremolo' ? modWheel * 0.18 : 0);
+  return 1 - depth * (1 + tremVal) * 0.5;
+}
+
+function vibratoDepth(enabled, modWheel, modTarget) {
+  if (!enabled && modTarget !== 'vibrato') return 0;
+  return CHIP_VIB_DEPTH + (modTarget === 'vibrato' ? modWheel * 0.004 : 0);
+}
+
+function kslAttenuation(freq, bits) {
+  const dbPerOct = KSL_DB_PER_OCT[Math.max(0, Math.min(3, bits | 0))];
+  if (dbPerOct === 0 || freq <= 440) return 1;
+  const octave = Math.log2(freq / 440);
+  return Math.pow(10, -(dbPerOct * octave) / 20);
+}
 
 class YamaBruhProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
     this.voices = [];
-    this.preset = [1, 1, 2, 0.01, 0.3, 0.3, 0.2, 0, 0,0, 0,0, 0,0, 1,0];
+    this.preset = makePreset();
     // YM2413 LFO phases (shared across voices like hardware)
     this.tremoloPhase = 0;  // 3.7Hz AM
     this.chipVibPhase = 0;  // 6.4Hz pitch
@@ -28,6 +154,7 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
     // Mod wheel
     this.modWheel = 0;          // 0-1 normalized
     this.modTarget = 'vibrato'; // 'vibrato' | 'modIndex' | 'tremolo'
+    this.chokeSameNotes = false;
     // Crash diagnostics
     this._crashCount = 0;
     this._lastCrashReport = 0;
@@ -50,24 +177,34 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
   _onMessage(msg) {
     switch (msg.type) {
       case 'noteOn': {
-        for (let i = this.voices.length - 1; i >= 0; i--) {
-          if (this.voices[i].note === msg.note) this.voices.splice(i, 1);
+        if (this.chokeSameNotes) {
+          for (const voice of this.voices) {
+            if (voice.key === (msg.sourceNote ?? msg.note) && !voice.choking) {
+              voice.choking = true;
+              voice.chokePos = 0;
+              voice.chokeLen = Math.max(1, Math.floor(sampleRate * CHOKE_FADE_SECONDS));
+            }
+          }
         }
         if (this.voices.length >= 16) this.voices.shift();
         const startFreq = (this.portaOn && this.lastFreq > 0) ? this.lastFreq : msg.freq;
         this.lastFreq = msg.freq;
         this.voices.push({
           note: msg.note,
+          key: msg.sourceNote ?? msg.note,
           freq: msg.freq,
           curFreq: startFreq,
           velocity: msg.velocity,
           cp: 0, mp: 0, pm: 0,
+          choking: false,
+          chokePos: 0,
+          chokeLen: 0,
           // Carrier envelope
           es: 0, el: 0, et: 0, rl: 0,
           // Modulator envelope
           mes: 0, mel: 0, met: 0, mrl: 0,
           age: 0,
-          p: msg.preset || this.preset,
+          p: normalizePreset(msg.preset || this.preset),
         });
         break;
       }
@@ -88,10 +225,10 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
         break;
       }
       case 'preset': {
-        this.preset = msg.params;
+        this.preset = normalizePreset(msg.params);
         // Update all active voices so fader changes are heard immediately
         for (const v of this.voices) {
-          v.p = msg.params;
+          v.p = this.preset;
         }
         break;
       }
@@ -127,6 +264,10 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
       }
       case 'pitchBendRange': {
         this.pitchBendRange = msg.semitones || 2;
+        break;
+      }
+      case 'chokeSameNotes': {
+        this.chokeSameNotes = !!msg.on;
         break;
       }
       case 'healthCheck': {
@@ -197,6 +338,8 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
       for (let vi = this.voices.length - 1; vi >= 0; vi--) {
         const v = this.voices[vi];
         const p = v.p;
+        const c = p.carrier;
+        const m = p.modulator;
 
         // Portamento
         if (portaOn && v.curFreq !== v.freq) {
@@ -209,55 +352,32 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
         // Apply pitch bend to base frequency
         const baseFreq = v.curFreq * pbMult;
 
-        // ── YM2413 extended params ──
-        const crf_ratio = p[0], mrf_ratio = p[1];
-        // Mod wheel can boost mod index
-        const mi = modTgt === 'modIndex' ? p[2] * (1 + modW * 3) : p[2];
-        const atk = p[3], dec = p[4], sus = p[5];
-        const rel = susOn ? p[6] * susMult : p[6];
-        const fb = p[7];
-        const cWave = (p[8] || 0) | 0;  // carrier waveform 0-3
-        const mWave = (p[9] || 0) | 0;  // modulator waveform 0-3
-        // Mod wheel can boost tremolo or vibrato depth
-        const tremDepth = (p[10] || 0) + (modTgt === 'tremolo' ? modW * 0.8 : 0);
-        const chipVib = (p[11] || 0) + (modTgt === 'vibrato' ? modW * 0.02 : 0);
-        const ksr = p[12] || 0;          // key scale rate
-        const ksl = p[13] || 0;          // key scale level (dB/oct)
-        const modLevel = p[14] !== undefined ? p[14] : 1;  // mod output level
-        const egType = p[15] || 0;       // 0=sustained, 1=percussive
-        // Modulator envelope (indices 16-19), defaults = carrier envelope if absent
-        const mAtk = p[16] !== undefined ? p[16] : atk;
-        const mDec = p[17] !== undefined ? p[17] : dec;
-        const mSus = p[18] !== undefined ? p[18] : sus;
-        const mRel = p[19] !== undefined ? p[19] : rel;
-        const mEgType = p[20] !== undefined ? p[20] : egType;
+        // Mod wheel can still boost mod index in the extended control path.
+        const mi = modTgt === 'modIndex' ? p.modDepth * (1 + modW * 3) : p.modDepth;
+        const cRel = susOn ? c.release * susMult : c.release;
+        const mRel = susOn ? m.release * susMult : m.release;
+        const cVib = vibratoDepth(c.vibrato, modW, modTgt);
+        const mVib = vibratoDepth(m.vibrato, modW, modTgt);
+        const cFreq = baseFreq * (1 + cVib * chipVibVal + vibMod);
+        const mFreq = baseFreq * (1 + mVib * chipVibVal + vibMod);
 
-        // Chip vibrato + user vibrato combined
-        const freqMult = 1 + (chipVib > 0 ? chipVib * chipVibVal : 0) + vibMod;
-        const freq = baseFreq * freqMult;
+        const crf = cFreq * c.mult;
+        const mrf = mFreq * m.mult;
 
-        const crf = freq * crf_ratio;
-        const mrf = freq * mrf_ratio;
-
-        // KSR: scale envelope times
-        let atkScaled = atk, decScaled = dec, relScaled = rel;
-        if (ksr > 0) {
+        // KSR scales envelope speed per operator.
+        let atkScaled = c.attack, decScaled = c.decay, relScaled = cRel;
+        if (c.ksr) {
           const octave = Math.log2(baseFreq / 440);
-          const ksrFactor = Math.pow(2, -ksr * octave);
+          const ksrFactor = Math.pow(2, -octave);
           atkScaled *= ksrFactor;
           decScaled *= ksrFactor;
           relScaled *= ksrFactor;
         }
 
-        // KSL: volume attenuation above A4
-        let kslAtten = 1;
-        if (ksl > 0) {
-          const octave = Math.log2(baseFreq / 440);
-          if (octave > 0) kslAtten = Math.pow(10, -ksl * octave / 20);
-        }
-
-        // Tremolo AM
-        const trem = tremDepth > 0 ? 1 - tremDepth * (1 + tremVal) * 0.5 : 1;
+        const cTrem = tremoloGain(c.tremolo, tremVal, modW, modTgt);
+        const mTrem = tremoloGain(m.tremolo, tremVal, modW, modTgt);
+        const cKsl = kslAttenuation(baseFreq, c.ksl);
+        const mKsl = kslAttenuation(baseFreq, m.ksl);
 
         // Age tracking
         v.age += dt;
@@ -268,10 +388,10 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
         v.met += dt;
 
         // KSR scaling for modulator too
-        let mAtkS = mAtk, mDecS = mDec, mRelS = mRel;
-        if (ksr > 0) {
+        let mAtkS = m.attack, mDecS = m.decay, mRelS = mRel;
+        if (m.ksr) {
           const octave = Math.log2(baseFreq / 440);
-          const ksrFactor = Math.pow(2, -ksr * octave);
+          const ksrFactor = Math.pow(2, -octave);
           mAtkS *= ksrFactor;
           mDecS *= ksrFactor;
           mRelS *= ksrFactor;
@@ -283,15 +403,15 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
           v.mel = mEnv;
         } else if (v.mes === 1) {
           const t = mDecS > 0.0001 ? v.met / mDecS : 1;
-          mEnv = t >= 1 ? mSus : 1 - (1 - mSus) * t;
+          mEnv = t >= 1 ? m.sustain : 1 - (1 - m.sustain) * t;
           if (t >= 1) { v.mes = 2; v.met = 0; }
           v.mel = mEnv;
         } else if (v.mes === 2) {
-          if (mEgType > 0.5) {
-            const percDecay = mSus * Math.pow(0.5, v.met / (mDec * 2 + 0.01));
+          if (!m.sustained) {
+            const percDecay = m.sustain * Math.pow(0.5, v.met / (mDecS * 2 + 0.01));
             mEnv = percDecay > 0.001 ? percDecay : 0;
           } else {
-            mEnv = mSus;
+            mEnv = m.sustain;
           }
           v.mel = mEnv;
         } else {
@@ -309,17 +429,17 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
           v.el = env;
         } else if (v.es === 1) {
           const t = decScaled > 0.0001 ? v.et / decScaled : 1;
-          env = t >= 1 ? sus : 1 - (1 - sus) * t;
+          env = t >= 1 ? c.sustain : 1 - (1 - c.sustain) * t;
           if (t >= 1) { v.es = 2; v.et = 0; }
           v.el = env;
         } else if (v.es === 2) {
-          // EG type: percussive continues decaying, sustained holds
-          if (egType > 0.5) {
-            const percDecay = sus * Math.pow(0.5, v.et / (dec * 2 + 0.01));
+          // YM2413 EG bit: sustained holds, percussive keeps decaying.
+          if (!c.sustained) {
+            const percDecay = c.sustain * Math.pow(0.5, v.et / (decScaled * 2 + 0.01));
             env = percDecay > 0.001 ? percDecay : 0;
             if (env <= 0.001) { this.voices.splice(vi, 1); continue; }
           } else {
-            env = sus;
+            env = c.sustain;
           }
           v.el = env;
         } else {
@@ -330,19 +450,30 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
 
         // ── 2-op FM with YM2413 waveforms ──
         // Feedback uses raw (pre-envelope) modulator — hardware-accurate
-        const msRaw = _waveform(v.mp + fb * v.pm, mWave, noise);
+        const msRaw = _waveform(v.mp + p.feedback * v.pm, m.wave, noise);
         v.pm = msRaw; // feedback loop stays alive regardless of mod envelope
-        const ms = msRaw * modLevel * mEnv; // envelope only scales output to carrier
-        const voiceSample = _waveform(v.cp + mi * ms, cWave, noise) * env * v.velocity * 0.35 * trem * kslAtten;
+        const ms = msRaw * p.modLevel * mEnv * mTrem * mKsl;
+        const voiceSample = _waveform(v.cp + mi * ms, c.wave, noise) * env * v.velocity * 0.35 * cTrem * cKsl;
+        let outSample = voiceSample;
+
+        if (v.choking) {
+          const chokeMul = Math.max(0, 1 - (v.chokePos / Math.max(1, v.chokeLen)));
+          outSample *= chokeMul;
+          v.chokePos++;
+          if (v.chokePos >= v.chokeLen) {
+            this.voices.splice(vi, 1);
+            continue;
+          }
+        }
 
         // NaN guard
-        if (voiceSample !== voiceSample || !isFinite(v.cp) || !isFinite(v.mp)) {
+        if (outSample !== outSample || !isFinite(v.cp) || !isFinite(v.mp)) {
           this._reportCrash('nan_voice', { note: v.note, freq: v.freq, cp: v.cp, mp: v.mp });
           this.voices.splice(vi, 1);
           continue;
         }
 
-        s += voiceSample;
+        s += outSample;
 
         v.cp += TAU * crf / sr;
         v.mp += TAU * mrf / sr;

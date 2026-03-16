@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIMPLYM — Freeform FM Designer</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HJPFEY11D7"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-HJPFEY11D7')</script>
+  <style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Courier New', monospace; background: #111; color: #ccc; }
+
+#app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px 16px 60px;
+}
+
+h1 {
+  font-size: 18px;
+  letter-spacing: 6px;
+  color: #22ccaa;
+  margin-bottom: 4px;
+}
+.subtitle {
+  font-size: 10px;
+  color: #555;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+/* ── Layer tabs ── */
+.layer-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+.layer-tab {
+  padding: 6px 14px;
+  border: 1px solid #333;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.3);
+  color: #888;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.layer-tab.active {
+  color: #22ccaa;
+  border-color: #22ccaa;
+  background: rgba(34,204,170,0.08);
+}
+.layer-tab.muted { opacity: 0.35; }
+.layer-add {
+  padding: 6px 10px;
+  border: 1px dashed #444;
+  border-radius: 3px;
+  background: none;
+  color: #555;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.layer-add:hover { color: #22ccaa; border-color: #22ccaa; }
+.layer-remove {
+  padding: 6px 10px;
+  border: 1px solid #442222;
+  border-radius: 3px;
+  background: rgba(80,20,20,0.2);
+  color: #884444;
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+.layer-remove:hover { color: #cc4444; border-color: #cc4444; }
+
+/* ── Section headers ── */
+.section-title {
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: #22ccaa;
+  font-weight: bold;
+  margin: 16px 0 8px;
+  border-bottom: 1px solid #222;
+  padding-bottom: 4px;
+}
+
+/* ── Param grid ── */
+.param-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  margin-bottom: 8px;
+}
+.param {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.param label {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #22ccaa;
+  font-weight: bold;
+}
+.param input[type="range"] {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #333;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.param input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #3cc88a;
+  border: 2px solid #111;
+  cursor: pointer;
+}
+.param input[type="range"]::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #3cc88a;
+  border: 2px solid #111;
+  cursor: pointer;
+}
+.param .val {
+  font-size: 9px;
+  color: #666;
+  text-align: right;
+}
+
+/* ── Ratio row (step slider + fine offset) ── */
+.ratio-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.ratio-row .param { flex: 1; }
+.ratio-row .param:last-child { flex: 0.6; }
+
+/* ── Wave selector (multi-button) ── */
+.wave-select {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+.wave-btn {
+  flex: 1;
+  padding: 5px 2px;
+  border: 1px solid #333;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.3);
+  color: #666;
+  font-family: inherit;
+  font-size: 8px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.1s;
+}
+.wave-btn.active {
+  color: #22ccaa;
+  border-color: #22ccaa;
+  background: rgba(34,204,170,0.12);
+}
+.wave-btn:hover { border-color: #555; }
+
+/* ── Toggle buttons ── */
+.toggle-row {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0;
+}
+.toggle-btn {
+  padding: 5px 12px;
+  border: 1px solid #333;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.3);
+  color: #555;
+  font-family: inherit;
+  font-size: 8px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.toggle-btn.active {
+  color: #22ccaa;
+  border-color: #22ccaa;
+  background: rgba(34,204,170,0.1);
+}
+
+/* ── Export section ── */
+.export-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+}
+.export-btn {
+  padding: 8px 20px;
+  border: 1px solid #22ccaa;
+  border-radius: 3px;
+  background: rgba(34,204,170,0.08);
+  color: #22ccaa;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+.export-btn:hover { background: rgba(34,204,170,0.15); }
+.export-btn.secondary { border-color: #555; color: #888; background: rgba(0,0,0,0.2); }
+.export-btn.secondary:hover { border-color: #888; }
+#export-output {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid #222;
+  border-radius: 3px;
+  font-size: 10px;
+  color: #3cc88a;
+  white-space: pre-wrap;
+  word-break: break-all;
+  display: none;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* ── Keyboard ── */
+.keyboard {
+  display: flex;
+  height: 80px;
+  margin-top: 16px;
+  position: relative;
+  user-select: none;
+}
+.key {
+  flex: 1;
+  border: 1px solid #333;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(180deg, #e8e4dc, #d0ccc4);
+  cursor: pointer;
+  position: relative;
+}
+.key:active, .key.pressed { background: linear-gradient(180deg, #c0bbb3, #a8a49c); }
+.key.black {
+  background: linear-gradient(180deg, #2a2a2a, #1a1a1a);
+  height: 55px;
+  margin: 0 -6px;
+  z-index: 2;
+  flex: 0 0 20px;
+  border-color: #111;
+}
+.key.black:active, .key.black.pressed { background: linear-gradient(180deg, #333, #222); }
+
+/* ── Mute toggle on layer tab ── */
+.mute-indicator { font-size: 7px; margin-left: 4px; opacity: 0.6; }
+
+/* ── MIDI bar ── */
+.midi-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 16px 0 8px;
+  padding: 8px 12px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid #222;
+  border-radius: 3px;
+}
+.midi-bar select {
+  flex: 1;
+  padding: 4px 8px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 3px;
+  color: #888;
+  font-family: inherit;
+  font-size: 9px;
+}
+.midi-status {
+  font-size: 9px;
+  color: #555;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 500px) {
+  .param-grid { grid-template-columns: 1fr; }
+}
+  </style>
+</head>
+<body>
+<div id="app">
+  <h1>SIMPLYM</h1>
+  <div class="subtitle">FREEFORM FM DESIGNER</div>
+
+  <!-- Layer tabs -->
+  <div class="layer-bar" id="layer-bar">
+    <button class="layer-tab active" data-layer="0">LAYER 1</button>
+    <button class="layer-add" id="add-layer">+</button>
+    <button class="layer-remove" id="remove-layer">DEL</button>
+  </div>
+
+  <!-- Editor (populated by JS) -->
+  <div id="editor"></div>
+
+  <!-- MIDI -->
+  <div class="midi-bar" id="midi-bar">
+    <button class="toggle-btn" id="midi-toggle">MIDI: OFF</button>
+    <select id="midi-device"><option>-- no devices --</option></select>
+    <span class="midi-status" id="midi-status"></span>
+  </div>
+
+  <!-- Mini keyboard -->
+  <div class="keyboard" id="keyboard"></div>
+
+  <!-- Export -->
+  <div class="export-bar">
+    <button class="export-btn" id="btn-export">EXPORT JSON</button>
+    <button class="export-btn secondary" id="btn-copy">COPY</button>
+    <button class="export-btn secondary" id="btn-import">IMPORT</button>
+  </div>
+  <pre id="export-output"></pre>
+</div>
+
+<script src="yamabruh-notify.js"></script>
+<script src="synth.js"></script>
+<script>
+(async function() {
+
+  // ── Layer state ──
+  const MAX_LAYERS = 8;
+  let layers = [defaultLayer()];
+  let activeLayer = 0;
+
+  function defaultLayer() {
+    return {
+      name: 'LAYER 1',
+      muted: false,
+      carrier: { ratio: 1, ratioFine: 0, attack: 0.01, decay: 0.06, sustain: 0.5, release: 0.1, wave: 0, egType: 1, tremolo: false, vibrato: false, sustained: false, ksl: 1, ksr: 0.3 },
+      modulator: { ratio: 1, ratioFine: 0, attack: 0.001, decay: 0.18, sustain: 0.708, release: 0.3, wave: 0, egType: 1, tremolo: false, vibrato: false, sustained: false },
+      modDepth: 0.515,
+      feedback: 0,
+      modLevel: 1,
+    };
+  }
+
+  // ── Convert layer to 21-param array ──
+  function layerToParams(l) {
+    const c = l.carrier, m = l.modulator;
+    return [
+      c.ratio + c.ratioFine,
+      m.ratio + m.ratioFine,
+      l.modDepth,
+      c.attack, c.decay, c.sustain, c.release,
+      l.feedback,
+      c.wave, m.wave,
+      c.tremolo ? 0.5 : 0,
+      c.vibrato ? 0.5 : 0,
+      c.ksr,
+      c.ksl,
+      l.modLevel,
+      c.egType,
+      m.attack, m.decay, m.sustain, m.release,
+      m.egType,
+    ];
+  }
+
+  // ── Synth init ──
+  const synth = new YamaBruhSynth();
+  await synth.init();
+  window.synth = synth;
+
+  // ── Wave labels ──
+  const CARRIER_WAVES = ['SIN', 'HALF', 'ABS', 'PULSE', 'NOISE', 'N+SIN'];
+  const MOD_WAVES = ['SIN', 'HALF', 'ABS', 'PULSE', 'NOISE'];
+
+  // ── Build editor UI ──
+  const editorEl = document.getElementById('editor');
+
+  function buildEditor() {
+    const l = layers[activeLayer];
+    const c = l.carrier, m = l.modulator;
+
+    editorEl.innerHTML = `
+      <div class="section-title">CARRIER</div>
+      <div class="ratio-row">
+        <div class="param">
+          <label>RATIO</label>
+          <input type="range" min="0.5" max="8" step="0.5" value="${c.ratio}" data-path="carrier.ratio">
+          <span class="val">${c.ratio}</span>
+        </div>
+        <div class="param">
+          <label>FINE</label>
+          <input type="range" min="-0.5" max="0.5" step="0.01" value="${c.ratioFine}" data-path="carrier.ratioFine">
+          <span class="val">${c.ratioFine.toFixed(2)}</span>
+        </div>
+      </div>
+      <div class="param-grid">
+        <div class="param">
+          <label>ATTACK</label>
+          <input type="range" min="0.001" max="3" step="0.001" value="${c.attack}" data-path="carrier.attack">
+          <span class="val">${c.attack}</span>
+        </div>
+        <div class="param">
+          <label>DECAY</label>
+          <input type="range" min="0.00005" max="0.99" step="0.00005" value="${c.decay}" data-path="carrier.decay">
+          <span class="val">${c.decay}</span>
+        </div>
+        <div class="param">
+          <label>SUSTAIN</label>
+          <input type="range" min="0.006" max="1" step="0.001" value="${c.sustain}" data-path="carrier.sustain">
+          <span class="val">${c.sustain}</span>
+        </div>
+        <div class="param">
+          <label>RELEASE</label>
+          <input type="range" min="0.0015" max="0.99" step="0.0005" value="${c.release}" data-path="carrier.release">
+          <span class="val">${c.release}</span>
+        </div>
+        <div class="param">
+          <label>KSL</label>
+          <input type="range" min="0" max="3" step="0.5" value="${c.ksl}" data-path="carrier.ksl">
+          <span class="val">${c.ksl}</span>
+        </div>
+        <div class="param">
+          <label>KSR</label>
+          <input type="range" min="0" max="1" step="0.1" value="${c.ksr}" data-path="carrier.ksr">
+          <span class="val">${c.ksr}</span>
+        </div>
+      </div>
+      <div class="param">
+        <label>WAVEFORM</label>
+        <div class="wave-select" data-path="carrier.wave">
+          ${CARRIER_WAVES.map((w, i) => `<button class="wave-btn${c.wave === i ? ' active' : ''}" data-val="${i}">${w}</button>`).join('')}
+        </div>
+      </div>
+      <div class="toggle-row">
+        <button class="toggle-btn${c.egType ? ' active' : ''}" data-toggle="carrier.egType">PERC</button>
+        <button class="toggle-btn${c.tremolo ? ' active' : ''}" data-toggle="carrier.tremolo">TREM</button>
+        <button class="toggle-btn${c.vibrato ? ' active' : ''}" data-toggle="carrier.vibrato">VIB</button>
+        <button class="toggle-btn${c.sustained ? ' active' : ''}" data-toggle="carrier.sustained">SUS</button>
+      </div>
+
+      <div class="section-title">MODULATOR</div>
+      <div class="ratio-row">
+        <div class="param">
+          <label>RATIO</label>
+          <input type="range" min="0.5" max="9" step="0.5" value="${m.ratio}" data-path="modulator.ratio">
+          <span class="val">${m.ratio}</span>
+        </div>
+        <div class="param">
+          <label>FINE</label>
+          <input type="range" min="-0.5" max="0.5" step="0.01" value="${m.ratioFine}" data-path="modulator.ratioFine">
+          <span class="val">${m.ratioFine.toFixed(2)}</span>
+        </div>
+      </div>
+      <div class="param-grid">
+        <div class="param">
+          <label>DEPTH</label>
+          <input type="range" min="0" max="12.566" step="0.001" value="${l.modDepth}" data-path="modDepth">
+          <span class="val">${l.modDepth}</span>
+        </div>
+        <div class="param">
+          <label>FEEDBACK</label>
+          <input type="range" min="0" max="12.566" step="0.001" value="${l.feedback}" data-path="feedback">
+          <span class="val">${l.feedback}</span>
+        </div>
+        <div class="param">
+          <label>MOD LEVEL</label>
+          <input type="range" min="0" max="1" step="0.01" value="${l.modLevel}" data-path="modLevel">
+          <span class="val">${l.modLevel}</span>
+        </div>
+        <div class="param">
+          <label>ATTACK</label>
+          <input type="range" min="0.001" max="5" step="0.001" value="${m.attack}" data-path="modulator.attack">
+          <span class="val">${m.attack}</span>
+        </div>
+        <div class="param">
+          <label>DECAY</label>
+          <input type="range" min="0.00005" max="0.99" step="0.00005" value="${m.decay}" data-path="modulator.decay">
+          <span class="val">${m.decay}</span>
+        </div>
+        <div class="param">
+          <label>SUSTAIN</label>
+          <input type="range" min="0.006" max="1" step="0.001" value="${m.sustain}" data-path="modulator.sustain">
+          <span class="val">${m.sustain}</span>
+        </div>
+        <div class="param">
+          <label>RELEASE</label>
+          <input type="range" min="0.00005" max="0.99" step="0.0005" value="${m.release}" data-path="modulator.release">
+          <span class="val">${m.release}</span>
+        </div>
+      </div>
+      <div class="param">
+        <label>WAVEFORM</label>
+        <div class="wave-select" data-path="modulator.wave">
+          ${MOD_WAVES.map((w, i) => `<button class="wave-btn${m.wave === i ? ' active' : ''}" data-val="${i}">${w}</button>`).join('')}
+        </div>
+      </div>
+      <div class="toggle-row">
+        <button class="toggle-btn${m.egType ? ' active' : ''}" data-toggle="modulator.egType">PERC</button>
+        <button class="toggle-btn${m.tremolo ? ' active' : ''}" data-toggle="modulator.tremolo">TREM</button>
+        <button class="toggle-btn${m.vibrato ? ' active' : ''}" data-toggle="modulator.vibrato">VIB</button>
+        <button class="toggle-btn${m.sustained ? ' active' : ''}" data-toggle="modulator.sustained">SUS</button>
+      </div>
+    `;
+
+    // Bind sliders
+    editorEl.querySelectorAll('input[type="range"]').forEach(s => {
+      s.addEventListener('input', () => {
+        const path = s.dataset.path;
+        const val = parseFloat(s.value);
+        setPath(layers[activeLayer], path, val);
+        s.nextElementSibling.textContent = val < 0.01 && val > 0 ? val.toFixed(5) : val < 1 ? val.toFixed(3) : val;
+        sendPreset();
+      });
+    });
+
+    // Bind wave selectors
+    editorEl.querySelectorAll('.wave-select').forEach(ws => {
+      ws.querySelectorAll('.wave-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          ws.querySelectorAll('.wave-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          setPath(layers[activeLayer], ws.dataset.path, parseInt(btn.dataset.val));
+          sendPreset();
+        });
+      });
+    });
+
+    // Bind toggles
+    editorEl.querySelectorAll('.toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const path = btn.dataset.toggle;
+        const cur = getPath(layers[activeLayer], path);
+        const next = typeof cur === 'boolean' ? !cur : (cur ? 0 : 1);
+        setPath(layers[activeLayer], path, next);
+        btn.classList.toggle('active');
+        sendPreset();
+      });
+    });
+  }
+
+  function setPath(obj, path, val) {
+    const parts = path.split('.');
+    let o = obj;
+    for (let i = 0; i < parts.length - 1; i++) o = o[parts[i]];
+    o[parts[parts.length - 1]] = val;
+  }
+
+  function getPath(obj, path) {
+    const parts = path.split('.');
+    let o = obj;
+    for (const p of parts) o = o[p];
+    return o;
+  }
+
+  function sendPreset() {
+    // Send all non-muted layers as preset to worklet
+    // For now, just send active layer (multi-layer mixing happens at note level)
+    if (synth.workletNode) {
+      const params = layerToParams(layers[activeLayer]);
+      synth.workletNode.port.postMessage({ type: 'preset', params });
+    }
+  }
+
+  // ── Layer tabs ──
+  function renderLayerTabs() {
+    const bar = document.getElementById('layer-bar');
+    const addBtn = document.getElementById('add-layer');
+    const removeBtn = document.getElementById('remove-layer');
+    // Remove existing tabs
+    bar.querySelectorAll('.layer-tab').forEach(t => t.remove());
+    // Add tabs before the + button
+    layers.forEach((l, i) => {
+      const tab = document.createElement('button');
+      tab.className = 'layer-tab' + (i === activeLayer ? ' active' : '') + (l.muted ? ' muted' : '');
+      tab.dataset.layer = i;
+      tab.innerHTML = 'L' + (i + 1) + (l.muted ? '<span class="mute-indicator">M</span>' : '');
+      tab.addEventListener('click', (e) => {
+        if (e.shiftKey) {
+          l.muted = !l.muted;
+          renderLayerTabs();
+          return;
+        }
+        activeLayer = i;
+        renderLayerTabs();
+        buildEditor();
+      });
+      bar.insertBefore(tab, addBtn);
+    });
+    addBtn.style.display = layers.length >= MAX_LAYERS ? 'none' : '';
+    removeBtn.style.display = layers.length <= 1 ? 'none' : '';
+  }
+
+  document.getElementById('add-layer').addEventListener('click', () => {
+    if (layers.length >= MAX_LAYERS) return;
+    const l = defaultLayer();
+    l.name = 'LAYER ' + (layers.length + 1);
+    layers.push(l);
+    activeLayer = layers.length - 1;
+    renderLayerTabs();
+    buildEditor();
+  });
+
+  document.getElementById('remove-layer').addEventListener('click', () => {
+    if (layers.length <= 1) return;
+    layers.splice(activeLayer, 1);
+    if (activeLayer >= layers.length) activeLayer = layers.length - 1;
+    renderLayerTabs();
+    buildEditor();
+  });
+
+  // ── Keyboard ──
+  const kbEl = document.getElementById('keyboard');
+  const notes = [
+    { note: 60, black: false }, { note: 61, black: true },
+    { note: 62, black: false }, { note: 63, black: true },
+    { note: 64, black: false },
+    { note: 65, black: false }, { note: 66, black: true },
+    { note: 67, black: false }, { note: 68, black: true },
+    { note: 69, black: false }, { note: 70, black: true },
+    { note: 71, black: false },
+    { note: 72, black: false }, { note: 73, black: true },
+    { note: 74, black: false }, { note: 75, black: true },
+    { note: 76, black: false },
+  ];
+  const activeNotes = new Set();
+
+  notes.forEach(n => {
+    const key = document.createElement('div');
+    key.className = 'key' + (n.black ? ' black' : '');
+    key.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      key.classList.add('pressed');
+      playNote(n.note);
+    });
+    key.addEventListener('pointerup', () => {
+      key.classList.remove('pressed');
+      stopNote(n.note);
+    });
+    key.addEventListener('pointerleave', () => {
+      key.classList.remove('pressed');
+      stopNote(n.note);
+    });
+    kbEl.appendChild(key);
+  });
+
+  function playNote(note) {
+    if (activeNotes.has(note)) return;
+    activeNotes.add(note);
+    const freq = 440 * Math.pow(2, (note - 69) / 12);
+    // Play all non-muted layers
+    layers.forEach((l, i) => {
+      if (l.muted) return;
+      const params = layerToParams(l);
+      synth.workletNode.port.postMessage({
+        type: 'noteOn',
+        note: note + i * 1000, // unique note ID per layer
+        freq,
+        velocity: 0.8,
+        preset: params,
+      });
+    });
+  }
+
+  function stopNote(note) {
+    if (!activeNotes.has(note)) return;
+    activeNotes.delete(note);
+    layers.forEach((l, i) => {
+      if (l.muted) return;
+      synth.workletNode.port.postMessage({
+        type: 'noteOff',
+        note: note + i * 1000,
+      });
+    });
+  }
+
+  // Computer keyboard support
+  const keyMap = { 'a':60,'w':61,'s':62,'e':63,'d':64,'f':65,'t':66,'g':67,'y':68,'h':69,'u':70,'j':71,'k':72,'o':73,'l':74,'p':75 };
+  const heldKeys = new Set();
+  document.addEventListener('keydown', e => {
+    if (e.repeat || e.target.tagName === 'INPUT') return;
+    const note = keyMap[e.key.toLowerCase()];
+    if (note !== undefined && !heldKeys.has(e.key)) {
+      heldKeys.add(e.key);
+      playNote(note);
+    }
+  });
+  document.addEventListener('keyup', e => {
+    const note = keyMap[e.key.toLowerCase()];
+    if (note !== undefined) {
+      heldKeys.delete(e.key);
+      stopNote(note);
+    }
+  });
+
+  // ── Export ──
+  function exportJSON() {
+    const out = {
+      version: 1,
+      layers: layers.map((l, i) => ({
+        name: 'Layer ' + (i + 1),
+        muted: l.muted,
+        carrier: { ...l.carrier },
+        modulator: { ...l.modulator },
+        modDepth: l.modDepth,
+        feedback: l.feedback,
+        modLevel: l.modLevel,
+        // Also include the 21-param array for direct use
+        params: layerToParams(l),
+      })),
+    };
+    return JSON.stringify(out, null, 2);
+  }
+
+  const exportOutput = document.getElementById('export-output');
+
+  document.getElementById('btn-export').addEventListener('click', () => {
+    const json = exportJSON();
+    exportOutput.textContent = json;
+    exportOutput.style.display = 'block';
+  });
+
+  document.getElementById('btn-copy').addEventListener('click', () => {
+    const json = exportJSON();
+    navigator.clipboard.writeText(json).then(() => {
+      const btn = document.getElementById('btn-copy');
+      btn.textContent = 'COPIED';
+      setTimeout(() => btn.textContent = 'COPY', 1500);
+    });
+  });
+
+  document.getElementById('btn-import').addEventListener('click', () => {
+    const input = prompt('Paste YMWAVE JSON:');
+    if (!input) return;
+    try {
+      const data = JSON.parse(input);
+      if (data.layers && data.layers.length) {
+        layers = data.layers.map(l => ({
+          name: l.name || 'LAYER',
+          muted: l.muted || false,
+          carrier: { ratio: 1, ratioFine: 0, attack: 0.01, decay: 0.06, sustain: 0.5, release: 0.1, wave: 0, egType: 1, tremolo: false, vibrato: false, sustained: false, ksl: 1, ksr: 0.3, ...l.carrier },
+          modulator: { ratio: 1, ratioFine: 0, attack: 0.001, decay: 0.18, sustain: 0.708, release: 0.3, wave: 0, egType: 1, tremolo: false, vibrato: false, sustained: false, ...l.modulator },
+          modDepth: l.modDepth ?? 0.515,
+          feedback: l.feedback ?? 0,
+          modLevel: l.modLevel ?? 1,
+        }));
+        activeLayer = 0;
+        renderLayerTabs();
+        buildEditor();
+        exportOutput.style.display = 'none';
+      }
+    } catch (e) {
+      alert('Invalid JSON: ' + e.message);
+    }
+  });
+
+  // ── MIDI ──
+  let midiAccess = null;
+  let midiConnected = false;
+  const midiToggle = document.getElementById('midi-toggle');
+  const midiDevice = document.getElementById('midi-device');
+  const midiStatus = document.getElementById('midi-status');
+
+  midiToggle.addEventListener('click', async () => {
+    if (midiConnected) {
+      // Disconnect
+      if (midiAccess) {
+        for (const input of midiAccess.inputs.values()) input.onmidimessage = null;
+      }
+      midiConnected = false;
+      midiToggle.textContent = 'MIDI: OFF';
+      midiToggle.classList.remove('active');
+      midiStatus.textContent = '';
+      return;
+    }
+    if (!navigator.requestMIDIAccess) {
+      midiStatus.textContent = 'MIDI blocked (disable MetaMask)';
+      return;
+    }
+    try {
+      midiAccess = await navigator.requestMIDIAccess({ sysex: false });
+      // Populate device list
+      const inputs = [];
+      for (const input of midiAccess.inputs.values()) inputs.push(input);
+      midiDevice.innerHTML = '<option value="">All devices</option>';
+      inputs.forEach(inp => {
+        const opt = document.createElement('option');
+        opt.value = inp.id;
+        opt.textContent = inp.name;
+        midiDevice.appendChild(opt);
+      });
+      // Bind all inputs
+      for (const input of midiAccess.inputs.values()) {
+        if (input.connection !== 'open') await input.open();
+        input.onmidimessage = handleMIDI;
+      }
+      midiConnected = true;
+      midiToggle.textContent = 'MIDI: ON';
+      midiToggle.classList.add('active');
+      midiStatus.textContent = inputs.length + ' device(s)';
+    } catch (e) {
+      midiStatus.textContent = e.message;
+    }
+  });
+
+  midiDevice.addEventListener('change', () => {
+    if (!midiAccess) return;
+    for (const input of midiAccess.inputs.values()) input.onmidimessage = null;
+    const selected = midiDevice.value;
+    for (const input of midiAccess.inputs.values()) {
+      if (!selected || input.id === selected) {
+        input.onmidimessage = handleMIDI;
+      }
+    }
+  });
+
+  function handleMIDI(event) {
+    const d = event.data;
+    if (!d || d.length < 2) return;
+    const cmd = d[0] & 0xf0;
+    const note = d[1];
+    const vel = d.length > 2 ? d[2] : 0;
+
+    if (cmd === 0x90 && vel > 0) {
+      playNote(note);
+      midiStatus.textContent = 'N' + note + ' V' + vel;
+    } else if (cmd === 0x80 || (cmd === 0x90 && vel === 0)) {
+      stopNote(note);
+    } else if (cmd === 0xE0) {
+      // Pitch bend
+      const bendVal = (vel << 7) | note;
+      if (synth.workletNode) {
+        synth.workletNode.port.postMessage({ type: 'pitchBend', value: bendVal });
+      }
+    }
+  }
+
+  // ── Init ──
+  // Resume audio context on first interaction (Chrome autoplay policy)
+  document.addEventListener('pointerdown', () => {
+    if (synth.ctx && synth.ctx.state === 'suspended') synth.ctx.resume();
+  }, { once: true });
+  document.addEventListener('keydown', () => {
+    if (synth.ctx && synth.ctx.state === 'suspended') synth.ctx.resume();
+  }, { once: true });
+
+  renderLayerTabs();
+  buildEditor();
+  sendPreset();
+
+})();
+</script>
+</body>
+</html>
