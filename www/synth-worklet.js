@@ -31,6 +31,10 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
     // Crash diagnostics
     this._crashCount = 0;
     this._lastCrashReport = 0;
+    // YM2413-style 23-bit LFSR noise generator (shared, like hardware)
+    this.lfsr = 1;
+    this.noiseOut = 0;
+    this.noiseClock = 0;
     this.port.onmessage = (e) => this._onMessage(e.data);
   }
 
@@ -164,6 +168,12 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
 
     for (let i = 0; i < len; i++) {
       let s = 0;
+
+      // ── YM2413 noise LFSR (clocked every sample for full-bandwidth noise) ──
+      // 23-bit LFSR: taps at bits 0 and 14 (matches YM2413 hardware)
+      const bit = ((this.lfsr >> 0) ^ (this.lfsr >> 14)) & 1;
+      this.lfsr = ((this.lfsr >> 1) | (bit << 22)) & 0x7FFFFF;
+      const noise = (this.lfsr & 1) ? 1 : -1;
 
       // ── YM2413 shared LFOs (hardware-accurate: single LFO for all voices) ──
       // Tremolo at 3.7Hz
@@ -320,10 +330,10 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
 
         // ── 2-op FM with YM2413 waveforms ──
         // Feedback uses raw (pre-envelope) modulator — hardware-accurate
-        const msRaw = _waveform(v.mp + fb * v.pm, mWave);
+        const msRaw = _waveform(v.mp + fb * v.pm, mWave, noise);
         v.pm = msRaw; // feedback loop stays alive regardless of mod envelope
         const ms = msRaw * modLevel * mEnv; // envelope only scales output to carrier
-        const voiceSample = _waveform(v.cp + mi * ms, cWave) * env * v.velocity * 0.35 * trem * kslAtten;
+        const voiceSample = _waveform(v.cp + mi * ms, cWave, noise) * env * v.velocity * 0.35 * trem * kslAtten;
 
         // NaN guard
         if (voiceSample !== voiceSample || !isFinite(v.cp) || !isFinite(v.mp)) {
@@ -372,7 +382,7 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
 
 // ── YM2413 Waveform Types ──────────────────────────────────────────────
 // 0=sine, 1=half-sine (rectified +), 2=abs-sine, 3=quarter-sine
-function _waveform(phase, type) {
+function _waveform(phase, type, noise) {
   switch (type) {
     case 1: { const s = Math.sin(phase); return s > 0 ? s : 0; }
     case 2: return Math.abs(Math.sin(phase));
@@ -382,6 +392,8 @@ function _waveform(phase, type) {
       if (p < 0) p += TAU;
       return p < 1.5707963 ? Math.sin(p) : 0;
     }
+    case 4: return noise || 0; // pure noise (YM2413 percussion LFSR)
+    case 5: return (Math.sin(phase) + (noise || 0)) * 0.5; // tone + noise mix
     default: return Math.sin(phase);
   }
 }

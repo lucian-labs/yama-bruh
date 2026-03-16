@@ -149,48 +149,102 @@
     <div class="tweak-section">
       <button class="tweak-toggle" id="tweak-toggle">EDITOR &#9660;</button>
       <div class="tweak-body" id="tweak-body">
-        <!-- Sound subsection -->
-        <div class="editor-subtitle">SOUND</div>
+        <!-- Carrier subsection -->
+        <div class="editor-subtitle">CARRIER</div>
         <div class="tweak-grid">
           <div class="tweak-param">
-            <label>CARRIER</label>
-            <input type="range" min="0.1" max="4" step="0.01" id="tw-carrier">
+            <label>RATIO</label>
+            <input type="range" min="0.5" max="8" step="0.5" id="tw-carrier">
             <span class="tw-val" id="tw-carrier-val">1.00</span>
           </div>
           <div class="tweak-param">
-            <label>MOD RATIO</label>
-            <input type="range" min="0.1" max="16" step="0.01" id="tw-modratio">
-            <span class="tw-val" id="tw-modratio-val">1.00</span>
-          </div>
-          <div class="tweak-param">
-            <label>MOD INDEX</label>
-            <input type="range" min="0" max="16" step="0.01" id="tw-modindex">
-            <span class="tw-val" id="tw-modindex-val">2.00</span>
-          </div>
-          <div class="tweak-param">
             <label>ATTACK</label>
-            <input type="range" min="0.001" max="2" step="0.001" id="tw-attack">
+            <input type="range" min="0.001" max="3" step="0.001" id="tw-attack">
             <span class="tw-val" id="tw-attack-val">0.01</span>
           </div>
           <div class="tweak-param">
             <label>DECAY</label>
-            <input type="range" min="0.01" max="4" step="0.01" id="tw-decay">
-            <span class="tw-val" id="tw-decay-val">0.30</span>
+            <input type="range" min="0.00005" max="0.99" step="0.00005" id="tw-decay">
+            <span class="tw-val" id="tw-decay-val">0.06</span>
           </div>
           <div class="tweak-param">
             <label>SUSTAIN</label>
-            <input type="range" min="0" max="1" step="0.01" id="tw-sustain">
+            <input type="range" min="0.006" max="1" step="0.001" id="tw-sustain">
             <span class="tw-val" id="tw-sustain-val">0.30</span>
           </div>
           <div class="tweak-param">
             <label>RELEASE</label>
-            <input type="range" min="0.01" max="1.5" step="0.01" id="tw-release">
-            <span class="tw-val" id="tw-release-val">0.20</span>
+            <input type="range" min="0.0015" max="0.99" step="0.0005" id="tw-release">
+            <span class="tw-val" id="tw-release-val">0.1</span>
+          </div>
+          <div class="tweak-param">
+            <label>WAVE</label>
+            <input type="range" min="0" max="5" step="1" id="tw-cwave">
+            <span class="tw-val" id="tw-cwave-val">0</span>
+          </div>
+          <div class="tweak-param">
+            <label>EG TYPE</label>
+            <input type="range" min="0" max="1" step="1" id="tw-egtype">
+            <span class="tw-val" id="tw-egtype-val">0</span>
+          </div>
+          <div class="tweak-param">
+            <label>TREMOLO</label>
+            <input type="range" min="0" max="0.5" step="0.5" id="tw-tremolo">
+            <span class="tw-val" id="tw-tremolo-val">0.00</span>
+          </div>
+          <div class="tweak-param">
+            <label>KSL</label>
+            <input type="range" min="1" max="1.5" step="0.5" id="tw-ksl">
+            <span class="tw-val" id="tw-ksl-val">0.00</span>
+          </div>
+        </div>
+        <!-- Modulator subsection -->
+        <div class="editor-subtitle">MODULATOR</div>
+        <div class="tweak-grid">
+          <div class="tweak-param">
+            <label>RATIO</label>
+            <input type="range" min="0.5" max="9" step="0.5" id="tw-modratio">
+            <span class="tw-val" id="tw-modratio-val">1.00</span>
+          </div>
+          <div class="tweak-param">
+            <label>DEPTH</label>
+            <input type="range" min="0.055" max="12.566" step="0.001" id="tw-modindex">
+            <span class="tw-val" id="tw-modindex-val">2.00</span>
           </div>
           <div class="tweak-param">
             <label>FEEDBACK</label>
-            <input type="range" min="0" max="1" step="0.01" id="tw-feedback">
+            <input type="range" min="0" max="12.566" step="0.001" id="tw-feedback">
             <span class="tw-val" id="tw-feedback-val">0.00</span>
+          </div>
+          <div class="tweak-param">
+            <label>ATTACK</label>
+            <input type="range" min="0.001" max="5" step="0.001" id="tw-matk">
+            <span class="tw-val" id="tw-matk-val">0.001</span>
+          </div>
+          <div class="tweak-param">
+            <label>DECAY</label>
+            <input type="range" min="0.00005" max="0.99" step="0.00005" id="tw-mdec">
+            <span class="tw-val" id="tw-mdec-val">0.005</span>
+          </div>
+          <div class="tweak-param">
+            <label>SUSTAIN</label>
+            <input type="range" min="0.006" max="1" step="0.001" id="tw-msus">
+            <span class="tw-val" id="tw-msus-val">0.006</span>
+          </div>
+          <div class="tweak-param">
+            <label>RELEASE</label>
+            <input type="range" min="0.00005" max="0.99" step="0.0005" id="tw-mrel">
+            <span class="tw-val" id="tw-mrel-val">0.005</span>
+          </div>
+          <div class="tweak-param">
+            <label>WAVE</label>
+            <input type="range" min="0" max="4" step="1" id="tw-mwave">
+            <span class="tw-val" id="tw-mwave-val">0</span>
+          </div>
+          <div class="tweak-param">
+            <label>EG TYPE</label>
+            <input type="range" min="0" max="1" step="1" id="tw-megtype">
+            <span class="tw-val" id="tw-megtype-val">0</span>
           </div>
         </div>
         <div class="tweak-btn-row">

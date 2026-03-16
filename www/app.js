@@ -5,6 +5,7 @@
   let currentPreset = parseInt(localStorage.getItem('yamabruh_preset') || '0');
   let flash = 0;
   let playingSources = new Map();
+  const chNameEls = [];
   const savedMidi = JSON.parse(localStorage.getItem('yamabruh_midi') || 'null');
 
   // ── Visual Config State ──────────────────────────────────────────
@@ -236,6 +237,8 @@
     const uGrain = gl.getUniformLocation(prog, 'u_grain');
     const uScratches = gl.getUniformLocation(prog, 'u_scratches');
 
+    let shaderDirty = true;
+
     function resize() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -244,8 +247,6 @@
     }
     resize();
     window.addEventListener('resize', resize);
-
-    let shaderDirty = true;
 
     document.addEventListener('mousemove', e => {
       mouseX = e.clientX;
@@ -811,7 +812,17 @@
   const tweakBody = document.getElementById('tweak-body');
   const tweakReset = document.getElementById('tweak-reset');
 
-  const tweakIds = ['tw-carrier','tw-modratio','tw-modindex','tw-attack','tw-decay','tw-sustain','tw-release','tw-feedback'];
+  // Slider ID → param index in 21-param array
+  // [cr, mr, mi, atk, dec, sus, rel, fb, cWave, mWave, trem, chipVib, ksr, ksl, modLvl, egType, mAtk, mDec, mSus, mRel, mEgType]
+  const tweakMap = [
+    ['tw-carrier',  0], ['tw-attack',   3], ['tw-decay',    4], ['tw-sustain',  5],
+    ['tw-release',  6], ['tw-cwave',    8], ['tw-egtype',  15], ['tw-tremolo', 10],
+    ['tw-ksl',     13], ['tw-modratio', 1], ['tw-modindex', 2], ['tw-feedback', 7],
+    ['tw-matk',    16], ['tw-mdec',    17], ['tw-msus',    18], ['tw-mrel',    19],
+    ['tw-mwave',    9], ['tw-megtype', 20],
+  ];
+  const tweakIds = tweakMap.map(m => m[0]);
+  const tweakParamIdx = tweakMap.map(m => m[1]);
   const tweakSliders = tweakIds.map(id => document.getElementById(id));
   const tweakVals = tweakIds.map(id => document.getElementById(id + '-val'));
 
@@ -825,17 +836,18 @@
   function loadTweakFromPreset() {
     const params = window.synth.getPresetParams(currentPreset);
     tweakSliders.forEach((slider, i) => {
-      slider.value = params[i];
-      tweakVals[i].textContent = params[i].toFixed(2);
+      const pi = tweakParamIdx[i];
+      const v = params[pi] || 0;
+      slider.value = v;
+      tweakVals[i].textContent = Number.isInteger(v) ? v.toString() : v.toFixed(3);
     });
   }
 
   function getTweakParams() {
-    // Get slider values (first 8 params) and merge with full preset's extended params [8-15]
     const base = window.synth.getPresetParams(currentPreset);
-    const params = base.slice(); // copy all 16
+    const params = base.slice();
     tweakSliders.forEach((s, i) => {
-      params[i] = parseFloat(s.value);
+      params[tweakParamIdx[i]] = parseFloat(s.value);
     });
     return params;
   }
@@ -849,7 +861,8 @@
     window.synth._presetCache.set(currentPreset, params);
     // Update value displays
     tweakSliders.forEach((slider, i) => {
-      tweakVals[i].textContent = parseFloat(slider.value).toFixed(2);
+      const v = parseFloat(slider.value);
+      tweakVals[i].textContent = Number.isInteger(v) ? v.toString() : v.toFixed(3);
     });
   }
 
@@ -935,8 +948,6 @@
   // ── MIDI Channel Grid ──────────────────────────────────────────────
   const chGrid = document.getElementById('ch-grid');
   const chSlots = [];
-  const chNameEls = [];
-
   function getChDisplayName(ch) {
     if (window.midiManager.isDrumChannel(ch)) return 'DRUMS';
     const preset = window.midiManager.getChannelPreset(ch);
