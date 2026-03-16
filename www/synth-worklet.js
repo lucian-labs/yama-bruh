@@ -6,9 +6,7 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
     super();
     this.voices = [];
     this.preset = [1, 1, 2, 0.01, 0.3, 0.3, 0.2, 0];
-    // Compressor state
-    this.comp1Env = 0;
-    this.comp2Env = 0;
+    // (compressor removed — soft-knee limiter only, no state needed)
     // Vibrato LFO state
     this.vibratoOn = false;
     this.vibratoRate = 5.5;   // Hz
@@ -97,8 +95,7 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
         this.port.postMessage({
           type: 'health',
           voices: this.voices.length,
-          comp1: this.comp1Env,
-          comp2: this.comp2Env,
+          limiter: 'soft-knee',
           crashes: this._crashCount,
         });
         break;
@@ -208,42 +205,19 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
       // NaN guard — reset if audio goes bad
       if (s !== s) {
         s = 0;
-        this.comp1Env = 0;
-        this.comp2Env = 0;
         this._reportCrash('nan_output', { voices: this.voices.length });
       }
 
-      // ── Two-stage compression + limiter ──────────────────────
-      const abs1 = s < 0 ? -s : s;
-
-      // Stage 1: gentle compression (threshold -12dB ≈ 0.25, ratio 3:1)
-      const t1 = 0.25;
-      const atk1 = 0.002 * sr, rel1 = 0.05 * sr;
-      this.comp1Env += (abs1 > this.comp1Env ? 1/atk1 : -1/rel1) * (abs1 - this.comp1Env);
-      if (this.comp1Env < 0) this.comp1Env = 0;
-      if (this.comp1Env > t1) {
-        const over = this.comp1Env - t1;
-        s *= (t1 + over / 3) / this.comp1Env;
+      // ── Soft-knee limiter (no compressor) ──────────────────────
+      const absS = s < 0 ? -s : s;
+      if (absS > 0.5) {
+        const over = absS - 0.5;
+        const gain = 0.5 + over / (1.0 + over * 2.0);
+        s = s < 0 ? -gain : gain;
       }
-
-      // Stage 2: heavier compression (threshold -6dB ≈ 0.5, ratio 6:1)
-      const abs2 = s < 0 ? -s : s;
-      const t2 = 0.5;
-      const atk2 = 0.001 * sr, rel2 = 0.04 * sr;
-      this.comp2Env += (abs2 > this.comp2Env ? 1/atk2 : -1/rel2) * (abs2 - this.comp2Env);
-      if (this.comp2Env < 0) this.comp2Env = 0;
-      if (this.comp2Env > t2) {
-        const over = this.comp2Env - t2;
-        s *= (t2 + over / 6) / this.comp2Env;
-      }
-
-      // NaN guard on compressor envelopes
-      if (this.comp1Env !== this.comp1Env) this.comp1Env = 0;
-      if (this.comp2Env !== this.comp2Env) this.comp2Env = 0;
-
-      // Brickwall limiter at -0.1dB ≈ 0.9886
-      if (s > 0.9886) s = 0.9886;
-      else if (s < -0.9886) s = -0.9886;
+      // Brickwall clamp
+      if (s > 0.95) s = 0.95;
+      else if (s < -0.95) s = -0.95;
 
       out[i] = s;
     }

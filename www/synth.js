@@ -5,26 +5,26 @@ const SAMPLE_RATE = 44100;
 const BPM = 140;
 
 const PRESET_NAMES = [
-  'Grand Piano','Bright Piano','Honky-Tonk','E.Piano 1','E.Piano 2',
-  'Clav','Harpsichord','DX Piano','Stage Piano','Vintage Keys',
-  'Jazz Organ','Rock Organ','Church Organ','Reed Organ','Pipe Organ',
-  'Drawbar 1','Drawbar 2','Perc Organ','Rotary Organ','Full Organ',
-  'Trumpet','Trombone','French Horn','Brass Sect','Synth Brass 1',
-  'Synth Brass 2','Mute Trumpet','Brass Pad','Power Brass','Fanfare',
-  'Strings','Slow Strings','Syn Strings 1','Syn Strings 2','Warm Pad',
-  'Choir Pad','Atmosphere','Brightness Pad','Sweep Pad','Ice Pad',
-  'Finger Bass','Pick Bass','Slap Bass','Fretless','Synth Bass 1',
-  'Synth Bass 2','Acid Bass','Rubber Bass','Sub Bass','Wobble Bass',
-  'Square Lead','Saw Lead','Sync Lead','Calliope','Chiffer',
-  'Charang','Solo Vox','Fifth Lead','Bass+Lead','Poly Lead',
-  'Tubular Bell','Glockenspiel','Music Box','Vibraphone','Marimba',
-  'Xylophone','Steel Drums','Crystal','Kalimba','Tinkle Bell',
-  'Harmonica','Accordion','Clarinet','Oboe','Bassoon',
-  'Flute','Recorder','Pan Flute','Bottle','Shakuhachi',
-  'Rain','Soundtrack','Sci-Fi','Atmosphere 2','Goblin',
-  'Echo Drop','Star Theme','Sitar','Telephone','Helicopter',
-  'Chiptune 1','Chiptune 2','Chiptune 3','Retro Beep','Bit Crush',
-  'Arcade','Game Over','Power Up','Digital Vox'
+  'Piano 1','Piano 2','Honky-Tonk Piano','Electric Piano 1','Electric Piano 2',
+  'Harpsichord 1','Harpsichord 2','Harpsichord 3','Honky-Tonk Clavi','Glass Celesta',
+  'Reed Organ','Pipe Organ 1','Pipe Organ 2','Electronic Organ 1','Electronic Organ 2',
+  'Jazz Organ','Accordion','Vibraphone','Marimba 1','Marimba 2',
+  'Trumpet','Mute Trumpet','Trombone','Soft Trombone','Horn',
+  'Alpenhorn','Tuba','Brass Ensemble 1','Brass Ensemble 2','Brass Ensemble 3',
+  'Flute','Panflute','Piccolo','Clarinet','Bass Clarinet',
+  'Oboe','Bassoon','Saxophone','Bagpipe','Woodwinds',
+  'Violin 1','Violin 2','Cello','Strings','Electric Bass',
+  'Slap Bass','Wood Bass','Synth Bass','Banjo','Mandolin',
+  'Classic Guitar','Jazz Guitar','Folk Guitar','Hawaiian Guitar','Ukulele',
+  'Koto','Shamisen','Harp','Harmonica','Music Box',
+  'Brass & Marimba','Flute & Harpsichord','Oboe & Vibraphone','Clarinet & Harp','Violin & Steel Drum',
+  'Handsaw','Synth Brass','Metallic Synth','Sine Wave','Reverse',
+  'Human Voice 1','Human Voice 2','Human Voice 3','Whisper','Whistle',
+  'Gurgle','Bubble','Raindrop','Popcorn','Drip',
+  'Dog Pianist','Duck','Babydoll','Telephone Bell','Emergency Alarm',
+  'Leaf Spring','Comet','Fireworks','Crystal','Ghost',
+  'Hand Bell','Chimes','Bell','Steel Drum','Cowbell',
+  'Synth Tom 1','Synth Tom 2','Snare Drum','Machine Gun','Wave'
 ];
 
 class YamaBruhSynth {
