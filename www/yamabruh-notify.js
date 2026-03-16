@@ -117,7 +117,7 @@ class YamaBruhNotify {
   }
 
   _getPreset(index) {
-    const i = Math.max(0, Math.min(98, index));
+    const i = Math.max(0, Math.min(99, index));
     return YAMABRUH_PRESETS[i] || YAMABRUH_PRESETS[0];
   }
 

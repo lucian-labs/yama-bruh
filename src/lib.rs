@@ -174,7 +174,8 @@ pub fn get_preset_data(index: u32) -> [f32; 8] {
         96 => [0.5,  1.5,  6.0,  0.001, 0.4,  0.0,  0.25, 0.25 ], // Synth Tom 2
         97 => [1.0,  2.3,  10.0, 0.001, 0.12, 0.0,  0.08, 0.15 ], // Snare Drum
         98 => [1.0,  0.1,  15.0, 0.001, 0.04, 0.0,  0.03, 0.8  ], // Machine Gun — noise burst via extreme settings
-        _  => [1.0,  7.0,  3.0,  0.3,   2.0,  0.3,  3.0,  0.1  ], // Wave — ocean-like sweep
+        99 => [1.0,  7.0,  3.0,  0.3,   2.0,  0.3,  3.0,  0.1  ], // Wave — ocean-like sweep
+        _  => [1.0,  1.0,  2.0,  0.01,  0.3,  0.3,  0.2,  0.0  ], // fallback
     }
 }
 
@@ -307,7 +308,7 @@ pub extern "C" fn get_note_count() -> u32 {
 
 #[no_mangle]
 pub extern "C" fn get_preset_param(preset: u32, param: u32) -> f32 {
-    let idx = if preset > 98 { 98 } else { preset };
+    let idx = if preset > 99 { 99 } else { preset };
     let pidx = if param > 7 { 7 } else { param };
     let p = get_preset_data(idx);
     p[pidx as usize]
@@ -414,7 +415,7 @@ pub extern "C" fn render_ringtone(
     let num_notes = 3 + (seed % 3);
     generate_sequence(seed, num_notes);
 
-    let pidx = if preset_idx > 98 { 98 } else { preset_idx };
+    let pidx = if preset_idx > 99 { 99 } else { preset_idx };
     let preset = get_preset_data(pidx);
     let beat_duration = 60.0 / bpm;
 
@@ -470,7 +471,7 @@ pub extern "C" fn render_note(
     let preset = if preset_idx >= 200 {
         unsafe { CUSTOM_PRESET }
     } else {
-        let idx = if preset_idx > 98 { 98 } else { preset_idx };
+        let idx = if preset_idx > 99 { 99 } else { preset_idx };
         get_preset_data(idx)
     };
 
