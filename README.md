@@ -40,8 +40,51 @@ Same seed + same ID = same ringtone every time, across all devices.
 > make the ui look weathered as though its made of the cheap plastic that's been moved around for 30 years. use glsl on the entire page to add texture and responsiveness.
 > pressing the keys should use the plugin to generate sfx feedback for the user.
 
+## Swift Package (iOS / macOS / watchOS)
+
+Add via SPM for generative notification sounds in any Apple app:
+
+```swift
+// Package.swift
+dependencies: [
+    .package(url: "https://github.com/ELI7VH/yama-bruh", branch: "main"),
+]
+```
+
+Two-tier seeding: **app seed** selects the timbre (which FM preset), **ID seed** selects the melody. Same app always sounds like the same instrument family.
+
+```swift
+import YamaBruh
+
+// Generate a WAV from a task/message ID — deterministic
+let wav = Ringtone.generate(from: "task-abc-123", appIdentifier: "ca.lucianlabs.groundcontrol")
+try wav.write(to: fileURL)
+
+// Numeric seeds for direct control
+let wav = Ringtone.generate(seed: 42, appSeed: 99)
+
+// Override the preset instead of deriving from app seed
+let wav = Ringtone.generate(seed: 42, presetIndex: 88) // Telephone
+```
+
+For iOS notifications, write the WAV to `Library/Sounds/` and reference it via `UNNotificationSound(named:)`.
+
+### API
+
+| Type | Purpose |
+|------|---------|
+| `Ringtone.generate(seed:appSeed:presetIndex:bpm:sampleRate:)` | Generate WAV `Data` from numeric seeds |
+| `Ringtone.generate(from:appIdentifier:presetIndex:bpm:sampleRate:)` | Generate from string identifiers (DJB2 hashed) |
+| `FMSynth.renderNote(freq:duration:preset:sampleRate:buffer:offset:velocity:)` | Low-level: render a single FM note into a float buffer |
+| `SequenceGenerator.generate(seed:)` | Get the deterministic note sequence for a seed |
+| `SequenceGenerator.djb2Hash(_:)` | Hash a string to a UInt32 seed |
+| `WavWriter.encode(samples:sampleRate:channels:)` | Encode a float buffer as 16-bit PCM WAV |
+| `FMPresets.all` | All 99 presets |
+| `FMPresets.preset(at:)` | Get a preset by index (clamped) |
+
 ## Architecture
 
+- **Swift Package** (`Sources/YamaBruh/`): Pure Swift port of the FM engine, 99 presets, seed-based sequence generation, WAV encoding. No dependencies. iOS 16+ / macOS 13+ / watchOS 9+.
 - **WASM Core** (Rust → `yama_bruh.wasm`, 7.5KB): Seeded PRNG, F#m pentatonic sequence generation, 2-op FM synthesis with 99 presets, audio buffer rendering
 - **Standalone Notify Engine** (`yamabruh-notify.js`): Pure JS FM synth, no WASM dependency, all 99 presets embedded, drop-in `<script>` tag
 - **Web Audio API**: Real-time FM synth for keyboard/MIDI playback with low latency
