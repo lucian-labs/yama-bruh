@@ -6,6 +6,10 @@ const CHIP_VIB_DEPTH = 0.008;
 const KSL_DB_PER_OCT = [0, 1.5, 3, 6];
 const FEEDBACK_TABLE = [0, Math.PI / 16, Math.PI / 8, Math.PI / 4, Math.PI / 2, Math.PI, Math.PI * 2, Math.PI * 4];
 const CHOKE_FADE_SECONDS = 0.006;
+const ENV_FLOOR = 1e-5;
+const ENV_SNAP = 2e-4;
+const SUS_ON_RELEASE_SECONDS = 0.31;
+const SUS_ON_SUSTAIN_SECONDS = 1.2;
 
 function makeOperator(overrides = {}) {
   return {
@@ -128,6 +132,13 @@ function kslAttenuation(freq, bits) {
   return Math.pow(10, -(dbPerOct * octave) / 20);
 }
 
+function envelopeStep(current, target, seconds, sr) {
+  if (seconds <= 0.00001) return target;
+  const samples = Math.max(1, seconds * sr);
+  const coeff = 1 - Math.exp(-5 / samples);
+  return current + (target - current) * coeff;
+}
+
 class YamaBruhProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
@@ -200,9 +211,10 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
           chokePos: 0,
           chokeLen: 0,
           // Carrier envelope
-          es: 0, el: 0, et: 0, rl: 0,
+          es: 0, el: ENV_FLOOR,
           // Modulator envelope
-          mes: 0, mel: 0, met: 0, mrl: 0,
+          mes: 0, mel: ENV_FLOOR,
+          sustainOn: !!msg.sustain,
           age: 0,
           p: normalizePreset(msg.preset || this.preset),
         });
@@ -212,13 +224,8 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
         for (const v of this.voices) {
           if (v.note === msg.note && v.es < 3) {
             v.es = 3;
-            v.et = 0;
-            v.rl = v.el;
-            // Modulator release too
             if (v.mes < 3) {
               v.mes = 3;
-              v.met = 0;
-              v.mrl = v.mel;
             }
           }
         }
@@ -378,16 +385,15 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
         const mTrem = tremoloGain(m.tremolo, tremVal, modW, modTgt);
         const cKsl = kslAttenuation(baseFreq, c.ksl);
         const mKsl = kslAttenuation(baseFreq, m.ksl);
+        const cSus = Math.max(ENV_FLOOR, Math.min(1, c.sustain));
+        const mSus = Math.max(ENV_FLOOR, Math.min(1, m.sustain));
 
         // Age tracking
         v.age += dt;
         if (v.age > 30) { this.voices.splice(vi, 1); continue; }
 
-        // ── Modulator Envelope (separate ADSR) ──
+        // ── Modulator Envelope ──
         let mEnv;
-        v.met += dt;
-
-        // KSR scaling for modulator too
         let mAtkS = m.attack, mDecS = m.decay, mRelS = mRel;
         if (m.ksr) {
           const octave = Math.log2(baseFreq / 440);
@@ -396,56 +402,61 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
           mDecS *= ksrFactor;
           mRelS *= ksrFactor;
         }
+        const cKeyOffRel = v.sustainOn ? SUS_ON_RELEASE_SECONDS : relScaled;
+        const mKeyOffRel = v.sustainOn ? SUS_ON_RELEASE_SECONDS : mRelS;
+        const cHoldRate = v.sustainOn ? SUS_ON_SUSTAIN_SECONDS : relScaled;
+        const mHoldRate = v.sustainOn ? SUS_ON_SUSTAIN_SECONDS : mRelS;
 
         if (v.mes === 0) {
-          mEnv = mAtkS > 0.0001 ? v.met / mAtkS : 1;
-          if (mEnv >= 1) { mEnv = 1; v.mes = 1; v.met = 0; }
-          v.mel = mEnv;
+          v.mel = envelopeStep(v.mel, 1, mAtkS, sr);
+          if (v.mel >= 1 - ENV_SNAP) {
+            v.mel = 1;
+            v.mes = 1;
+          }
         } else if (v.mes === 1) {
-          const t = mDecS > 0.0001 ? v.met / mDecS : 1;
-          mEnv = t >= 1 ? m.sustain : 1 - (1 - m.sustain) * t;
-          if (t >= 1) { v.mes = 2; v.met = 0; }
-          v.mel = mEnv;
+          v.mel = envelopeStep(v.mel, mSus, mDecS, sr);
+          if (Math.abs(v.mel - mSus) <= ENV_SNAP) {
+            v.mel = mSus;
+            v.mes = 2;
+          }
         } else if (v.mes === 2) {
-          if (!m.sustained) {
-            const percDecay = m.sustain * Math.pow(0.5, v.met / (mDecS * 2 + 0.01));
-            mEnv = percDecay > 0.001 ? percDecay : 0;
+          if (m.sustained) {
+            v.mel = v.sustainOn ? envelopeStep(v.mel, ENV_FLOOR, SUS_ON_SUSTAIN_SECONDS, sr) : mSus;
           } else {
-            mEnv = m.sustain;
+            v.mel = envelopeStep(v.mel, ENV_FLOOR, mHoldRate, sr);
           }
-          v.mel = mEnv;
         } else {
-          const t = mRelS > 0.0001 ? v.met / mRelS : 1;
-          mEnv = t >= 1 ? 0 : v.mrl * (1 - t);
+          v.mel = envelopeStep(v.mel, ENV_FLOOR, mKeyOffRel, sr);
         }
+        mEnv = v.mel;
 
-        // ── Carrier Envelope (ADSR with KSR scaling) ──
+        // ── Carrier Envelope ──
         let env;
-        v.et += dt;
-
         if (v.es === 0) {
-          env = atkScaled > 0.0001 ? v.et / atkScaled : 1;
-          if (env >= 1) { env = 1; v.es = 1; v.et = 0; }
-          v.el = env;
-        } else if (v.es === 1) {
-          const t = decScaled > 0.0001 ? v.et / decScaled : 1;
-          env = t >= 1 ? c.sustain : 1 - (1 - c.sustain) * t;
-          if (t >= 1) { v.es = 2; v.et = 0; }
-          v.el = env;
-        } else if (v.es === 2) {
-          // YM2413 EG bit: sustained holds, percussive keeps decaying.
-          if (!c.sustained) {
-            const percDecay = c.sustain * Math.pow(0.5, v.et / (decScaled * 2 + 0.01));
-            env = percDecay > 0.001 ? percDecay : 0;
-            if (env <= 0.001) { this.voices.splice(vi, 1); continue; }
-          } else {
-            env = c.sustain;
+          v.el = envelopeStep(v.el, 1, atkScaled, sr);
+          if (v.el >= 1 - ENV_SNAP) {
+            v.el = 1;
+            v.es = 1;
           }
-          v.el = env;
+        } else if (v.es === 1) {
+          v.el = envelopeStep(v.el, cSus, decScaled, sr);
+          if (Math.abs(v.el - cSus) <= ENV_SNAP) {
+            v.el = cSus;
+            v.es = 2;
+          }
+        } else if (v.es === 2) {
+          if (c.sustained) {
+            v.el = v.sustainOn ? envelopeStep(v.el, ENV_FLOOR, SUS_ON_SUSTAIN_SECONDS, sr) : cSus;
+          } else {
+            v.el = envelopeStep(v.el, ENV_FLOOR, cHoldRate, sr);
+          }
         } else {
-          const t = relScaled > 0.0001 ? v.et / relScaled : 1;
-          env = t >= 1 ? 0 : v.rl * (1 - t);
-          if (t >= 1) { this.voices.splice(vi, 1); continue; }
+          v.el = envelopeStep(v.el, ENV_FLOOR, cKeyOffRel, sr);
+        }
+        env = v.el;
+        if (env <= ENV_FLOOR * 1.5 && mEnv <= ENV_FLOOR * 1.5 && (v.es >= 2 || v.mes >= 2)) {
+          this.voices.splice(vi, 1);
+          continue;
         }
 
         // ── 2-op FM with YM2413 waveforms ──

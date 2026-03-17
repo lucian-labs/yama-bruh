@@ -587,6 +587,7 @@ h1 {
       <div class="view-bar" id="view-bar">
         <button class="view-tab active" data-view="operator">OPERATOR</button>
         <button class="view-tab" data-view="registers">REGISTERS</button>
+        <button class="view-tab" data-view="channels">CHANNELS</button>
         <button class="view-tab" data-view="derived">DERIVED</button>
         <button class="view-tab" data-view="rhythm">RHYTHM</button>
       </div>
@@ -594,7 +595,7 @@ h1 {
       <div class="status-grid">
         <div class="status-card">
           <span>MODE</span>
-          <strong>USER TONE / 9-CH MELODY</strong>
+          <strong id="mode-readout">USER TONE / 9-CH MELODY</strong>
         </div>
         <div class="status-card">
           <span>REGISTER BYTES</span>
@@ -698,6 +699,12 @@ h1 {
     { id: 'cymbal', label: 'CYM', note: 49, name: 'Cymbal' },
     { id: 'hihat_c', label: 'HH', note: 42, name: 'Hi-Hat' },
   ];
+  const YM2413_INSTRUMENTS = [
+    'Original', 'Violin', 'Guitar', 'Piano', 'Flute', 'Clarinet', 'Oboe', 'Trumpet',
+    'Organ', 'Horn', 'Synthesizer', 'Harpsichord', 'Vibraphone', 'Synth Bass', 'Acoustic Bass', 'Electric Guitar',
+  ];
+  const OPLL_CLOCK_HZ = 3579545;
+  const OPLL_SAMPLE_HZ = OPLL_CLOCK_HZ / 72;
   const DEFAULT_REGISTERS = [0x21, 0x21, 0x14, 0x05, 0xF2, 0xB4, 0x56, 0x74];
   const STORAGE_KEY = 'ymwave_saved_presets_v1';
   const CURRENT_STATE_KEY = 'ymwave_current_registers_v1';
@@ -705,11 +712,16 @@ h1 {
   const CHOKE_STATE_KEY = 'ymwave_choke_same_notes_v1';
 
   let registers = [...DEFAULT_REGISTERS];
+  let channelFnumRegs = Array(9).fill(0);
+  let channelKeyRegs = Array(9).fill(0x08);
+  let channelInstRegs = Array(9).fill(0x00);
+  let rhythmReg = 0x00;
   let activeView = 'operator';
   let activePresetId = null;
   let activeSystemPresetIndex = null;
   let noteCounter = 0;
   const activeNotes = new Map();
+  const activeChannelVoices = new Map();
   const heldKeys = new Set();
   let chokeSameNotes = false;
 
@@ -720,6 +732,7 @@ h1 {
 
   const editorEl = document.getElementById('editor');
   const exportOutput = document.getElementById('export-output');
+  const modeReadoutEl = document.getElementById('mode-readout');
   const registerReadoutEl = document.getElementById('register-readout');
   const voiceSummaryEl = document.getElementById('voice-summary');
   const presetListEl = document.getElementById('preset-list');
@@ -747,6 +760,85 @@ h1 {
 
   function registersToHex(values = registers) {
     return values.map(hexByte).join(' ');
+  }
+
+  function channelHexString() {
+    const bytes = [rhythmReg];
+    for (let i = 0; i < 9; i++) bytes.push(channelFnumRegs[i], channelKeyRegs[i], channelInstRegs[i]);
+    return bytes.map(hexByte).join(' ');
+  }
+
+  function noteName(note) {
+    if (!Number.isFinite(note)) return '--';
+    const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const n = Math.round(note);
+    return names[(n % 12 + 12) % 12] + String(Math.floor(n / 12) - 1);
+  }
+
+  function channelFrequency(fnum, block) {
+    return (fnum * OPLL_SAMPLE_HZ * Math.pow(2, block - 1)) / (1 << 18);
+  }
+
+  function frequencyToFnumBlock(freq) {
+    const scaled = Math.max(1, Number(freq) || 1) * (1 << 18) / OPLL_SAMPLE_HZ;
+    for (let block = 0; block <= 7; block++) {
+      const fnum = Math.round(scaled / Math.pow(2, block - 1));
+      if (fnum >= 0 && fnum <= 511) return { fnum, block };
+    }
+    return { fnum: 511, block: 7 };
+  }
+
+  function noteToFnumBlock(note) {
+    return frequencyToFnumBlock(440 * Math.pow(2, (note - 69) / 12));
+  }
+
+  function decodeChannel(index) {
+    const fnum = ((channelKeyRegs[index] & 0x01) << 8) | channelFnumRegs[index];
+    const block = (channelKeyRegs[index] >> 1) & 0x07;
+    const sustain = !!(channelKeyRegs[index] & 0x20);
+    const keyOn = !!(channelKeyRegs[index] & 0x10);
+    const instrument = (channelInstRegs[index] >> 4) & 0x0F;
+    const volume = channelInstRegs[index] & 0x0F;
+    const freq = channelFrequency(fnum, block);
+    const midi = freq > 0 ? Math.round(69 + 12 * Math.log2(freq / 440)) : null;
+    return { index, fnum, block, sustain, keyOn, instrument, volume, freq, midi };
+  }
+
+  function applyDecodedChannel(index, decoded, options = {}) {
+    const fnum = Math.max(0, Math.min(511, decoded.fnum | 0));
+    const block = Math.max(0, Math.min(7, decoded.block | 0));
+    const sustain = !!decoded.sustain;
+    const keyOn = !!decoded.keyOn;
+    const instrument = Math.max(0, Math.min(15, decoded.instrument | 0));
+    const volume = Math.max(0, Math.min(15, decoded.volume | 0));
+    channelFnumRegs[index] = fnum & 0xFF;
+    channelKeyRegs[index] = (sustain ? 0x20 : 0) | (keyOn ? 0x10 : 0) | ((block & 0x07) << 1) | ((fnum >> 8) & 0x01);
+    channelInstRegs[index] = ((instrument & 0x0F) << 4) | (volume & 0x0F);
+    syncAll({
+      rerenderEditor: options.rerenderEditor ?? (activeView === 'channels' || activeView === 'rhythm'),
+      renderPresets: false,
+    });
+  }
+
+  function loadCurrentState() {
+    try {
+      const raw = localStorage.getItem(CURRENT_STATE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length === 8) {
+        return { tone: parsed, fnum: Array(9).fill(0), key: Array(9).fill(0x08), inst: Array(9).fill(0), rhythm: 0 };
+      }
+      if (!parsed || !Array.isArray(parsed.tone) || parsed.tone.length !== 8) return null;
+      return {
+        tone: parsed.tone.map(v => Math.max(0, Math.min(255, v | 0))),
+        fnum: Array.isArray(parsed.fnum) && parsed.fnum.length === 9 ? parsed.fnum.map(v => Math.max(0, Math.min(255, v | 0))) : Array(9).fill(0),
+        key: Array.isArray(parsed.key) && parsed.key.length === 9 ? parsed.key.map(v => Math.max(0, Math.min(255, v | 0))) : Array(9).fill(0x08),
+        inst: Array.isArray(parsed.inst) && parsed.inst.length === 9 ? parsed.inst.map(v => Math.max(0, Math.min(255, v | 0))) : Array(9).fill(0),
+        rhythm: Math.max(0, Math.min(255, parsed.rhythm | 0)),
+      };
+    } catch (error) {
+      return null;
+    }
   }
 
   function parseRegisters(text) {
@@ -837,13 +929,21 @@ h1 {
 
   function exportData() {
     const state = toneState();
+    const channels = Array.from({ length: 9 }, (_, i) => decodeChannel(i));
     return {
-      version: 2,
+      version: 3,
       format: 'ym2413-user-tone',
       registers: [...registers],
       registerHex: registersToHex(),
       decoded: state,
       preset: buildPreset(),
+      channelRegisters: {
+        rhythm: rhythmReg,
+        fnum: [...channelFnumRegs],
+        key: [...channelKeyRegs],
+        inst: [...channelInstRegs],
+      },
+      channels,
     };
   }
 
@@ -859,21 +959,14 @@ h1 {
     }
   }
 
-  function loadCurrentRegisters() {
-    try {
-      const raw = localStorage.getItem(CURRENT_STATE_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed) || parsed.length !== 8) return null;
-      const bytes = parsed.map(v => Math.max(0, Math.min(255, v | 0)));
-      return bytes.length === 8 ? bytes : null;
-    } catch (error) {
-      return null;
-    }
-  }
-
   function persistCurrentRegisters() {
-    localStorage.setItem(CURRENT_STATE_KEY, JSON.stringify(registers));
+    localStorage.setItem(CURRENT_STATE_KEY, JSON.stringify({
+      tone: [...registers],
+      fnum: [...channelFnumRegs],
+      key: [...channelKeyRegs],
+      inst: [...channelInstRegs],
+      rhythm: rhythmReg,
+    }));
   }
 
   function loadChokeState() {
@@ -927,8 +1020,8 @@ h1 {
   }
 
   function systemPresetName(index) {
-    if (window.synth && typeof window.synth.getPresetName === 'function') {
-      return window.synth.getPresetName(index);
+    if (synth && typeof synth.getPresetName === 'function') {
+      return synth.getPresetName(index);
     }
     return 'Preset ' + (index + 1);
   }
@@ -984,7 +1077,7 @@ h1 {
     const count = systemPresetCount();
     const items = [];
     for (let i = 0; i < count; i++) {
-      const params = window.synth.getPresetParams(i);
+      const params = synth.getPresetParams(i);
       items.push({
         id: 'system-' + i,
         index: i,
@@ -1056,7 +1149,7 @@ h1 {
   }
 
   function loadSystemPreset(index) {
-    const params = window.synth.getPresetParams(index);
+    const params = synth.getPresetParams(index);
     registers = paramsToRegisters(params);
     activePresetId = null;
     activeSystemPresetIndex = index;
@@ -1207,7 +1300,8 @@ h1 {
   function updateStatus() {
     const state = toneState();
     registerReadoutEl.textContent = registersToHex();
-    voiceSummaryEl.textContent = 'MOD ' + state.modulator.mult + 'x / CAR ' + state.carrier.mult + 'x | TL ' + state.modulator.tl + ' | FB ' + state.feedbackBits;
+    modeReadoutEl.textContent = (rhythmReg & 0x20) ? 'RHYTHM MODE / 6+5' : 'USER TONE / 9-CH MELODY';
+    voiceSummaryEl.textContent = 'MOD ' + state.modulator.mult + 'x / CAR ' + state.carrier.mult + 'x | TL ' + state.modulator.tl + ' | FB ' + state.feedbackBits + ' | CH ' + channelHexString();
   }
 
   function operatorOptions(selected) {
@@ -1354,6 +1448,59 @@ h1 {
     `;
   }
 
+  function instrumentOptions(selected) {
+    return YM2413_INSTRUMENTS.map((name, i) => '<option value="' + i + '"' + (selected === i ? ' selected' : '') + '>' + i + ' ' + name + '</option>').join('');
+  }
+
+  function renderChannelsView() {
+    const rows = Array.from({ length: 9 }, (_, i) => decodeChannel(i));
+    return `
+      <div class="panel">
+        <h2>10H-38H CHANNEL REGISTERS</h2>
+        <div class="rhythm-note">
+          These rows mirror the YM2413 channel registers directly: F-NUM LSB, key/block/sustain/F-NUM MSB, and instrument/volume.
+        </div>
+        <div class="register-list">
+          ${rows.map((ch) => `
+            <div class="register-row">
+              <div>
+                <label>CH ${ch.index + 1}</label>
+                <div class="register-meta">10+${ch.index}: ${hexByte(channelFnumRegs[ch.index])} / 20+${ch.index}: ${hexByte(channelKeyRegs[ch.index])} / 30+${ch.index}: ${hexByte(channelInstRegs[ch.index])}</div>
+              </div>
+              <div class="param">
+                <label>F-NUM</label>
+                <input type="range" min="0" max="511" step="1" value="${ch.fnum}" data-channel="${ch.index}" data-channel-field="fnum">
+              </div>
+              <div class="param">
+                <label>BLOCK</label>
+                <select data-channel="${ch.index}" data-channel-field="block">${Array.from({ length: 8 }, (_, i) => '<option value="' + i + '"' + (ch.block === i ? ' selected' : '') + '>' + i + '</option>').join('')}</select>
+              </div>
+              <div class="param">
+                <label>INSTRUMENT</label>
+                <select data-channel="${ch.index}" data-channel-field="instrument">${instrumentOptions(ch.instrument)}</select>
+              </div>
+              <div class="param">
+                <label>VOLUME</label>
+                <input type="range" min="0" max="15" step="1" value="${ch.volume}" data-channel="${ch.index}" data-channel-field="volume">
+              </div>
+              <div class="check-grid">
+                <label class="check-tile">
+                  <span class="mini-label">KEY</span>
+                  <input type="checkbox" data-channel="${ch.index}" data-channel-field="keyOn"${ch.keyOn ? ' checked' : ''}>
+                </label>
+                <label class="check-tile">
+                  <span class="mini-label">SUS</span>
+                  <input type="checkbox" data-channel="${ch.index}" data-channel-field="sustain"${ch.sustain ? ' checked' : ''}>
+                </label>
+              </div>
+              <div class="register-meta">F=${ch.fnum} B=${ch.block} ${noteName(ch.midi)} ${ch.freq.toFixed(2)}Hz</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   function renderDerivedView() {
     const preset = buildPreset();
     const state = toneState();
@@ -1418,6 +1565,38 @@ h1 {
           The real YM2413 can switch from 9 melody channels to 6 melody channels plus 5 rhythm voices.
           This view previews those five rhythm voices directly so the chip split is visible from the same page.
         </div>
+        <div class="register-row">
+          <div>
+            <label>R#0E RHYTHM CONTROL</label>
+            <div class="register-meta">${hexByte(rhythmReg)}</div>
+          </div>
+          <div class="check-grid">
+            <label class="check-tile">
+              <span class="mini-label">MODE</span>
+              <input type="checkbox" data-rhythm-reg="mode"${(rhythmReg & 0x20) ? ' checked' : ''}>
+            </label>
+            <label class="check-tile">
+              <span class="mini-label">HH</span>
+              <input type="checkbox" data-rhythm-reg="hh"${(rhythmReg & 0x01) ? ' checked' : ''}>
+            </label>
+            <label class="check-tile">
+              <span class="mini-label">CYM</span>
+              <input type="checkbox" data-rhythm-reg="cym"${(rhythmReg & 0x02) ? ' checked' : ''}>
+            </label>
+            <label class="check-tile">
+              <span class="mini-label">TOM</span>
+              <input type="checkbox" data-rhythm-reg="tom"${(rhythmReg & 0x04) ? ' checked' : ''}>
+            </label>
+            <label class="check-tile">
+              <span class="mini-label">SD</span>
+              <input type="checkbox" data-rhythm-reg="sd"${(rhythmReg & 0x08) ? ' checked' : ''}>
+            </label>
+            <label class="check-tile">
+              <span class="mini-label">BD</span>
+              <input type="checkbox" data-rhythm-reg="bd"${(rhythmReg & 0x10) ? ' checked' : ''}>
+            </label>
+          </div>
+        </div>
         <div class="rhythm-grid">
           ${RHYTHM_SOUNDS.map(sound => `
             <div class="rhythm-pad">
@@ -1435,9 +1614,55 @@ h1 {
 
   function renderView() {
     if (activeView === 'registers') return renderRegistersView();
+    if (activeView === 'channels') return renderChannelsView();
     if (activeView === 'derived') return renderDerivedView();
     if (activeView === 'rhythm') return renderRhythmView();
     return renderOperatorView();
+  }
+
+  function postChannelNoteOn(voiceId, midiNote, velocity, sustain) {
+    synth.workletNode.port.postMessage({
+      type: 'noteOn',
+      note: voiceId,
+      sourceNote: midiNote,
+      freq: 440 * Math.pow(2, (midiNote - 69) / 12),
+      velocity,
+      sustain: !!sustain,
+      preset: buildPreset(),
+    });
+  }
+
+  function channelVoiceId(index) {
+    return 100000 + index;
+  }
+
+  function playChannel(index, midiNote, velocity = 0.8) {
+    const ch = decodeChannel(index);
+    const voiceId = channelVoiceId(index);
+    activeChannelVoices.set(index, { voiceId, midiNote });
+    postChannelNoteOn(voiceId, midiNote, velocity, ch.sustain);
+  }
+
+  function stopChannel(index) {
+    const active = activeChannelVoices.get(index);
+    if (!active) return;
+    synth.workletNode.port.postMessage({ type: 'noteOff', note: active.voiceId });
+    activeChannelVoices.delete(index);
+  }
+
+  function setRhythmBit(mask, on) {
+    if (!mask) return;
+    rhythmReg = on ? (rhythmReg | mask) : (rhythmReg & ~mask);
+    syncAll({ rerenderEditor: activeView === 'rhythm', renderPresets: false });
+  }
+
+  function midiDrumSound(note) {
+    if (note === 35 || note === 36) return { id: 'kick', bit: 0x10 };
+    if (note === 38 || note === 40) return { id: 'snare', bit: 0x08 };
+    if (note === 41 || note === 43 || note === 45 || note === 47 || note === 48 || note === 50) return { id: 'tom', bit: 0x04 };
+    if (note === 42 || note === 44 || note === 46) return { id: 'hihat_c', bit: 0x01 };
+    if (note === 49 || note === 51 || note === 52 || note === 55 || note === 57) return { id: 'cymbal', bit: 0x02 };
+    return null;
   }
 
   function playNote(note, velocity = 0.8) {
@@ -1452,6 +1677,7 @@ h1 {
       sourceNote: note,
       freq,
       velocity,
+      sustain: false,
       preset: buildPreset(),
     });
   }
@@ -1480,6 +1706,9 @@ h1 {
     }
     const rhythmBtn = event.target.closest('[data-rhythm]');
     if (rhythmBtn) {
+      const bitMap = { kick: 0x10, snare: 0x08, tom: 0x04, cymbal: 0x02, hihat_c: 0x01 };
+      const mask = bitMap[rhythmBtn.dataset.rhythm];
+      if (mask) setRhythmBit(mask, true);
       drums.trigger(rhythmBtn.dataset.rhythm, 0.9, Number(rhythmBtn.dataset.note));
     }
   });
@@ -1509,6 +1738,52 @@ h1 {
     if (target.dataset.global) {
       const value = parseInt(target.value, 10);
       if (!Number.isNaN(value)) setFeedbackBits(value);
+      return;
+    }
+    if (target.dataset.channel !== undefined) {
+      const index = Number(target.dataset.channel);
+      const channel = decodeChannel(index);
+      const field = target.dataset.channelField;
+      if (field === 'fnum') {
+        const value = parseInt(target.value, 10);
+        if (!Number.isNaN(value)) {
+          const next = { ...channel, fnum: value };
+          applyDecodedChannel(index, next);
+          if (next.keyOn) {
+            stopChannel(index);
+            playChannel(index, Math.round(69 + 12 * Math.log2(channelFrequency(next.fnum, next.block) / 440)));
+          }
+        }
+      } else if (field === 'block') {
+        const value = parseInt(target.value, 10);
+        if (!Number.isNaN(value)) {
+          const next = { ...channel, block: value };
+          applyDecodedChannel(index, next);
+          if (next.keyOn) {
+            stopChannel(index);
+            playChannel(index, Math.round(69 + 12 * Math.log2(channelFrequency(next.fnum, next.block) / 440)));
+          }
+        }
+      } else if (field === 'instrument') {
+        const value = parseInt(target.value, 10);
+        if (!Number.isNaN(value)) applyDecodedChannel(index, { ...channel, instrument: value });
+      } else if (field === 'volume') {
+        const value = parseInt(target.value, 10);
+        if (!Number.isNaN(value)) applyDecodedChannel(index, { ...channel, volume: value });
+      } else if (field === 'keyOn') {
+        const next = { ...channel, keyOn: !!target.checked };
+        applyDecodedChannel(index, next);
+        if (next.keyOn) playChannel(index, next.midi ?? 60);
+        else stopChannel(index);
+      } else if (field === 'sustain') {
+        applyDecodedChannel(index, { ...channel, sustain: !!target.checked });
+      }
+      return;
+    }
+    if (target.dataset.rhythmReg) {
+      const masks = { hh: 0x01, cym: 0x02, tom: 0x04, sd: 0x08, bd: 0x10, mode: 0x20 };
+      const mask = masks[target.dataset.rhythmReg];
+      if (mask) setRhythmBit(mask, !!target.checked);
     }
   }
 
@@ -1584,6 +1859,13 @@ h1 {
       const data = JSON.parse(input);
       if (!Array.isArray(data.registers) || data.registers.length !== 8) throw new Error('Expected 8 register bytes');
       registers = data.registers.map(v => Math.max(0, Math.min(255, v | 0)));
+      if (data.channelRegisters) {
+        const cr = data.channelRegisters;
+        if (Array.isArray(cr.fnum) && cr.fnum.length === 9) channelFnumRegs = cr.fnum.map(v => Math.max(0, Math.min(255, v | 0)));
+        if (Array.isArray(cr.key) && cr.key.length === 9) channelKeyRegs = cr.key.map(v => Math.max(0, Math.min(255, v | 0)));
+        if (Array.isArray(cr.inst) && cr.inst.length === 9) channelInstRegs = cr.inst.map(v => Math.max(0, Math.min(255, v | 0)));
+        rhythmReg = Math.max(0, Math.min(255, cr.rhythm | 0));
+      }
       activePresetId = null;
       activeSystemPresetIndex = null;
       syncAll({ rerenderEditor: true, renderPresets: true });
@@ -1726,13 +2008,49 @@ h1 {
     const d = event.data;
     if (!d || d.length < 2) return;
     const cmd = d[0] & 0xF0;
+    const ch = d[0] & 0x0F;
     const note = d[1];
     const vel = d.length > 2 ? d[2] : 0;
     if (cmd === 0x90 && vel > 0) {
-      playNote(note, vel / 127);
-      midiStatus.textContent = 'N' + note + ' V' + vel;
+      if (ch >= 12 && ch <= 15) {
+        const drum = midiDrumSound(note);
+        if (drum) {
+          setRhythmBit(0x20, true);
+          setRhythmBit(drum.bit, true);
+          drums.trigger(drum.id, vel / 127, note);
+          midiStatus.textContent = 'DR ' + drum.id.toUpperCase() + ' V' + vel;
+        }
+      } else if (ch < 9) {
+        const channel = decodeChannel(ch);
+        const next = noteToFnumBlock(note);
+        applyDecodedChannel(ch, { ...channel, fnum: next.fnum, block: next.block, keyOn: true });
+        stopChannel(ch);
+        playChannel(ch, note, vel / 127);
+        midiStatus.textContent = 'CH' + (ch + 1) + ' ' + noteName(note) + ' V' + vel;
+      } else {
+        playNote(note, vel / 127);
+        midiStatus.textContent = 'N' + note + ' V' + vel;
+      }
     } else if (cmd === 0x80 || (cmd === 0x90 && vel === 0)) {
-      stopNote(note);
+      if (ch < 9) {
+        const channel = decodeChannel(ch);
+        applyDecodedChannel(ch, { ...channel, keyOn: false });
+        stopChannel(ch);
+      } else if (ch < 12) {
+        stopNote(note);
+      }
+    } else if (cmd === 0xC0 && ch < 9) {
+      const channel = decodeChannel(ch);
+      applyDecodedChannel(ch, { ...channel, instrument: note & 0x0F });
+      midiStatus.textContent = 'CH' + (ch + 1) + ' INST ' + (note & 0x0F);
+    } else if (cmd === 0xB0 && ch < 9) {
+      if (note === 7) {
+        const channel = decodeChannel(ch);
+        applyDecodedChannel(ch, { ...channel, volume: Math.round((15 * (127 - vel)) / 127) });
+      } else if (note === 64) {
+        const channel = decodeChannel(ch);
+        applyDecodedChannel(ch, { ...channel, sustain: vel >= 64 });
+      }
     } else if (cmd === 0xE0 && synth.workletNode) {
       synth.workletNode.port.postMessage({ type: 'pitchBend', value: ((vel << 7) | note) });
     }
@@ -1745,8 +2063,14 @@ h1 {
     if (synth.ctx && synth.ctx.state === 'suspended') synth.ctx.resume();
   }, { once: true });
 
-  const restoredRegisters = loadCurrentRegisters();
-  if (restoredRegisters) registers = restoredRegisters;
+  const restoredState = loadCurrentState();
+  if (restoredState) {
+    registers = restoredState.tone;
+    channelFnumRegs = restoredState.fnum;
+    channelKeyRegs = restoredState.key;
+    channelInstRegs = restoredState.inst;
+    rhythmReg = restoredState.rhythm;
+  }
   chokeSameNotes = loadChokeState();
   chokeToggleEl.checked = chokeSameNotes;
 
@@ -1759,6 +2083,7 @@ h1 {
 
   // ── Community Presets (control.lucianlabs.ca) ──
   const GC_API = 'https://control.lucianlabs.ca';
+  const COMMUNITY_DISABLED = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   const communityListEl = document.getElementById('community-list');
   const adminLoginEl = document.getElementById('admin-login');
   const adminPanelEl = document.getElementById('admin-panel');
@@ -1768,6 +2093,10 @@ h1 {
   if (adminApiKey) showAdminPanel();
 
   async function fetchCommunityPresets() {
+    if (COMMUNITY_DISABLED) {
+      communityListEl.innerHTML = '<div class="community-item"><div class="preset-meta">Community presets disabled on localhost.</div></div>';
+      return;
+    }
     try {
       const res = await fetch(GC_API + '/api/presets?app=ymwave');
       if (!res.ok) throw new Error('API ' + res.status);
