@@ -7,6 +7,19 @@
   let playingSources = new Map();
   const chNameEls = [];
   const savedMidi = JSON.parse(localStorage.getItem('yamabruh_midi') || 'null');
+  const SEQUENCE_STORAGE_KEY = 'yamabruh_sequences_v1';
+  const VOICE_BANK_STORAGE_KEY = 'yamabruh_voice_bank_v1';
+  const DEFAULT_SEQUENCE_DEFS = {
+    88: {
+      enabled: true,
+      name: 'Crystal Octave',
+      loop: false,
+      gate: 0.82,
+      offsets: [0, 12, 0, 12],
+      times: [90, 80, 80, 150],
+      levels: [1, 0.72, 0.46, 0.24],
+    },
+  };
 
   // ── Visual Config State ──────────────────────────────────────────
   const DEFAULT_VISUAL = { dust: 0.5, wear: 0.5, patina: 0.3, light: 0.7, grain: 0.5, scratches: 0.5, todMode: 'auto', todManual: 12 };
@@ -21,6 +34,28 @@
   // ── Init synth ────────────────────────────────────────────────────
   await window.synth.init();
   window.synth.currentPreset = currentPreset;
+
+  function loadVoiceBankEdits() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(VOICE_BANK_STORAGE_KEY) || '{}');
+      if (!raw || typeof raw !== 'object') return {};
+      return raw;
+    } catch (error) {
+      return {};
+    }
+  }
+
+  const voiceBankEdits = loadVoiceBankEdits();
+
+  function persistVoiceBankEdits() {
+    localStorage.setItem(VOICE_BANK_STORAGE_KEY, JSON.stringify(voiceBankEdits));
+  }
+
+  Object.entries(voiceBankEdits).forEach(([presetIndex, params]) => {
+    if (Array.isArray(params)) {
+      window.synth._presetCache.set(Number(presetIndex), params.slice());
+    }
+  });
 
   // ── Build Voice Bank ──────────────────────────────────────────────
   const vbGrid = document.getElementById('voice-bank-grid');
@@ -292,15 +327,27 @@
     el.classList.add('active');
     const noteId = window.synth.playNote(midiNote, 0.7);
     keyNoteIds.set(midiNote, noteId);
+    if (typeof noteId === 'string') {
+      window.synth.onNoteEnded(noteId, () => {
+        if (keyNoteIds.get(midiNote) === noteId) {
+          keyNoteIds.delete(midiNote);
+          el.classList.remove('active');
+        }
+      });
+    }
   }
 
   function keyUp(el, midiNote) {
-    el.classList.remove('active');
     const noteId = keyNoteIds.get(midiNote);
     if (noteId !== undefined) {
-      window.synth.stopNote(noteId);
-      keyNoteIds.delete(midiNote);
+      const stopped = window.synth.stopNote(noteId);
+      if (stopped !== false) {
+        keyNoteIds.delete(midiNote);
+        el.classList.remove('active');
+      }
+      return;
     }
+    el.classList.remove('active');
   }
 
   if (keyboard) {
@@ -460,11 +507,7 @@
   }
 
   function selectPreset(num) {
-    // Clear any tweaked cache for the old preset so it reverts to defaults
-    window.synth._presetCache.delete(currentPreset);
     currentPreset = Math.max(0, Math.min(99, num));
-    // Also clear cache for the new preset (in case it was tweaked in a prior session)
-    window.synth._presetCache.delete(currentPreset);
     updateDisplay();
     window.synth._sendPreset();
     localStorage.setItem('yamabruh_preset', currentPreset);
@@ -473,13 +516,8 @@
     // Reload tweak sliders if open
     const tb = document.getElementById('tweak-body');
     if (tb && tb.classList.contains('open')) {
-      const params = window.synth.getPresetParams(currentPreset);
-      document.querySelectorAll('.tweak-param input[type="range"]').forEach((slider, i) => {
-        if (i < params.length) {
-          slider.value = params[i];
-          slider.nextElementSibling.textContent = params[i].toFixed(2);
-        }
-      });
+      loadTweakFromPreset();
+      loadSequenceEditor();
     }
     // Auto-save preset to active MIDI channel
     if (window.midiManager && window.midiManager.connected) {
@@ -754,6 +792,342 @@
     stepDots.forEach(d => { d.classList.remove('active', 'beat'); });
   };
 
+  // ── Drum Key Editor ────────────────────────────────────────────────
+  const DRUM_PAD_STORAGE_KEY = 'yamabruh_drum_keys_v1';
+  const DEFAULT_DRUM_PADS = [
+    { key: '1', sound: 'kick', note: 36, velocity: 0.95, bank: 0 },
+    { key: '2', sound: 'snare', note: 38, velocity: 0.9, bank: 0 },
+    { key: '3', sound: 'hihat_c', note: 42, velocity: 0.8, bank: 0 },
+    { key: '4', sound: 'hihat_o', note: 46, velocity: 0.8, bank: 0 },
+    { key: '5', sound: 'tom', note: 45, velocity: 0.9, bank: 0 },
+    { key: '6', sound: 'cymbal', note: 49, velocity: 0.85, bank: 0 },
+    { key: '7', sound: 'clap', note: 39, velocity: 0.85, bank: 0 },
+    { key: '8', sound: 'rimshot', note: 37, velocity: 0.8, bank: 0 },
+    { key: '9', sound: 'cowbell', note: 56, velocity: 0.8, bank: 0 },
+    { key: '0', sound: 'zap', note: 88, velocity: 0.85, bank: 5 },
+    { key: '-', sound: 'glitch', note: 89, velocity: 0.8, bank: 7 },
+    { key: '=', sound: 'whoosh', note: 91, velocity: 0.8, bank: 5 },
+    { key: '[', sound: 'thud', note: 33, velocity: 0.92, bank: 2 },
+    { key: ']', sound: 'shaker', note: 69, velocity: 0.82, bank: 3 },
+    { key: '\\', sound: 'fm_pop', note: 72, velocity: 0.82, bank: 5 },
+    { key: '/', sound: 'gen_perc', note: 60, velocity: 0.88, bank: 6 },
+  ];
+
+  function makePadConfig(base) {
+    return {
+      key: base.key,
+      sound: base.sound,
+      note: base.note,
+      velocity: base.velocity,
+      bank: base.bank ?? 0,
+      overrides: {
+        decay: base.overrides?.decay ?? null,
+        modIndex: base.overrides?.modIndex ?? null,
+        pitchSweep: base.overrides?.pitchSweep ?? null,
+        pitchDecay: base.overrides?.pitchDecay ?? null,
+        pitchSemis: base.overrides?.pitchSemis ?? null,
+        noiseAmt: base.overrides?.noiseAmt ?? null,
+        clickAmt: base.overrides?.clickAmt ?? null,
+        carrierFreq: base.overrides?.carrierFreq ?? null,
+        modFreq: base.overrides?.modFreq ?? null,
+      },
+    };
+  }
+
+  function loadDrumPads() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(DRUM_PAD_STORAGE_KEY) || 'null');
+      if (!Array.isArray(raw) || !raw.length) return DEFAULT_DRUM_PADS.map(makePadConfig);
+      return raw.map((item, i) => makePadConfig({ ...DEFAULT_DRUM_PADS[i % DEFAULT_DRUM_PADS.length], ...item }));
+    } catch {
+      return DEFAULT_DRUM_PADS.map(makePadConfig);
+    }
+  }
+
+  function saveDrumPads() {
+    localStorage.setItem(DRUM_PAD_STORAGE_KEY, JSON.stringify(drumPads));
+  }
+
+  function normalizeDrumKey(value) {
+    return String(value || '').slice(0, 2).trim().toLowerCase();
+  }
+
+  function isAssignableDrumKey(value) {
+    return typeof value === 'string' && value.length > 0 && value.length <= 2;
+  }
+
+  const drumToggle = document.getElementById('drum-toggle');
+  const drumBody = document.getElementById('drum-body');
+  const drumPadGrid = document.getElementById('drum-pad-grid');
+  const drumEditorName = document.getElementById('drum-editor-name');
+  const drumPreviewBtn = document.getElementById('drum-pad-preview');
+  const drumPadResetBtn = document.getElementById('drum-pad-reset');
+  const drumPadsResetAllBtn = document.getElementById('drum-pads-reset-all');
+  const drumFields = {
+    key: document.getElementById('drum-key-char'),
+    sound: document.getElementById('drum-sound'),
+    note: document.getElementById('drum-note'),
+    pitchSemis: document.getElementById('drum-pitch'),
+    velocity: document.getElementById('drum-velocity'),
+    bank: document.getElementById('drum-bank'),
+    decay: document.getElementById('drum-decay'),
+    modIndex: document.getElementById('drum-modindex'),
+    pitchSweep: document.getElementById('drum-pitchsweep'),
+    pitchDecay: document.getElementById('drum-pitchdecay'),
+    noiseAmt: document.getElementById('drum-noise'),
+    clickAmt: document.getElementById('drum-click'),
+    carrierFreq: document.getElementById('drum-carrierfreq'),
+    modFreq: document.getElementById('drum-modfreq'),
+  };
+  const drumVals = {
+    key: document.getElementById('drum-key-char-val'),
+    sound: document.getElementById('drum-sound-val'),
+    note: document.getElementById('drum-note-val'),
+    pitchSemis: document.getElementById('drum-pitch-val'),
+    velocity: document.getElementById('drum-velocity-val'),
+    bank: document.getElementById('drum-bank-val'),
+    decay: document.getElementById('drum-decay-val'),
+    modIndex: document.getElementById('drum-modindex-val'),
+    pitchSweep: document.getElementById('drum-pitchsweep-val'),
+    pitchDecay: document.getElementById('drum-pitchdecay-val'),
+    noiseAmt: document.getElementById('drum-noise-val'),
+    clickAmt: document.getElementById('drum-click-val'),
+    carrierFreq: document.getElementById('drum-carrierfreq-val'),
+    modFreq: document.getElementById('drum-modfreq-val'),
+  };
+  const drumPads = loadDrumPads();
+  let activeDrumPad = 0;
+  const activeDrumKeys = new Set();
+
+  function formatDrumKey(value) {
+    const key = String(value || '').trim();
+    return key ? key.toUpperCase() : '--';
+  }
+
+  window.drums.getSoundNames().forEach(sound => {
+    const opt = document.createElement('option');
+    opt.value = sound;
+    opt.textContent = sound.toUpperCase();
+    drumFields.sound.appendChild(opt);
+  });
+
+  function flashDrumPad(index) {
+    const el = drumPadGrid.querySelector(`[data-drum-pad="${index}"]`);
+    if (el) {
+      el.classList.add('playing');
+      setTimeout(() => el.classList.remove('playing'), 120);
+    }
+  }
+
+  function findDrumPadIndex(note, sound) {
+    const exact = drumPads.findIndex((pad) => pad.note === note);
+    if (exact !== -1) return exact;
+    if (sound) {
+      const bySound = drumPads.findIndex((pad) => pad.sound === sound);
+      if (bySound !== -1) return bySound;
+    }
+    return -1;
+  }
+
+  function resolveDrumPadConfig(note, sound, velocity = 1) {
+    const index = findDrumPadIndex(note, sound);
+    if (index === -1) return null;
+    const pad = drumPads[index];
+    const vel = Math.max(0, Math.min(1, Number(velocity) || 0));
+    const padVel = Math.max(0, Math.min(1, Number(pad.velocity) || 0));
+    return {
+      sound: pad.sound,
+      note,
+      bank: pad.bank ?? 0,
+      velocity: Math.max(0.001, Math.min(1, vel * padVel)),
+      overrides: { ...(pad.overrides || {}) },
+    };
+  }
+
+  function setActiveDrumPad(index, options = {}) {
+    if (index < 0 || index >= drumPads.length) return;
+    activeDrumPad = index;
+    updateDrumEditor();
+    if (options.flash) flashDrumPad(index);
+  }
+
+  function previewDrumPad(index) {
+    const pad = drumPads[index];
+    if (!pad) return;
+    window.synth.ensureContext();
+    window.drums.triggerPad(pad);
+    flashDrumPad(index);
+  }
+
+  function renderDrumPads() {
+    drumPadGrid.innerHTML = drumPads.map((pad, index) => `
+      <button class="drum-pad${index === activeDrumPad ? ' active' : ''}" data-drum-pad="${index}">
+        <div class="drum-pad-key">KEY ${formatDrumKey(pad.key)}</div>
+        <div class="drum-pad-name">${pad.sound}</div>
+        <div class="drum-pad-meta">N${pad.note} V${pad.velocity.toFixed(2)} B${pad.bank + 1}</div>
+      </button>
+    `).join('');
+  }
+
+  function updateDrumEditor() {
+    const pad = drumPads[activeDrumPad];
+    if (!pad) return;
+    drumEditorName.textContent = 'KEY ' + formatDrumKey(pad.key) + ' / ' + (pad.sound || '').toUpperCase();
+    drumFields.key.value = formatDrumKey(pad.key);
+    drumFields.sound.value = pad.sound;
+    drumFields.note.value = pad.note;
+    drumFields.pitchSemis.value = pad.overrides.pitchSemis ?? 0;
+    drumFields.velocity.value = pad.velocity;
+    drumFields.bank.value = pad.bank;
+    drumFields.decay.value = pad.overrides.decay ?? 0.25;
+    drumFields.modIndex.value = pad.overrides.modIndex ?? 3;
+    drumFields.pitchSweep.value = pad.overrides.pitchSweep ?? 0;
+    drumFields.pitchDecay.value = pad.overrides.pitchDecay ?? 0.015;
+    drumFields.noiseAmt.value = pad.overrides.noiseAmt ?? 0;
+    drumFields.clickAmt.value = pad.overrides.clickAmt ?? 0.3;
+    drumFields.carrierFreq.value = pad.overrides.carrierFreq ?? 60;
+    drumFields.modFreq.value = pad.overrides.modFreq ?? 90;
+
+    drumVals.key.textContent = formatDrumKey(pad.key);
+    drumVals.sound.textContent = pad.sound;
+    drumVals.note.textContent = String(pad.note);
+    drumVals.pitchSemis.textContent = String(Math.round(Number(drumFields.pitchSemis.value)));
+    drumVals.velocity.textContent = Number(pad.velocity).toFixed(2);
+    drumVals.bank.textContent = window.drums.getBankName(pad.bank);
+    drumVals.decay.textContent = Number(drumFields.decay.value).toFixed(3);
+    drumVals.modIndex.textContent = Number(drumFields.modIndex.value).toFixed(2);
+    drumVals.pitchSweep.textContent = String(Math.round(Number(drumFields.pitchSweep.value)));
+    drumVals.pitchDecay.textContent = Number(drumFields.pitchDecay.value).toFixed(3);
+    drumVals.noiseAmt.textContent = Number(drumFields.noiseAmt.value).toFixed(2);
+    drumVals.clickAmt.textContent = Number(drumFields.clickAmt.value).toFixed(2);
+    drumVals.carrierFreq.textContent = String(Math.round(Number(drumFields.carrierFreq.value)));
+    drumVals.modFreq.textContent = String(Math.round(Number(drumFields.modFreq.value)));
+    renderDrumPads();
+  }
+
+  function writeActiveDrumPad(fieldName) {
+    const pad = drumPads[activeDrumPad];
+    if (!pad) return;
+    switch (fieldName) {
+      case 'key':
+        pad.key = normalizeDrumKey(drumFields.key.value) || pad.key;
+        break;
+      case 'sound':
+        pad.sound = drumFields.sound.value;
+        break;
+      case 'note':
+        pad.note = parseInt(drumFields.note.value, 10);
+        break;
+      case 'pitchSemis':
+        pad.overrides.pitchSemis = parseInt(drumFields.pitchSemis.value, 10);
+        break;
+      case 'velocity':
+        pad.velocity = parseFloat(drumFields.velocity.value);
+        break;
+      case 'bank':
+        pad.bank = parseInt(drumFields.bank.value, 10);
+        break;
+      case 'decay':
+        pad.overrides.decay = parseFloat(drumFields.decay.value);
+        break;
+      case 'modIndex':
+        pad.overrides.modIndex = parseFloat(drumFields.modIndex.value);
+        break;
+      case 'pitchSweep':
+        pad.overrides.pitchSweep = parseFloat(drumFields.pitchSweep.value);
+        break;
+      case 'pitchDecay':
+        pad.overrides.pitchDecay = parseFloat(drumFields.pitchDecay.value);
+        break;
+      case 'noiseAmt':
+        pad.overrides.noiseAmt = parseFloat(drumFields.noiseAmt.value);
+        break;
+      case 'clickAmt':
+        pad.overrides.clickAmt = parseFloat(drumFields.clickAmt.value);
+        break;
+      case 'carrierFreq':
+        pad.overrides.carrierFreq = parseFloat(drumFields.carrierFreq.value);
+        break;
+      case 'modFreq':
+        pad.overrides.modFreq = parseFloat(drumFields.modFreq.value);
+        break;
+      default:
+        return;
+    }
+    saveDrumPads();
+    updateDrumEditor();
+  }
+
+  drumToggle.addEventListener('click', () => {
+    const open = drumBody.classList.toggle('open');
+    drumToggle.classList.toggle('open', open);
+    drumToggle.innerHTML = 'DRUM KEYS ' + (open ? '&#9650;' : '&#9660;');
+    if (open) updateDrumEditor();
+  });
+
+  drumPadGrid.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-drum-pad]');
+    if (!btn) return;
+    setActiveDrumPad(parseInt(btn.dataset.drumPad, 10));
+    previewDrumPad(activeDrumPad);
+  });
+
+  Object.entries(drumFields).forEach(([name, field]) => {
+    const handler = () => writeActiveDrumPad(name);
+    field.addEventListener('input', handler);
+    field.addEventListener('change', handler);
+  });
+
+  drumFields.key.addEventListener('keydown', (event) => {
+    if (event.key === 'Tab') return;
+    event.preventDefault();
+    if (!isAssignableDrumKey(event.key)) return;
+    const normalized = normalizeDrumKey(event.key);
+    if (!normalized) return;
+    drumFields.key.value = formatDrumKey(normalized);
+    writeActiveDrumPad('key');
+  });
+
+  drumPreviewBtn.addEventListener('click', () => previewDrumPad(activeDrumPad));
+  drumPadResetBtn.addEventListener('click', () => {
+    drumPads[activeDrumPad] = makePadConfig(DEFAULT_DRUM_PADS[activeDrumPad % DEFAULT_DRUM_PADS.length]);
+    saveDrumPads();
+    updateDrumEditor();
+  });
+  drumPadsResetAllBtn.addEventListener('click', () => {
+    for (let i = 0; i < drumPads.length; i++) drumPads[i] = makePadConfig(DEFAULT_DRUM_PADS[i % DEFAULT_DRUM_PADS.length]);
+    saveDrumPads();
+    updateDrumEditor();
+  });
+
+  renderDrumPads();
+  updateDrumEditor();
+
+  window.resolveDrumPadConfig = ({ note, sound, velocity }) => resolveDrumPadConfig(note, sound, velocity);
+
+  window.midiManager.onDrumNote = ({ note, sound }) => {
+    const index = findDrumPadIndex(note, sound);
+    if (index === -1) return;
+    setActiveDrumPad(index, { flash: true });
+  };
+
+  function playDrumKey(keyValue) {
+    const normalized = normalizeDrumKey(keyValue);
+    if (!normalized || activeDrumKeys.has(normalized)) return false;
+    const index = drumPads.findIndex((pad) => normalizeDrumKey(pad.key) === normalized);
+    if (index === -1) return false;
+    activeDrumKeys.add(normalized);
+    setActiveDrumPad(index);
+    previewDrumPad(index);
+    return true;
+  }
+
+  function releaseDrumKey(keyValue) {
+    const normalized = normalizeDrumKey(keyValue);
+    if (!normalized) return;
+    activeDrumKeys.delete(normalized);
+  }
+
   // ── Computer Keyboard → Piano + Patch Control ─────────────────────
   const qwertyMap = {
     'a': 54, 'w': 55, 's': 56, 'e': 57, 'd': 58,
@@ -765,7 +1139,12 @@
   const activeQwerty = new Set();
 
   document.addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+
+    if (drumBody.classList.contains('open') && playDrumKey(e.key)) {
+      e.preventDefault();
+      return;
+    }
 
     // Arrow keys for patch change
     if (e.key === 'ArrowUp') {
@@ -798,7 +1177,8 @@
   });
 
   document.addEventListener('keyup', e => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+    releaseDrumKey(e.key);
     const midi = qwertyMap[e.key.toLowerCase()];
     if (midi !== undefined) {
       activeQwerty.delete(e.key);
@@ -830,7 +1210,10 @@
     const open = tweakBody.classList.toggle('open');
     tweakToggle.classList.toggle('open', open);
     tweakToggle.innerHTML = 'EDITOR ' + (open ? '&#9650;' : '&#9660;');
-    if (open) loadTweakFromPreset();
+    if (open) {
+      loadTweakFromPreset();
+      loadSequenceEditor();
+    }
   });
 
   function loadTweakFromPreset() {
@@ -859,6 +1242,8 @@
     }
     // Override preset cache so MIDI/keyboard notes also use tweaked values
     window.synth._presetCache.set(currentPreset, params);
+    voiceBankEdits[currentPreset] = params.slice();
+    persistVoiceBankEdits();
     // Update value displays
     tweakSliders.forEach((slider, i) => {
       const v = parseFloat(slider.value);
@@ -872,8 +1257,166 @@
 
   tweakReset.addEventListener('click', () => {
     window.synth._presetCache.delete(currentPreset);
+    delete voiceBankEdits[currentPreset];
+    persistVoiceBankEdits();
     loadTweakFromPreset();
     window.synth._sendPreset();
+  });
+
+  const seqFields = {
+    enabled: document.getElementById('seq-enabled'),
+    source: document.getElementById('seq-source'),
+  };
+  const seqVals = {
+    enabled: document.getElementById('seq-enabled-val'),
+    source: document.getElementById('seq-source-val'),
+  };
+  const seqCrystalBtn = document.getElementById('seq-crystal');
+  const seqClearBtn = document.getElementById('seq-clear');
+
+  function formatSequenceSourceValue(value) {
+    if (typeof value === 'function') return value.toString();
+    if (Array.isArray(value)) return JSON.stringify(value);
+    if (typeof value === 'string') return JSON.stringify(value);
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    return null;
+  }
+
+  function sequenceDefToSource(def) {
+    if (!def) return '';
+    if (typeof def.source === 'string' && def.source.trim()) return def.source.trim();
+    const lines = ['{'];
+    ['loop', 'gate', 'offsets', 'times', 'levels', 'algorithm'].forEach((key) => {
+      const value = def[key];
+      if (value === undefined || value === null || value === '') return;
+      const formatted = key === 'algorithm' && typeof value === 'string'
+        ? value
+        : formatSequenceSourceValue(value);
+      if (formatted === null) return;
+      lines.push(`  ${key}: ${formatted},`);
+    });
+    lines.push('}');
+    return lines.join('\n');
+  }
+
+  function defaultSequenceSource() {
+    return [
+      '{',
+      '  loop: false,',
+      '  gate: 0.82,',
+      '  times: [120],',
+      '  algorithm: ({ n, v, t, g }) => ({',
+      '    n: n,',
+      '    v: v - 0.1,',
+      '    t,',
+      '    g,',
+      '  }),',
+      '}',
+    ].join('\n');
+  }
+
+  function cloneSequenceDef(def) {
+    if (!def) return null;
+    return {
+      enabled: !!def.enabled,
+      name: String(def.name || ''),
+      source: sequenceDefToSource(def),
+    };
+  }
+
+  function defaultSequenceForPreset(index) {
+    return cloneSequenceDef(DEFAULT_SEQUENCE_DEFS[index] || null);
+  }
+
+  function loadSequenceDefs() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(SEQUENCE_STORAGE_KEY) || '{}');
+      return raw && typeof raw === 'object' ? raw : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  const sequenceDefs = loadSequenceDefs();
+
+  function persistSequenceDefs() {
+    localStorage.setItem(SEQUENCE_STORAGE_KEY, JSON.stringify(sequenceDefs));
+  }
+
+  function getSequenceDefForPreset(index) {
+    if (Object.prototype.hasOwnProperty.call(sequenceDefs, index)) {
+      return sequenceDefs[index] && sequenceDefs[index].enabled ? cloneSequenceDef(sequenceDefs[index]) : null;
+    }
+    return cloneSequenceDef(DEFAULT_SEQUENCE_DEFS[index] || null);
+  }
+
+  function syncSequenceToSynth(index) {
+    window.synth.setSequenceDef(index, getSequenceDefForPreset(index));
+  }
+
+  Object.keys(DEFAULT_SEQUENCE_DEFS).forEach((key) => syncSequenceToSynth(Number(key)));
+  Object.keys(sequenceDefs).forEach((key) => syncSequenceToSynth(Number(key)));
+
+  function currentSequenceFromEditor() {
+    if (!seqFields.enabled.checked) return null;
+    const source = String(seqFields.source.value || '').trim()
+      || sequenceDefToSource(getSequenceDefForPreset(currentPreset))
+      || defaultSequenceSource();
+    seqFields.source.value = source;
+    return {
+      enabled: true,
+      name: window.synth.getPresetName(currentPreset) + ' Seq',
+      source,
+    };
+  }
+
+  function updateSequenceReadout(def) {
+    seqVals.enabled.textContent = def && def.enabled ? 'ON' : 'OFF';
+    seqVals.source.textContent = def?.source ? 'OBJECT SOURCE' : '--';
+  }
+
+  function loadSequenceEditor() {
+    const def = getSequenceDefForPreset(currentPreset);
+    seqFields.enabled.checked = !!def;
+    seqFields.source.value = def?.source || '';
+    updateSequenceReadout(def);
+  }
+
+  function saveSequenceEditor() {
+    const def = currentSequenceFromEditor();
+    if (def) sequenceDefs[currentPreset] = def;
+    else if (DEFAULT_SEQUENCE_DEFS[currentPreset]) sequenceDefs[currentPreset] = { enabled: false };
+    else delete sequenceDefs[currentPreset];
+    persistSequenceDefs();
+    syncSequenceToSynth(currentPreset);
+    updateSequenceReadout(def);
+  }
+
+  Object.entries(seqFields).forEach(([name, field]) => {
+    const handler = () => saveSequenceEditor();
+    field.addEventListener('input', handler);
+    field.addEventListener('change', handler);
+  });
+
+  ['keydown', 'keypress', 'keyup'].forEach((eventName) => {
+    seqFields.source.addEventListener(eventName, (event) => {
+      event.stopPropagation();
+    });
+  });
+
+  seqCrystalBtn.addEventListener('click', () => {
+    sequenceDefs[currentPreset] = cloneSequenceDef(DEFAULT_SEQUENCE_DEFS[88]);
+    persistSequenceDefs();
+    syncSequenceToSynth(currentPreset);
+    loadSequenceEditor();
+  });
+
+  seqClearBtn.addEventListener('click', () => {
+    if (DEFAULT_SEQUENCE_DEFS[currentPreset]) sequenceDefs[currentPreset] = { enabled: false };
+    else delete sequenceDefs[currentPreset];
+    persistSequenceDefs();
+    syncSequenceToSynth(currentPreset);
+    loadSequenceEditor();
   });
 
   // ── MIDI Learn Mode ────────────────────────────────────────────────
@@ -1082,6 +1625,84 @@
     updateTodUI();
     if (window.markShaderDirty) window.markShaderDirty();
   });
+
+  window.exportYamaState = () => JSON.parse(JSON.stringify({
+    version: 1,
+    currentPreset,
+    voiceBankEdits,
+    sequenceDefs,
+    drumPads,
+    drumPattern,
+    drumBpm,
+    midiChannelMap: window.midiManager ? window.midiManager.channelMap.slice() : [],
+  }));
+
+  window.importYamaState = (state) => {
+    if (!state || typeof state !== 'object') return false;
+
+    Object.keys(voiceBankEdits).forEach((key) => delete voiceBankEdits[key]);
+    if (state.voiceBankEdits && typeof state.voiceBankEdits === 'object') {
+      Object.entries(state.voiceBankEdits).forEach(([key, params]) => {
+        if (Array.isArray(params)) {
+          voiceBankEdits[key] = params.slice();
+          window.synth._presetCache.set(Number(key), params.slice());
+        }
+      });
+    }
+    persistVoiceBankEdits();
+
+    Object.keys(sequenceDefs).forEach((key) => delete sequenceDefs[key]);
+    if (state.sequenceDefs && typeof state.sequenceDefs === 'object') {
+      Object.entries(state.sequenceDefs).forEach(([key, def]) => {
+        sequenceDefs[key] = def;
+      });
+    }
+    persistSequenceDefs();
+    Object.keys(DEFAULT_SEQUENCE_DEFS).forEach((key) => syncSequenceToSynth(Number(key)));
+    Object.keys(sequenceDefs).forEach((key) => syncSequenceToSynth(Number(key)));
+
+    if (Array.isArray(state.drumPads) && state.drumPads.length) {
+      drumPads.length = 0;
+      state.drumPads.forEach((pad, i) => {
+        drumPads.push(makePadConfig({ ...DEFAULT_DRUM_PADS[i % DEFAULT_DRUM_PADS.length], ...pad }));
+      });
+      saveDrumPads();
+      renderDrumPads();
+      updateDrumEditor();
+    }
+
+    if (Number.isFinite(state.drumPattern)) {
+      drumPattern = Math.max(0, Math.min(window.drums.getPatternCount() - 1, state.drumPattern));
+      window.drums.setPattern(drumPattern);
+    }
+    if (Number.isFinite(state.drumBpm)) {
+      drumBpm = Math.max(60, Math.min(240, state.drumBpm));
+      window.drums.setBpm(drumBpm);
+      document.getElementById('tempo-display').innerHTML = drumBpm + ' <span class="tempo-label">BPM</span>';
+    }
+
+    if (Array.isArray(state.midiChannelMap) && state.midiChannelMap.length === 16 && window.midiManager) {
+      window.midiManager.channelMap = state.midiChannelMap.slice();
+      window.midiManager.saveChannelMap();
+      chNameEls.forEach((el, i) => {
+        if (el) el.textContent = getChDisplayName(i);
+      });
+    }
+
+    if (Number.isFinite(state.currentPreset)) {
+      selectPreset(state.currentPreset);
+    } else {
+      updateDisplay();
+      window.synth._sendPreset();
+    }
+
+    if (tweakBody.classList.contains('open')) {
+      loadTweakFromPreset();
+      loadSequenceEditor();
+    }
+
+    return true;
+  };
 
   } // end synth page guard
 })();

@@ -109,7 +109,7 @@ class YamaBruhDrumProcessor extends AudioWorkletProcessor {
       const vel = msg.velocity || 0.8;
       const note = msg.note || 0;
       const bank = msg.bank !== undefined ? msg.bank : this.currentBank;
-      const sound = this._makeDrum(msg.sound, vel, note, bank);
+      const sound = this._makeDrum(msg.sound, vel, note, bank, msg.overrides || null);
       if (sound) this.hits.push(sound);
     } else if (msg.type === 'setBank') {
       this.currentBank = Math.max(0, Math.min(DRUM_BANKS.length - 1, msg.bank || 0));
@@ -121,7 +121,7 @@ class YamaBruhDrumProcessor extends AudioWorkletProcessor {
     return 440 * Math.pow(2, (note - 69) / 12);
   }
 
-  _makeDrum(name, vel, midiNote, bankIdx) {
+  _makeDrum(name, vel, midiNote, bankIdx, overrides) {
     const base = {
       t: 0, vel, cp: 0, mp: 0, done: false,
       carrierFreq: 0, modFreq: 0, modIndex: 0,
@@ -295,6 +295,49 @@ class YamaBruhDrumProcessor extends AudioWorkletProcessor {
         };
         break;
       }
+      case 'thud': {
+        const freq = midiNote > 0 ? Math.max(30, this._noteToFreq(midiNote) * 0.33) : 70;
+        params = { ...base,
+          carrierFreq: freq, modFreq: freq * 1.2, modIndex: 1.1,
+          pitchSweep: freq * 0.8, pitchDecay: 0.03,
+          decay: 0.28, clickAmt: 0.18,
+        };
+        break;
+      }
+      case 'shaker': {
+        params = { ...base,
+          carrierFreq: 1800, modFreq: 4200, modIndex: 2.4,
+          decay: 0.16, noiseAmt: 0.92, clickAmt: 0.05,
+        };
+        break;
+      }
+      case 'fm_pop': {
+        const freq = midiNote > 0 ? this._noteToFreq(midiNote) : 520;
+        params = { ...base,
+          carrierFreq: freq, modFreq: freq * 2.8, modIndex: 5.5,
+          pitchSweep: freq * 1.1, pitchDecay: 0.012,
+          decay: 0.09, clickAmt: 0.45,
+        };
+        break;
+      }
+      case 'gen_perc': {
+        const seed = ((this.noiseSeed >>> 0) ^ ((midiNote || 0) * 1103515245)) >>> 0;
+        const randA = ((seed & 0xffff) / 0xffff);
+        const randB = (((seed >>> 8) & 0xffff) / 0xffff);
+        const randC = (((seed >>> 4) & 0xffff) / 0xffff);
+        const baseFreq = midiNote > 0 ? this._noteToFreq(midiNote) : 180;
+        params = { ...base,
+          carrierFreq: 55 + baseFreq * (0.25 + randA * 0.55),
+          modFreq: 120 + baseFreq * (0.7 + randB * 2.7),
+          modIndex: 0.8 + randC * 8.5,
+          pitchSweep: (80 + randA * 520) * (randB > 0.38 ? 1 : -1),
+          pitchDecay: 0.006 + randC * 0.05,
+          decay: 0.06 + randB * 0.45,
+          noiseAmt: 0.08 + randA * 0.72,
+          clickAmt: 0.05 + randC * 0.55,
+        };
+        break;
+      }
       default:
         return null;
     }
@@ -315,6 +358,21 @@ class YamaBruhDrumProcessor extends AudioWorkletProcessor {
         params.modFreq = freq * 1.5;
         params.pitchSweep = freq * 0.5;
       }
+    }
+
+    if (overrides && typeof overrides === 'object') {
+      for (const key in overrides) {
+        if (Object.prototype.hasOwnProperty.call(overrides, key) && overrides[key] !== undefined && overrides[key] !== null) {
+          params[key] = overrides[key];
+        }
+      }
+    }
+
+    if (overrides && typeof overrides === 'object' && Number.isFinite(overrides.pitchSemis) && overrides.pitchSemis !== 0) {
+      const pitchMul = Math.pow(2, overrides.pitchSemis / 12);
+      params.carrierFreq *= pitchMul;
+      params.modFreq *= pitchMul;
+      params.pitchSweep *= pitchMul;
     }
 
     return params;

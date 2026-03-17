@@ -22,6 +22,7 @@ class MIDIManager {
     this.onChannelChange = null; // (channel) => {}
     this.onPresetChange = null;  // (preset) => {}
     this.onCC = null;            // (cc, value) => {} — for MIDI learn
+    this.onDrumNote = null;      // ({ channel, note, velocity, sound }) => {}
     this.lastError = null;       // last connection error message
 
     this._loadChannelMap();
@@ -169,12 +170,20 @@ class MIDIManager {
 
       if (this.isDrumChannel(ch)) {
         // Drum channel — map MIDI notes to drum sounds
-        this._triggerDrum(note, vel / 127);
+        this._triggerDrum(ch, note, vel / 127);
       } else {
         // Melodic channel — use channel's assigned preset
         const preset = this.channelMap[ch];
         const noteId = this.synth.playNote(note, vel / 127, preset);
         this.activeNotes.set(noteKey, noteId);
+        if (typeof noteId === 'string') {
+          this.synth.onNoteEnded(noteId, () => {
+            if (this.activeNotes.get(noteKey) === noteId) {
+              this.activeNotes.delete(noteKey);
+              this._highlightKey(note, false);
+            }
+          });
+        }
         this._highlightKey(note, true);
       }
       // Update LCD
@@ -189,10 +198,14 @@ class MIDIManager {
       if (!this.isDrumChannel(ch)) {
         const noteId = this.activeNotes.get(noteKey);
         if (noteId !== undefined) {
-          this.synth.stopNote(noteId);
-          this.activeNotes.delete(noteKey);
+          const stopped = this.synth.stopNote(noteId);
+          if (stopped !== false) {
+            this.activeNotes.delete(noteKey);
+          }
         }
-        this._highlightKey(note, false);
+        if (!this.activeNotes.has(noteKey)) {
+          this._highlightKey(note, false);
+        }
       }
     } else if (cmd === 0xC0) {
       // Program Change — map MIDI program to our preset
@@ -255,7 +268,7 @@ class MIDIManager {
   }
 
   // Full GM drum map — note number passed through for pitch variation
-  _triggerDrum(note, velocity) {
+  _triggerDrum(channel, note, velocity) {
     if (!window.drums) return;
     // Map GM percussion notes to our sound types
     // Pitched sounds (tom, kick variants) pass the MIDI note for frequency derivation
@@ -346,7 +359,18 @@ class MIDIManager {
       96: 'chirp',     // Chirp high
     };
     const sound = drumMap[note];
-    if (sound) window.drums.trigger(sound, velocity, note);
+    if (!sound) return;
+    const mappedConfig = typeof window.resolveDrumPadConfig === 'function'
+      ? window.resolveDrumPadConfig({ channel, note, velocity, sound })
+      : null;
+    if (this.onDrumNote) {
+      this.onDrumNote({ channel, note, velocity, sound });
+    }
+    if (mappedConfig) {
+      window.drums.triggerPad(mappedConfig);
+      return;
+    }
+    window.drums.trigger(sound, velocity, note);
   }
 
   _highlightKey(midiNote, on) {

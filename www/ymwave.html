@@ -7,6 +7,11 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-HJPFEY11D7"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-HJPFEY11D7')</script>
+  <script>
+    if (!location.hash || location.hash === '#ymwave') {
+      history.replaceState(null, '', location.pathname + location.search + '#operator');
+    }
+  </script>
   <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
@@ -35,6 +40,13 @@ html, body {
   min-width: 0;
 }
 
+.title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .sidebar {
   position: sticky;
   top: 20px;
@@ -44,7 +56,7 @@ h1 {
   font-size: 18px;
   letter-spacing: 6px;
   color: #28d2a7;
-  margin-bottom: 6px;
+  margin: 0;
 }
 
 .subtitle {
@@ -52,6 +64,20 @@ h1 {
   color: #5e746c;
   letter-spacing: 2px;
   margin-bottom: 18px;
+}
+
+.page-link {
+  display: inline-flex;
+  align-items: center;
+  color: #28d2a7;
+  text-decoration: none;
+  font-size: 10px;
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+
+.page-link:hover {
+  color: #7bf0d0;
 }
 
 .hero {
@@ -63,6 +89,106 @@ h1 {
   color: #95ad9f;
   font-size: 10px;
   line-height: 1.6;
+}
+
+.voice-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid #1d342e;
+  border-radius: 4px;
+  background: rgba(8, 16, 14, 0.78);
+}
+
+.voice-tools-copy {
+  font-size: 10px;
+  color: #93aa9f;
+  line-height: 1.5;
+}
+
+.voice-visualizer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.voice-slot {
+  padding: 10px;
+  border: 1px solid #203731;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.24);
+  min-height: 94px;
+}
+
+.voice-slot.active {
+  border-color: #28d2a7;
+  box-shadow: inset 0 0 0 1px rgba(40, 210, 167, 0.22);
+}
+
+.voice-slot-head,
+.voice-slot-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+}
+
+.voice-slot-head {
+  color: #d9f6e8;
+  margin-bottom: 6px;
+}
+
+.voice-slot-meta {
+  color: #8da69a;
+  margin-bottom: 8px;
+}
+
+.voice-slot-scope {
+  width: 100%;
+  height: 34px;
+  border-radius: 3px;
+  background: rgba(8, 16, 14, 0.85);
+  border: 1px solid #1d342e;
+}
+
+.voice-slot-scope path {
+  stroke: #28d2a7;
+  stroke-width: 1.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.voice-slot-bars {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.voice-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 9px;
+  color: #7f998d;
+}
+
+.voice-bar-fill {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(40, 210, 167, 0.14);
+  overflow: hidden;
+}
+
+.voice-bar-fill span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #28d2a7 0%, #86f3d5 100%);
 }
 
 .view-bar,
@@ -576,13 +702,26 @@ h1 {
 <div id="app">
   <div class="layout">
     <div class="main-column">
-      <h1>YMWAVE</h1>
+      <div class="title-row">
+        <h1>YMWAVE</h1>
+        <a class="page-link" href="index.html#synth">BACK TO MAIN SYNTH</a>
+      </div>
       <div class="subtitle">MULTIPLE VIEWS OF THE YM2413 USER TONE</div>
 
       <div class="hero">
         `ymwave` is now the chip-facing view: one YM2413 user tone, shown as synchronized operator controls, raw R#00-R#07 bytes, decoded timing/level data, and rhythm-mode preview pads.
-        The old freeform editor has been split out to <a href="simplym.html" style="color:#28d2a7">`simplym.html`</a>.
+        The old freeform editor has been split out to <a href="simplym.html#simplym" style="color:#28d2a7">`simplym.html`</a>.
       </div>
+
+      <div class="voice-tools">
+        <div class="voice-tools-copy">Live voice slots for the current synth engine. Constrain to `9` to mirror YM2413 channel count.</div>
+        <label class="fun-toggle">
+          <input type="checkbox" id="toggle-chip-voice-limit">
+          <span>CONSTRAIN TO CHIP VOICES</span>
+        </label>
+      </div>
+
+      <div class="voice-visualizer" id="voice-visualizer"></div>
 
       <div class="view-bar" id="view-bar">
         <button class="view-tab active" data-view="operator">OPERATOR</button>
@@ -631,6 +770,10 @@ h1 {
         <div class="fun-footer-title">FUN</div>
         <div class="fun-row">
           <div class="fun-copy">Optional non-chip behavior for layered retriggers.</div>
+          <label class="fun-toggle">
+            <input type="checkbox" id="toggle-mono-mode">
+            <span>MONO</span>
+          </label>
           <label class="fun-toggle">
             <input type="checkbox" id="toggle-choke-same-notes">
             <span>CHOKE SAME NOTES</span>
@@ -710,6 +853,8 @@ h1 {
   const CURRENT_STATE_KEY = 'ymwave_current_registers_v1';
   const MIDI_STATE_KEY = 'ymwave_midi_state_v1';
   const CHOKE_STATE_KEY = 'ymwave_choke_same_notes_v1';
+  const CHIP_VOICE_LIMIT_KEY = 'ymwave_chip_voice_limit_v1';
+  const VIEW_NAMES = new Set(['operator', 'registers', 'channels', 'derived', 'rhythm']);
 
   let registers = [...DEFAULT_REGISTERS];
   let channelFnumRegs = Array(9).fill(0);
@@ -720,23 +865,73 @@ h1 {
   let activePresetId = null;
   let activeSystemPresetIndex = null;
   let noteCounter = 0;
+  let midiVoiceCounter = 0;
   const activeNotes = new Map();
   const activeChannelVoices = new Map();
+  const midiVoiceStacks = new Map();
+  const uiVoiceStacks = new Map();
   const heldKeys = new Set();
+  const mouseLatchedNotes = new Set();
+  let constrainChipVoices = true;
+  let latestVoiceSnapshot = [];
+  let latestVoiceLimit = 9;
   let chokeSameNotes = false;
+  let monoMode = false;
 
   const synth = new YamaBruhSynth();
   await synth.init();
   const drums = new YamaBruhDrums();
   await drums.init(synth.ctx);
+  synth.onMessage = (message) => {
+    if (message?.type === 'voiceSnapshot') {
+      latestVoiceSnapshot = Array.isArray(message.voices) ? message.voices : [];
+      latestVoiceLimit = Number.isFinite(message.maxVoices) ? message.maxVoices : latestVoiceLimit;
+      renderVoiceVisualizer();
+    }
+  };
+  window.setInterval(() => {
+    if (synth.workletNode) synth.workletNode.port.postMessage({ type: 'voiceSnapshot' });
+  }, 90);
 
   const editorEl = document.getElementById('editor');
   const exportOutput = document.getElementById('export-output');
   const modeReadoutEl = document.getElementById('mode-readout');
   const registerReadoutEl = document.getElementById('register-readout');
   const voiceSummaryEl = document.getElementById('voice-summary');
+  const voiceVisualizerEl = document.getElementById('voice-visualizer');
   const presetListEl = document.getElementById('preset-list');
   const chokeToggleEl = document.getElementById('toggle-choke-same-notes');
+  const monoToggleEl = document.getElementById('toggle-mono-mode');
+  const chipVoiceToggleEl = document.getElementById('toggle-chip-voice-limit');
+
+  function viewFromHash(hash = location.hash) {
+    const key = String(hash || '').replace(/^#/, '').toLowerCase();
+    if (!key || key === 'ymwave') return 'operator';
+    return VIEW_NAMES.has(key) ? key : null;
+  }
+
+  function updateViewTabs() {
+    document.querySelectorAll('.view-tab').forEach((tab) => {
+      tab.classList.toggle('active', tab.dataset.view === activeView);
+    });
+  }
+
+  function writeViewHash() {
+    const nextHash = '#' + activeView;
+    if (location.hash === nextHash) return;
+    history.replaceState(null, '', location.pathname + location.search + nextHash);
+  }
+
+  function setActiveView(view, options = {}) {
+    if (!VIEW_NAMES.has(view) || view === activeView) {
+      if (options.writeHash) writeViewHash();
+      return;
+    }
+    activeView = view;
+    updateViewTabs();
+    if (options.writeHash) writeViewHash();
+    syncAll();
+  }
 
   function multValue(index) {
     return MULT_TABLE[Math.max(0, Math.min(15, index | 0))];
@@ -773,6 +968,109 @@ h1 {
     const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const n = Math.round(note);
     return names[(n % 12 + 12) % 12] + String(Math.floor(n / 12) - 1);
+  }
+
+  function loadChipVoiceLimit() {
+    try {
+      const raw = localStorage.getItem(CHIP_VOICE_LIMIT_KEY);
+      return raw === null ? true : raw === '1';
+    } catch (error) {
+      return true;
+    }
+  }
+
+  function persistChipVoiceLimit() {
+    try {
+      localStorage.setItem(CHIP_VOICE_LIMIT_KEY, constrainChipVoices ? '1' : '0');
+    } catch (error) {}
+  }
+
+  function syncVoiceLimit() {
+    latestVoiceLimit = constrainChipVoices ? 9 : 16;
+    renderVoiceVisualizer();
+    if (synth.workletNode) {
+      synth.workletNode.port.postMessage({
+        type: 'setMaxVoices',
+        count: latestVoiceLimit,
+      });
+      synth.workletNode.port.postMessage({ type: 'voiceSnapshot' });
+    }
+  }
+
+  function voiceWaveSample(type, phase) {
+    const sine = Math.sin(phase);
+    if (type === 1) return sine > 0 ? sine : 0;
+    if (type === 2) return Math.abs(sine);
+    if (type === 3) return (phase % (Math.PI * 2)) < Math.PI * 0.5 ? Math.sin(phase) : 0;
+    if (type === 4) return Math.sin(phase * 5) * 0.7;
+    if (type === 5) return (Math.sin(phase) + Math.sin(phase * 3)) * 0.5;
+    return sine;
+  }
+
+  function voicePath(voice) {
+    const points = [];
+    const width = 94;
+    const height = 34;
+    for (let i = 0; i < 24; i++) {
+      const t = i / 23;
+      const phase = (voice.phase || 0) + t * Math.PI * 2 * Math.max(1, voice.carrierMult || 1);
+      const sample = voiceWaveSample(voice.carrierWave || 0, phase) * Math.max(0.15, Math.min(1, voice.env || 0));
+      const x = (t * width).toFixed(2);
+      const y = (height * 0.5 - sample * (height * 0.38)).toFixed(2);
+      points.push((i === 0 ? 'M' : 'L') + x + ' ' + y);
+    }
+    return points.join(' ');
+  }
+
+  function renderVoiceVisualizer() {
+    const slotCount = constrainChipVoices ? 9 : Math.max(9, Math.min(16, latestVoiceLimit || 16));
+    const slots = constrainChipVoices
+      ? (() => {
+          const mapped = Array(slotCount).fill(null);
+          latestVoiceSnapshot.forEach((voice) => {
+            const noteId = Number(voice?.note);
+            const slotIndex = noteId - 100000;
+            if (Number.isInteger(slotIndex) && slotIndex >= 0 && slotIndex < slotCount) {
+              mapped[slotIndex] = voice;
+            }
+          });
+          return mapped;
+        })()
+      : Array.from({ length: slotCount }, (_, index) => latestVoiceSnapshot[index] || null);
+    voiceVisualizerEl.innerHTML = slots.map((voice, index) => {
+      const audible = !!voice?.audible;
+      const slotLabel = constrainChipVoices ? `CH${index + 1}` : `V${index + 1}`;
+      if (!voice || !audible) {
+        return `
+          <div class="voice-slot">
+            <div class="voice-slot-head"><span>${slotLabel}</span><span>IDLE</span></div>
+            <div class="voice-slot-meta"><span>--</span><span>0.0 Hz</span></div>
+            <svg class="voice-slot-scope" viewBox="0 0 94 34" preserveAspectRatio="none">
+              <path d="M0 17 L94 17"></path>
+            </svg>
+            <div class="voice-slot-bars">
+              <div class="voice-bar"><span>ENV</span><div class="voice-bar-fill"><span style="width:0%"></span></div></div>
+              <div class="voice-bar"><span>MOD</span><div class="voice-bar-fill"><span style="width:0%"></span></div></div>
+            </div>
+          </div>
+        `;
+      }
+      const envPct = Math.max(0, Math.min(100, (voice.env || 0) * 100));
+      const modPct = Math.max(0, Math.min(100, (voice.modEnv || 0) * 100));
+      return `
+        <div class="voice-slot active">
+          <div class="voice-slot-head"><span>${slotLabel}</span><span>${voice.choking ? 'CHOKE' : noteName(voice.key)}</span></div>
+          <div class="voice-slot-meta"><span>${(voice.carrierWave || 0) === 0 ? 'SINE' : 'WF ' + (voice.carrierWave || 0)}</span><span>${(voice.freq || 0).toFixed(1)} Hz</span></div>
+          <svg class="voice-slot-scope" viewBox="0 0 94 34" preserveAspectRatio="none">
+            <path d="${voicePath(voice)}"></path>
+          </svg>
+          <div class="voice-slot-bars">
+            <div class="voice-bar"><span>ENV</span><div class="voice-bar-fill"><span style="width:${envPct}%"></span></div></div>
+            <div class="voice-bar"><span>MOD</span><div class="voice-bar-fill"><span style="width:${modPct}%"></span></div></div>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   function channelFrequency(fnum, block) {
@@ -1171,6 +1469,7 @@ h1 {
     if (synth.workletNode) {
       synth.workletNode.port.postMessage({ type: 'preset', params: buildPreset() });
       synth.workletNode.port.postMessage({ type: 'chokeSameNotes', on: chokeSameNotes });
+      synth.workletNode.port.postMessage({ type: 'monoMode', on: monoMode });
     }
   }
 
@@ -1421,7 +1720,10 @@ h1 {
   function renderRegistersView() {
     return `
       <div class="panel">
-        <h2>R#00-R#07</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px">
+          <h2 style="margin:0">R#00-R#07</h2>
+          <button class="chip-btn" data-randomize-registers="1">RANDOMIZE</button>
+        </div>
         <div class="register-list">
           ${registers.map((value, i) => `
             <div class="register-row">
@@ -1446,6 +1748,31 @@ h1 {
         </div>
       </div>
     `;
+  }
+
+  function randomNibble(max = 15) {
+    return Math.floor(Math.random() * (max + 1));
+  }
+
+  function randomBit() {
+    return Math.random() < 0.5 ? 0 : 1;
+  }
+
+  function randomizeRegisters() {
+    const next = [
+      (randomBit() << 7) | (randomBit() << 6) | (randomBit() << 5) | (randomBit() << 4) | randomNibble(),
+      (randomBit() << 7) | (randomBit() << 6) | (randomBit() << 5) | (randomBit() << 4) | randomNibble(),
+      (randomNibble(3) << 6) | randomNibble(63),
+      (randomNibble(3) << 6) | (randomBit() << 5) | (randomBit() << 4) | (randomNibble(7) << 1),
+      (randomNibble() << 4) | randomNibble(),
+      (randomNibble() << 4) | randomNibble(),
+      (randomNibble() << 4) | randomNibble(),
+      (randomNibble() << 4) | randomNibble(),
+    ];
+    registers = next;
+    activePresetId = null;
+    activeSystemPresetIndex = null;
+    syncAll({ rerenderEditor: true, renderPresets: true });
   }
 
   function instrumentOptions(selected) {
@@ -1636,6 +1963,29 @@ h1 {
     return 100000 + index;
   }
 
+  function midiVoiceKey(channel, note) {
+    return channel + ':' + note;
+  }
+
+  function removeMidiVoiceAllocation(channel, note, index) {
+    if (channel === undefined || note === undefined) return;
+    const key = midiVoiceKey(channel, note);
+    const stack = midiVoiceStacks.get(key);
+    if (!stack || !stack.length) return;
+    const next = stack.filter(value => value !== index);
+    if (next.length) midiVoiceStacks.set(key, next);
+    else midiVoiceStacks.delete(key);
+  }
+
+  function removeUiVoiceAllocation(note, index) {
+    if (note === undefined) return;
+    const stack = uiVoiceStacks.get(note);
+    if (!stack || !stack.length) return;
+    const next = stack.filter(value => value !== index);
+    if (next.length) uiVoiceStacks.set(note, next);
+    else uiVoiceStacks.delete(note);
+  }
+
   function playChannel(index, midiNote, velocity = 0.8) {
     const ch = decodeChannel(index);
     const voiceId = channelVoiceId(index);
@@ -1647,7 +1997,127 @@ h1 {
     const active = activeChannelVoices.get(index);
     if (!active) return;
     synth.workletNode.port.postMessage({ type: 'noteOff', note: active.voiceId });
+    if (active.sourceType === 'midi') {
+      removeMidiVoiceAllocation(active.sourceChannel, active.sourceNote, index);
+    } else if (active.sourceType === 'ui') {
+      removeUiVoiceAllocation(active.sourceNote, index);
+    }
     activeChannelVoices.delete(index);
+  }
+
+  function findFreeMelodyChannel() {
+    for (let i = 0; i < 9; i++) {
+      if (!activeChannelVoices.has(i)) return i;
+    }
+    return -1;
+  }
+
+  function stealMelodyChannel() {
+    let bestIndex = -1;
+    let bestOrder = Infinity;
+    for (const [index, active] of activeChannelVoices.entries()) {
+      if ((active.startedAt ?? Infinity) < bestOrder) {
+        bestOrder = active.startedAt ?? Infinity;
+        bestIndex = index;
+      }
+    }
+    return bestIndex;
+  }
+
+  function playMidiMelody(sourceChannel, note, velocity = 0.8) {
+    let targetChannel = findFreeMelodyChannel();
+    if (targetChannel === -1) targetChannel = stealMelodyChannel();
+    if (targetChannel === -1) return;
+
+    if (activeChannelVoices.has(targetChannel)) {
+      stopChannel(targetChannel);
+    }
+
+    const templateChannel = Math.max(0, Math.min(8, sourceChannel));
+    const template = decodeChannel(templateChannel);
+    const next = noteToFnumBlock(note);
+    applyDecodedChannel(targetChannel, {
+      ...template,
+      fnum: next.fnum,
+      block: next.block,
+      keyOn: true,
+    }, { rerenderEditor: activeView === 'channels' || activeView === 'rhythm' });
+
+    const voiceId = channelVoiceId(targetChannel);
+    activeChannelVoices.set(targetChannel, {
+      voiceId,
+      midiNote: note,
+      sourceType: 'midi',
+      sourceChannel,
+      sourceNote: note,
+      startedAt: ++midiVoiceCounter,
+    });
+
+    const key = midiVoiceKey(sourceChannel, note);
+    const stack = midiVoiceStacks.get(key) || [];
+    stack.push(targetChannel);
+    midiVoiceStacks.set(key, stack);
+
+    postChannelNoteOn(voiceId, note, velocity, template.sustain);
+  }
+
+  function stopMidiMelody(sourceChannel, note) {
+    const key = midiVoiceKey(sourceChannel, note);
+    const stack = midiVoiceStacks.get(key);
+    if (!stack || !stack.length) return;
+    const targetChannel = stack[stack.length - 1];
+    stopChannel(targetChannel);
+    const channel = decodeChannel(targetChannel);
+    applyDecodedChannel(targetChannel, { ...channel, keyOn: false }, {
+      rerenderEditor: activeView === 'channels' || activeView === 'rhythm',
+      renderPresets: false,
+    });
+  }
+
+  function playUiMelody(note, velocity = 0.8) {
+    let targetChannel = findFreeMelodyChannel();
+    if (targetChannel === -1) targetChannel = stealMelodyChannel();
+    if (targetChannel === -1) return;
+
+    if (activeChannelVoices.has(targetChannel)) {
+      stopChannel(targetChannel);
+    }
+
+    const template = decodeChannel(targetChannel);
+    const next = noteToFnumBlock(note);
+    applyDecodedChannel(targetChannel, {
+      ...template,
+      fnum: next.fnum,
+      block: next.block,
+      keyOn: true,
+    }, { rerenderEditor: activeView === 'channels' || activeView === 'rhythm' });
+
+    const voiceId = channelVoiceId(targetChannel);
+    activeChannelVoices.set(targetChannel, {
+      voiceId,
+      midiNote: note,
+      sourceType: 'ui',
+      sourceNote: note,
+      startedAt: ++midiVoiceCounter,
+    });
+
+    const stack = uiVoiceStacks.get(note) || [];
+    stack.push(targetChannel);
+    uiVoiceStacks.set(note, stack);
+
+    postChannelNoteOn(voiceId, note, velocity, template.sustain);
+  }
+
+  function stopUiMelody(note) {
+    const stack = uiVoiceStacks.get(note);
+    if (!stack || !stack.length) return;
+    const targetChannel = stack[stack.length - 1];
+    stopChannel(targetChannel);
+    const channel = decodeChannel(targetChannel);
+    applyDecodedChannel(targetChannel, { ...channel, keyOn: false }, {
+      rerenderEditor: activeView === 'channels' || activeView === 'rhythm',
+      renderPresets: false,
+    });
   }
 
   function setRhythmBit(mask, on) {
@@ -1666,6 +2136,10 @@ h1 {
   }
 
   function playNote(note, velocity = 0.8) {
+    if (constrainChipVoices) {
+      playUiMelody(note, velocity);
+      return;
+    }
     const noteId = note * 1000 + (noteCounter++ % 1000);
     const freq = 440 * Math.pow(2, (note - 69) / 12);
     const stack = activeNotes.get(note) || [];
@@ -1683,6 +2157,10 @@ h1 {
   }
 
   function stopNote(note) {
+    if (constrainChipVoices) {
+      stopUiMelody(note);
+      return;
+    }
     const stack = activeNotes.get(note);
     if (!stack || !stack.length) return;
     const noteId = stack.pop();
@@ -1690,15 +2168,40 @@ h1 {
     synth.workletNode.port.postMessage({ type: 'noteOff', note: noteId });
   }
 
+  function setKeyboardKeyPressed(note, on) {
+    const key = keyboardEl.querySelector(`.key[data-note="${note}"]`);
+    if (key) key.classList.toggle('pressed', !!on);
+  }
+
+  function toggleMouseLatchedNote(note) {
+    if (mouseLatchedNotes.has(note)) {
+      mouseLatchedNotes.delete(note);
+      stopNote(note);
+      setKeyboardKeyPressed(note, false);
+      return;
+    }
+    mouseLatchedNotes.add(note);
+    playNote(note);
+    setKeyboardKeyPressed(note, true);
+  }
+
   document.getElementById('view-bar').addEventListener('click', (event) => {
     const btn = event.target.closest('[data-view]');
     if (!btn) return;
-    activeView = btn.dataset.view;
-    document.querySelectorAll('.view-tab').forEach(tab => tab.classList.toggle('active', tab === btn));
-    syncAll();
+    setActiveView(btn.dataset.view, { writeHash: true });
+  });
+
+  window.addEventListener('hashchange', () => {
+    const nextView = viewFromHash(location.hash);
+    if (nextView) setActiveView(nextView, { writeHash: false });
   });
 
   editorEl.addEventListener('click', (event) => {
+    const randomizeBtn = event.target.closest('[data-randomize-registers]');
+    if (randomizeBtn) {
+      randomizeRegisters();
+      return;
+    }
     const waveBtn = event.target.closest('[data-field="wave"]');
     if (waveBtn) {
       setOperatorField(waveBtn.dataset.op, 'wave', Number(waveBtn.dataset.value));
@@ -1806,20 +2309,42 @@ h1 {
   notes.forEach((entry) => {
     const key = document.createElement('div');
     key.className = 'key' + (entry.black ? ' black' : '');
+    key.dataset.note = String(entry.note);
     key.addEventListener('pointerdown', (event) => {
       event.preventDefault();
+      if (event.pointerType === 'mouse') {
+        toggleMouseLatchedNote(entry.note);
+        return;
+      }
       key.classList.add('pressed');
       playNote(entry.note);
     });
     key.addEventListener('pointerup', () => {
+      if (mouseLatchedNotes.has(entry.note)) return;
       key.classList.remove('pressed');
       stopNote(entry.note);
     });
     key.addEventListener('pointerleave', () => {
+      if (mouseLatchedNotes.has(entry.note)) return;
+      key.classList.remove('pressed');
+      stopNote(entry.note);
+    });
+    key.addEventListener('pointercancel', () => {
+      if (mouseLatchedNotes.has(entry.note)) return;
       key.classList.remove('pressed');
       stopNote(entry.note);
     });
     keyboardEl.appendChild(key);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && mouseLatchedNotes.size) {
+      for (const note of Array.from(mouseLatchedNotes)) {
+        mouseLatchedNotes.delete(note);
+        stopNote(note);
+        setKeyboardKeyPressed(note, false);
+      }
+    }
   });
 
   const keyMap = { a:60, w:61, s:62, e:63, d:64, f:65, t:66, g:67, y:68, h:69, u:70, j:71, k:72, o:73, l:74, p:75 };
@@ -1836,6 +2361,19 @@ h1 {
     if (note !== undefined) {
       heldKeys.delete(event.key);
       stopNote(note);
+    }
+  });
+
+  window.addEventListener('blur', () => {
+    for (const keyName of Array.from(heldKeys)) {
+      const note = keyMap[keyName.toLowerCase()];
+      if (note !== undefined) stopNote(note);
+    }
+    heldKeys.clear();
+    for (const note of Array.from(mouseLatchedNotes)) {
+      mouseLatchedNotes.delete(note);
+      stopNote(note);
+      setKeyboardKeyPressed(note, false);
     }
   });
 
@@ -1899,6 +2437,19 @@ h1 {
     if (synth.workletNode) {
       synth.workletNode.port.postMessage({ type: 'chokeSameNotes', on: chokeSameNotes });
     }
+  });
+
+  monoToggleEl.addEventListener('change', () => {
+    monoMode = monoToggleEl.checked;
+    if (synth.workletNode) {
+      synth.workletNode.port.postMessage({ type: 'monoMode', on: monoMode });
+    }
+  });
+
+  chipVoiceToggleEl.addEventListener('change', () => {
+    constrainChipVoices = chipVoiceToggleEl.checked;
+    persistChipVoiceLimit();
+    syncVoiceLimit();
   });
 
   presetListEl.addEventListener('click', (event) => {
@@ -2020,24 +2571,13 @@ h1 {
           drums.trigger(drum.id, vel / 127, note);
           midiStatus.textContent = 'DR ' + drum.id.toUpperCase() + ' V' + vel;
         }
-      } else if (ch < 9) {
-        const channel = decodeChannel(ch);
-        const next = noteToFnumBlock(note);
-        applyDecodedChannel(ch, { ...channel, fnum: next.fnum, block: next.block, keyOn: true });
-        stopChannel(ch);
-        playChannel(ch, note, vel / 127);
+      } else if (ch < 12) {
+        playMidiMelody(ch, note, vel / 127);
         midiStatus.textContent = 'CH' + (ch + 1) + ' ' + noteName(note) + ' V' + vel;
-      } else {
-        playNote(note, vel / 127);
-        midiStatus.textContent = 'N' + note + ' V' + vel;
       }
     } else if (cmd === 0x80 || (cmd === 0x90 && vel === 0)) {
-      if (ch < 9) {
-        const channel = decodeChannel(ch);
-        applyDecodedChannel(ch, { ...channel, keyOn: false });
-        stopChannel(ch);
-      } else if (ch < 12) {
-        stopNote(note);
+      if (ch < 12) {
+        stopMidiMelody(ch, note);
       }
     } else if (cmd === 0xC0 && ch < 9) {
       const channel = decodeChannel(ch);
@@ -2073,6 +2613,15 @@ h1 {
   }
   chokeSameNotes = loadChokeState();
   chokeToggleEl.checked = chokeSameNotes;
+  try { localStorage.removeItem('ymwave_mono_mode_v1'); } catch {}
+  monoMode = false;
+  monoToggleEl.checked = monoMode;
+  constrainChipVoices = loadChipVoiceLimit();
+  chipVoiceToggleEl.checked = constrainChipVoices;
+  persistChipVoiceLimit();
+  activeView = viewFromHash(location.hash) || 'operator';
+  updateViewTabs();
+  writeViewHash();
 
   updateMidiUi();
   if (midiState.enabled) {
@@ -2080,6 +2629,7 @@ h1 {
   }
 
   syncAll({ rerenderEditor: true, renderPresets: true });
+  syncVoiceLimit();
 
   // ── Community Presets (control.lucianlabs.ca) ──
   const GC_API = 'https://control.lucianlabs.ca';

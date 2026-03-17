@@ -8,6 +8,8 @@ const FEEDBACK_TABLE = [0, Math.PI / 16, Math.PI / 8, Math.PI / 4, Math.PI / 2, 
 const CHOKE_FADE_SECONDS = 0.006;
 const ENV_FLOOR = 1e-5;
 const ENV_SNAP = 2e-4;
+const VOICE_DONE_LEVEL = 0.004;
+const VOICE_VISIBLE_LEVEL = 0.008;
 const SUS_ON_RELEASE_SECONDS = 0.31;
 const SUS_ON_SUSTAIN_SECONDS = 1.2;
 
@@ -166,6 +168,8 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
     this.modWheel = 0;          // 0-1 normalized
     this.modTarget = 'vibrato'; // 'vibrato' | 'modIndex' | 'tremolo'
     this.chokeSameNotes = false;
+    this.monoMode = false;
+    this.maxVoices = 16;
     // Crash diagnostics
     this._crashCount = 0;
     this._lastCrashReport = 0;
@@ -188,6 +192,15 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
   _onMessage(msg) {
     switch (msg.type) {
       case 'noteOn': {
+        if (this.monoMode) {
+          for (const voice of this.voices) {
+            if (!voice.choking) {
+              voice.choking = true;
+              voice.chokePos = 0;
+              voice.chokeLen = Math.max(1, Math.floor(sampleRate * CHOKE_FADE_SECONDS));
+            }
+          }
+        }
         if (this.chokeSameNotes) {
           for (const voice of this.voices) {
             if (voice.key === (msg.sourceNote ?? msg.note) && !voice.choking) {
@@ -197,7 +210,7 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
             }
           }
         }
-        if (this.voices.length >= 16) this.voices.shift();
+        while (this.voices.length >= this.maxVoices) this.voices.shift();
         const startFreq = (this.portaOn && this.lastFreq > 0) ? this.lastFreq : msg.freq;
         this.lastFreq = msg.freq;
         this.voices.push({
@@ -277,16 +290,51 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
         this.chokeSameNotes = !!msg.on;
         break;
       }
+      case 'monoMode': {
+        this.monoMode = !!msg.on;
+        break;
+      }
+      case 'setMaxVoices': {
+        this.maxVoices = Math.max(1, Math.min(16, msg.count | 0));
+        while (this.voices.length > this.maxVoices) this.voices.shift();
+        break;
+      }
       case 'healthCheck': {
         this.port.postMessage({
           type: 'health',
           voices: this.voices.length,
+          maxVoices: this.maxVoices,
           limiter: 'soft-knee',
           engine: 'ym2413-extended',
           crashes: this._crashCount,
           pitchBend: this.pitchBend,
           modWheel: this.modWheel,
           modTarget: this.modTarget,
+        });
+        break;
+      }
+      case 'voiceSnapshot': {
+        this.port.postMessage({
+          type: 'voiceSnapshot',
+          maxVoices: this.maxVoices,
+          voices: this.voices.map((voice, index) => ({
+            slot: index,
+            note: voice.note,
+            key: voice.key,
+            freq: voice.freq,
+            env: voice.el,
+            modEnv: voice.mel,
+            phase: voice.cp,
+            modPhase: voice.mp,
+            choking: !!voice.choking,
+            age: voice.age,
+            carrierWave: voice.p.carrier.wave,
+            modWave: voice.p.modulator.wave,
+            carrierMult: voice.p.carrier.mult,
+            modMult: voice.p.modulator.mult,
+            modDepth: voice.p.modDepth,
+            audible: voice.choking || voice.el > VOICE_VISIBLE_LEVEL,
+          })),
         });
         break;
       }
@@ -454,7 +502,7 @@ class YamaBruhProcessor extends AudioWorkletProcessor {
           v.el = envelopeStep(v.el, ENV_FLOOR, cKeyOffRel, sr);
         }
         env = v.el;
-        if (env <= ENV_FLOOR * 1.5 && mEnv <= ENV_FLOOR * 1.5 && (v.es >= 2 || v.mes >= 2)) {
+        if (env <= VOICE_DONE_LEVEL && (v.es >= 2 || v.mes >= 2)) {
           this.voices.splice(vi, 1);
           continue;
         }

@@ -101,6 +101,7 @@ class YamaBruhDrums {
 
     // Drum bank
     this.currentBank = 0;
+    this.soundNames = ['kick','snare','hihat_c','hihat_o','clap','tom','rimshot','cowbell','cymbal','zap','riser','glitch','bomb','scratch','chirp','metallic','noise_burst','blip','whoosh','thud','shaker','fm_pop','gen_perc'];
 
     // Callbacks
     this.onStep = null;     // (step, totalSteps) => {}
@@ -128,6 +129,18 @@ class YamaBruhDrums {
     this.drumNode.port.postMessage({ type: 'drum', sound, velocity, note: midiNote || 0 });
   }
 
+  triggerPad(config) {
+    if (!this.drumNode || !config) return;
+    this.drumNode.port.postMessage({
+      type: 'drum',
+      sound: config.sound,
+      velocity: config.velocity,
+      note: config.note || 0,
+      bank: config.bank ?? this.currentBank,
+      overrides: config.overrides || null,
+    });
+  }
+
   setBank(index) {
     this.currentBank = Math.max(0, Math.min(7, index));
     if (this.drumNode) {
@@ -141,6 +154,10 @@ class YamaBruhDrums {
   }
 
   getBankCount() { return 8; }
+
+  getSoundNames() {
+    return this.soundNames.slice();
+  }
 
   getPatternName(index) {
     return RHYTHM_NAMES[index] || 'Unknown';
