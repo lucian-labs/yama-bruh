@@ -63,7 +63,7 @@ public enum OPLLSynth {
                 op: cOp, sampleIndex: i, noteReleased: released,
                 releaseOffset: relOffset, aS: cAS, dS: cDS, rS: cRS)
 
-            if carEnv <= 0 && modEnv <= 0 { break }
+            if i > 0 && carEnv <= 0 && modEnv <= 0 { break }
 
             // Frequencies with vibrato
             let mFreq = mFreqBase * (mOp.vibrato ? (1.0 + vibMod) : 1.0)
@@ -107,19 +107,32 @@ public enum OPLLSynth {
     ) -> Float {
         let inRelease: Bool
         let rOff: Int
+        let noteOffSample: Int
         if op.sustained {
             inRelease = noteReleased
             rOff = releaseOffset
+            noteOffSample = sampleIndex - releaseOffset
         } else {
             let autoStart = aS + dS
             inRelease = sampleIndex >= autoStart
             rOff = sampleIndex - autoStart
+            noteOffSample = autoStart
         }
 
         if inRelease {
             let t = Float(rOff) / Float(rS)
             if t >= 1.0 { return 0 }
-            return op.sustainLevel * (1.0 - t)
+            // Compute the level at the moment of release, fade from there
+            let levelAtRelease: Float
+            if noteOffSample < aS {
+                levelAtRelease = Float(noteOffSample) / Float(aS)
+            } else if noteOffSample < aS + dS {
+                let dt = Float(noteOffSample - aS) / Float(dS)
+                levelAtRelease = 1.0 - (1.0 - op.sustainLevel) * dt
+            } else {
+                levelAtRelease = op.sustainLevel
+            }
+            return levelAtRelease * (1.0 - t)
         } else if sampleIndex < aS {
             return Float(sampleIndex) / Float(aS)
         } else if sampleIndex < aS + dS {

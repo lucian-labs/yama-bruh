@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "layers": [
+    {
+      "name": "Layer 1",
+      "muted": false,
+      "carrier": {
+        "ratio": 2,
+        "ratioFine": 0.06,
+        "attack": 0.146,
+        "decay": 0.3648,
+        "sustain": 0.5,
+        "release": 0.513,
+        "wave": 0,
+        "egType": 1,
+        "tremolo": false,
+        "vibrato": false,
+        "sustained": true,
+        "ksl": 0,
+        "ksr": 0.1
+      },
+      "modulator": {
+        "ratio": 1,
+        "ratioFine": 0,
+        "attack": 0.436,
+        "decay": 0.3505,
+        "sustain": 0.287,
+        "release": 0.43755,
+        "wave": 0,
+        "egType": 1,
+        "tremolo": false,
+        "vibrato": false,
+        "sustained": false
+      },
+      "modDepth": 6.494,
+      "feedback": 1.907,
+      "modLevel": 0.19,
+      "params": [
+        2.06,
+        1,
+        6.494,
+        0.146,
+        0.3648,
+        0.5,
+        0.513,
+        1.907,
+        0,
+        0,
+        0,
+        0,
+        0.1,
+        0,
+        0.19,
+        1,
+        0.436,
+        0.3505,
+        0.287,
+        0.43755,
+        1
+      ]
+    }
+  ]
+}
