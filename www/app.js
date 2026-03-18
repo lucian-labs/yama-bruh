@@ -1949,6 +1949,20 @@
   }
 
   globalLearnBtn.addEventListener('click', () => setLearnMode(!learnMode));
+
+  // MIDI Inspector
+  let midiInspect = false;
+  const inspectBtn = document.getElementById('midi-inspector-btn');
+  inspectBtn.addEventListener('click', () => {
+    midiInspect = !midiInspect;
+    inspectBtn.classList.toggle('active', midiInspect);
+    document.getElementById('lcd-info').textContent = midiInspect ? 'MIDI INSPECTOR ON' : 'INSPECTOR OFF';
+  });
+  window.midiManager.onRawMidi = (msg) => {
+    if (!midiInspect) return;
+    const lcdInfo = document.getElementById('lcd-info');
+    if (lcdInfo) lcdInfo.textContent = msg.label + ' [' + msg.hex + ']';
+  };
   document.getElementById('midi-learn-clear').addEventListener('click', () => {
     Object.keys(ccMap).forEach(k => delete ccMap[k]);
     Object.keys(ccToTarget).forEach(k => delete ccToTarget[k]);

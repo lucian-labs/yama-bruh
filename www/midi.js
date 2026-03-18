@@ -161,6 +161,16 @@ class MIDIManager {
     const vel = d.length > 2 ? d[2] : 0;
     const noteKey = ch * 128 + note; // unique key per channel+note
 
+    // Raw MIDI inspector
+    if (this.onRawMidi) {
+      const cmdNames = { 0x80: 'NoteOff', 0x90: 'NoteOn', 0xA0: 'AfterT', 0xB0: 'CC', 0xC0: 'PrgChg', 0xD0: 'ChanPr', 0xE0: 'PBend', 0xF0: 'Sys' };
+      this.onRawMidi({
+        cmd, ch, note, vel,
+        hex: Array.from(d).map(b => b.toString(16).padStart(2, '0')).join(' '),
+        label: (cmdNames[cmd] || '0x' + cmd.toString(16)) + ' CH' + (ch + 1) + ' ' + note + ' ' + vel,
+      });
+    }
+
     if (cmd === 0x90 && vel > 0) {
       // Track active channel — auto-selects on note-on
       if (this.activeChannel !== ch) {
