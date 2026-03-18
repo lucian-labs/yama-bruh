@@ -234,6 +234,7 @@ class YamaBruhSynth {
   setBank(bank) {
     this.bank = bank;
     this._presetCache.clear();
+    this._sequenceDefs.clear();
     this._sendPreset();
   }
 
