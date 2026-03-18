@@ -23,7 +23,7 @@
     88: {
       enabled: true,
       name: 'Crystal Octave',
-      loop: false,
+      gated: false,
       gate: 0.82,
       offsets: [0, 12, 0, 12],
       times: [0.25, 0.25, 0.25, 0.5],
@@ -1368,7 +1368,7 @@
     if (!def) return '';
     if (typeof def.source === 'string' && def.source.trim()) return def.source.trim();
     const lines = ['{'];
-    ['loop', 'gate', 'n', 'v', 't', 'g', 'cents', 'offsets', 'times', 'levels', 'algorithm', 'noteAlgo'].forEach((key) => {
+    ['gated', 'gate', 'n', 'v', 't', 'g', 'cents', 'offsets', 'times', 'levels', 'algorithm', 'noteAlgo'].forEach((key) => {
       const value = def[key];
       if (value === undefined || value === null || value === '') return;
       const formatted = (key === 'algorithm' || key === 'noteAlgo') && typeof value === 'string'
@@ -1384,7 +1384,7 @@
   function defaultSequenceSource() {
     return [
       '{',
-      '  loop: false,',
+      '  gated: true,',
       '  gate: 0.82,',
       '  times: [0.25],',
       '  algorithm: ({ n, v, t, g }) => ({',
@@ -1646,6 +1646,15 @@
   window.midiManager.onPresetChange = (preset) => {
     selectPreset(preset);
   };
+
+  // ── Effects Toggle ──────────────────────────────────────────────────
+  const fxRackToggle = document.getElementById('fx-rack-toggle');
+  const fxRackBody = document.getElementById('fx-rack-body');
+  fxRackToggle.addEventListener('click', () => {
+    const open = fxRackBody.classList.toggle('open');
+    fxRackToggle.classList.toggle('open', open);
+    fxRackToggle.innerHTML = 'EFFECTS ' + (open ? '&#9650;' : '&#9660;');
+  });
 
   // ── Key Sequence Toggle ─────────────────────────────────────────────
   const seqToggle = document.getElementById('seq-toggle');

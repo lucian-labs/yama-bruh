@@ -68,7 +68,7 @@ function normalizeSequenceDef(def) {
   return {
     enabled: true,
     name: String(def.name || config.name || ''),
-    loop: !!config.loop,
+    gated: !!config.gated,
     gate: clamp(Number(config.gate ?? 0.82), 0.05, 1.5),
     offsets,
     times: stepTimes,
@@ -390,6 +390,7 @@ class YamaBruhSynth {
 
     const runAlgorithmStep = (step) => {
       if (state.stopped) return;
+      if (sequence.gated && state.released) { finishSequence(); return; }
       const now = performance.now();
       const dt = (now - lastStepTime) / 1000;
       const time = (now - startTime) / 1000;
@@ -500,12 +501,8 @@ class YamaBruhSynth {
 
     const runStep = (index) => {
       if (state.stopped) return;
+      if (sequence.gated && state.released) { finishSequence(); return; }
       if (index >= sequence.offsets.length) {
-        if (sequence.loop && !state.released) {
-          state.cycle += 1;
-          runStep(0);
-          return;
-        }
         finishSequence();
         return;
       }

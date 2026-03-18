@@ -157,33 +157,35 @@
 
     <div class="config-col">
 
-    <!-- Effects -->
-    <div class="fx-rack">
-      <div class="fx-rack-label">EFFECTS</div>
-      <div class="fx-module">
-        <div class="fx-module-label">DELAY</div>
-        <div class="fx-knobs">
-          <div class="fx-knob-group">
-            <label>TIME</label>
-            <select id="delay-time" class="fx-select">
-              <option value="0.03125">1/32</option>
-              <option value="0.0625">1/16</option>
-              <option value="0.125">1/8</option>
-              <option value="0.25" selected>1/4</option>
-              <option value="0.5">1/2</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-            </select>
-          </div>
-          <div class="fx-knob-group">
-            <label>FDBK</label>
-            <input type="range" min="0" max="100" step="1" value="30" id="delay-feedback">
-            <span class="tw-val" id="delay-feedback-val">30</span>
-          </div>
-          <div class="fx-knob-group">
-            <label>MIX</label>
-            <input type="range" min="0" max="100" step="1" value="25" id="delay-mix">
-            <span class="tw-val" id="delay-mix-val">25</span>
+    <!-- Effects (collapsible) -->
+    <div class="tweak-section">
+      <button class="tweak-toggle" id="fx-rack-toggle">EFFECTS &#9660;</button>
+      <div class="tweak-body" id="fx-rack-body">
+        <div class="fx-module">
+          <div class="fx-module-label">DELAY</div>
+          <div class="fx-knobs">
+            <div class="fx-knob-group">
+              <label>TIME</label>
+              <select id="delay-time" class="fx-select">
+                <option value="0.03125">1/32</option>
+                <option value="0.0625">1/16</option>
+                <option value="0.125">1/8</option>
+                <option value="0.25" selected>1/4</option>
+                <option value="0.5">1/2</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+              </select>
+            </div>
+            <div class="fx-knob-group">
+              <label>FDBK</label>
+              <input type="range" min="0" max="100" step="1" value="30" id="delay-feedback">
+              <span class="tw-val" id="delay-feedback-val">30</span>
+            </div>
+            <div class="fx-knob-group">
+              <label>MIX</label>
+              <input type="range" min="0" max="100" step="1" value="25" id="delay-mix">
+              <span class="tw-val" id="delay-mix-val">25</span>
+            </div>
           </div>
         </div>
       </div>
@@ -317,7 +319,7 @@
           <button class="seq-hint-btn" id="seq-hint-btn" title="Show help">?</button>
         </div>
         <div class="seq-note" id="seq-hint" style="display:none">
-          <strong>algorithm</strong> receives <code>{ n, v, i, t, g, cents, dt, time, rootN, rootV, rootT, rootG }</code>, returns <code>{ n, v, t, g, cents }</code>. Stops when <code>v &lt; 0</code>.<br>
+          <strong>algorithm</strong> receives <code>{ n, v, i, t, g, cents, sus, dt, time, rootN, rootV, rootT, rootG }</code>, returns <code>{ n, v, t, g, cents }</code>. Stops when <code>v &lt; 0</code>. <code>gated: true</code> stops on key release.<br>
           <strong>Sound params:</strong> <code>cRatio, cAttack, cDecay, cSustain, cRelease, cWave, cEgType, tremolo, ksl, mRatio, mDepth, mFeedback, mAttack, mDecay, mSustain, mRelease, mWave, mEgType, modLevel</code><br>
           <strong>noteAlgo</strong> runs per-sample: receives <code>{ time, i, freq, v, n, dt }</code>, returns cents.<br>
           <strong>Globals:</strong> <code>sin, cos, abs, floor, ceil, round, min, max, pow, sqrt, log, exp, random, PI, TAU, clamp</code>

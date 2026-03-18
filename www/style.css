@@ -746,23 +746,7 @@ pre.code-snippet {
   margin: 8px 8px 0 0;
 }
 
-/* ── FX Rack ───────────────────────────────────────────────────────── */
-.fx-rack {
-  margin: 0 8px 8px 0;
-  padding: 10px 12px;
-  background: rgba(0,0,0,0.45);
-  border: 1px solid #2a2a2a;
-  border-radius: 4px;
-}
-
-.fx-rack-label {
-  font-size: 9px;
-  letter-spacing: 3px;
-  color: #22ccaa;
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
+/* ── FX Modules ────────────────────────────────────────────────────── */
 .fx-module {
   margin-bottom: 6px;
 }
