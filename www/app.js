@@ -60,10 +60,10 @@
       enabled: true, name: 'Whistle Trill',
       source: '{\n  gated: true,\n  g: 0.8,\n  offsets: [0, 2],\n  t: 0.0625,\n  levels: [1, 0.9],\n}',
     },
-    // 77 Raindrop — random drips
+    // 77 Raindrop — gated octave
     77: {
-      enabled: true, name: 'Raindrops',
-      source: '{\n  g: 0.4,\n  t: 0.2,\n  algorithm: ({ n, v, t, g }) => ({\n    n: n + floor(random() * 24 - 12),\n    v: v - 0.08,\n    t: 0.1 + random() * 0.4,\n    g,\n  }),\n}',
+      enabled: true, name: 'Raindrop',
+      source: '{\n  gated: true,\n  offsets: [0, 12],\n  t: 0.1,\n}',
     },
     // 78 Popcorn — fast staccato
     78: {
