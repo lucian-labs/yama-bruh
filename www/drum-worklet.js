@@ -91,6 +91,7 @@ class YamaBruhDrumProcessor extends AudioWorkletProcessor {
     this.hits = [];
     this.noiseSeed = 1;
     this.currentBank = 0;
+    this.chokeMode = false;
     this.port.onmessage = (e) => this._onMessage(e.data);
   }
 
@@ -106,6 +107,10 @@ class YamaBruhDrumProcessor extends AudioWorkletProcessor {
 
   _onMessage(msg) {
     if (msg.type === 'drum') {
+      if (this.chokeMode) {
+        // Kill all active hits — mono drum channel
+        for (const h of this.hits) h.done = true;
+      }
       const vel = msg.velocity || 0.8;
       const note = msg.note || 0;
       const bank = msg.bank !== undefined ? msg.bank : this.currentBank;
@@ -113,6 +118,8 @@ class YamaBruhDrumProcessor extends AudioWorkletProcessor {
       if (sound) this.hits.push(sound);
     } else if (msg.type === 'setBank') {
       this.currentBank = Math.max(0, Math.min(DRUM_BANKS.length - 1, msg.bank || 0));
+    } else if (msg.type === 'drumChoke') {
+      this.chokeMode = !!msg.on;
     }
   }
 

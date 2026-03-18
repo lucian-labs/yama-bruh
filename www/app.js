@@ -1367,6 +1367,20 @@
     updateDrumEditor();
   }
 
+  // Drum choke toggle
+  const drumChokeEl = document.getElementById('drum-choke');
+  const drumChokeVal = document.getElementById('drum-choke-val');
+  const savedDrumChoke = localStorage.getItem('yamabruh_drum_choke') === '1';
+  drumChokeEl.checked = savedDrumChoke;
+  drumChokeVal.textContent = savedDrumChoke ? 'ON' : 'OFF';
+  window.drums.setChoke(savedDrumChoke);
+  drumChokeEl.addEventListener('change', () => {
+    const on = drumChokeEl.checked;
+    drumChokeVal.textContent = on ? 'ON' : 'OFF';
+    localStorage.setItem('yamabruh_drum_choke', on ? '1' : '0');
+    window.drums.setChoke(on);
+  });
+
   drumToggle.addEventListener('click', () => {
     const open = drumBody.classList.toggle('open');
     drumToggle.classList.toggle('open', open);

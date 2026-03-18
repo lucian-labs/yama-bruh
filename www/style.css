@@ -1409,6 +1409,17 @@ pre.code-snippet {
   gap: 10px;
 }
 
+.drum-map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.drum-map-header .editor-subtitle {
+  margin-bottom: 0;
+}
+
 .drum-pad-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

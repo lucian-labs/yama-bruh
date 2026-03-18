@@ -141,6 +141,12 @@ class YamaBruhDrums {
     });
   }
 
+  setChoke(on) {
+    if (this.drumNode) {
+      this.drumNode.port.postMessage({ type: 'drumChoke', on: !!on });
+    }
+  }
+
   setBank(index) {
     this.currentBank = Math.max(0, Math.min(7, index));
     if (this.drumNode) {
