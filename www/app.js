@@ -24,7 +24,7 @@
       enabled: true,
       name: 'Crystal Octave',
       gated: false,
-      gate: 0.82,
+      g: 0.82,
       offsets: [0, 12, 0, 12],
       times: [0.25, 0.25, 0.25, 0.5],
       levels: [1, 0.72, 0.46, 0.24],
@@ -1368,7 +1368,7 @@
     if (!def) return '';
     if (typeof def.source === 'string' && def.source.trim()) return def.source.trim();
     const lines = ['{'];
-    ['gated', 'gate', 'n', 'v', 't', 'g', 'cents', 'offsets', 'times', 'levels', 'algorithm', 'noteAlgo'].forEach((key) => {
+    ['gated', 'g', 'n', 'v', 't', 'cents', 'offsets', 'times', 'levels', 'algorithm', 'noteAlgo'].forEach((key) => {
       const value = def[key];
       if (value === undefined || value === null || value === '') return;
       const formatted = (key === 'algorithm' || key === 'noteAlgo') && typeof value === 'string'
@@ -1385,11 +1385,11 @@
     return [
       '{',
       '  gated: true,',
-      '  gate: 0.82,',
-      '  times: [0.25],',
+      '  g: 0.82,',
+      '  t: 0.25,',
       '  algorithm: ({ n, v, t, g }) => ({',
-      '    n: n,',
-      '    v: v - 0.1,',
+      '    n,',
+      '    v,',
       '    t,',
       '    g,',
       '  }),',
@@ -1413,7 +1413,19 @@
   function loadSequenceDefs() {
     try {
       const raw = JSON.parse(localStorage.getItem(SEQUENCE_STORAGE_KEY) || '{}');
-      return raw && typeof raw === 'object' ? raw : {};
+      if (!raw || typeof raw !== 'object') return {};
+      // Migrate: replace deprecated 'loop' with 'gated' in stored sources
+      for (const key in raw) {
+        const def = raw[key];
+        if (def?.source && typeof def.source === 'string') {
+          def.source = def.source.replace(/\bloop\s*:/g, 'gated:');
+        }
+        if (def?.loop !== undefined) {
+          def.gated = !!def.loop;
+          delete def.loop;
+        }
+      }
+      return raw;
     } catch (error) {
       return {};
     }
