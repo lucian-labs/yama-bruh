@@ -1665,7 +1665,7 @@
     const log = slider.dataset.log;
     if (!log) return parseFloat(slider.value);
     const [lo, hi] = log.split(':').map(Number);
-    return lo * Math.pow(hi / lo, slider.value / 100);
+    return lo * Math.pow(hi / lo, slider.value / 127);
   }
 
   function valueToSlider(slider, value) {
@@ -1673,7 +1673,7 @@
     if (!log) { slider.value = value; return; }
     const [lo, hi] = log.split(':').map(Number);
     const clamped = Math.max(lo, Math.min(hi, value));
-    slider.value = Math.round(100 * Math.log(clamped / lo) / Math.log(hi / lo));
+    slider.value = Math.round(127 * Math.log(clamped / lo) / Math.log(hi / lo));
   }
 
   function loadTweakFromPreset() {
