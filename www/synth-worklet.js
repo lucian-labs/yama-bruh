@@ -123,8 +123,9 @@ function tremoloGain(enabled, tremVal, modWheel, modTarget) {
 }
 
 function vibratoDepth(enabled, modWheel, modTarget) {
-  if (!enabled && modTarget !== 'vibrato') return 0;
-  return CHIP_VIB_DEPTH + (modTarget === 'vibrato' ? modWheel * 0.004 : 0);
+  const modVib = modTarget === 'vibrato' ? modWheel * 0.004 : 0;
+  if (!enabled && modVib === 0) return 0;
+  return (enabled ? CHIP_VIB_DEPTH : 0) + modVib;
 }
 
 function kslAttenuation(freq, bits) {
