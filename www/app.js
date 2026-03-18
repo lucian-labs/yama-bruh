@@ -1292,9 +1292,8 @@
   function renderDrumPads() {
     drumPadGrid.innerHTML = drumPads.map((pad, index) => `
       <button class="drum-pad${index === activeDrumPad ? ' active' : ''}" data-drum-pad="${index}">
-        <div class="drum-pad-key">KEY ${formatDrumKey(pad.key)}</div>
         <div class="drum-pad-name">${pad.sound}</div>
-        <div class="drum-pad-meta">N${pad.note} V${pad.velocity.toFixed(2)} B${pad.bank + 1}</div>
+        <div class="drum-pad-meta">${formatDrumKey(pad.key)} N${pad.note}</div>
       </button>
     `).join('');
   }

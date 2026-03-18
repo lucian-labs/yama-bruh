@@ -1498,6 +1498,12 @@ pre.code-snippet {
   margin-bottom: 0;
 }
 
+.drum-map-header .seq-toggle-param {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .drum-pad-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
