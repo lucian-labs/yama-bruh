@@ -3,6 +3,7 @@
 (async function () {
   // ── State ─────────────────────────────────────────────────────────
   let currentPreset = parseInt(localStorage.getItem('yamabruh_preset') || '0');
+  let currentBank = localStorage.getItem('yamabruh_bank') || 'A';
   let flash = 0;
   let playingSources = new Map();
   const chNameEls = [];
@@ -19,6 +20,10 @@
   function getPresetDisplayName(index) {
     return customPresetNames[index] || window.synth.getPresetName(index);
   }
+  function getDefaultSequenceDefs() {
+    return currentBank === 'B' && typeof DEFAULT_SEQUENCE_DEFS_B !== 'undefined' ? DEFAULT_SEQUENCE_DEFS_B : DEFAULT_SEQUENCE_DEFS;
+  }
+
   const DEFAULT_SEQUENCE_DEFS = {
     // 09 Glass Celesta — shimmering octave cascade
     9: {
@@ -202,18 +207,24 @@
     else entry.innerHTML = `<span class="vb-num">${num}</span><span class="vb-name">${getPresetDisplayName(index)}</span>`;
   }
 
-  if (vbGrid) PRESET_NAMES.forEach((name, i) => {
-    const entry = document.createElement('div');
-    entry.className = 'vb-entry' + (i === 0 ? ' active' : '');
-    entry.dataset.preset = i;
-    const num = String(i).padStart(2, '0');
-    entry.innerHTML = `<span class="vb-num">${num}</span><span class="vb-name">${getPresetDisplayName(i)}</span>`;
-    entry.addEventListener('click', () => {
-      selectPreset(i);
-      window.synth.playClick();
-    });
-    vbGrid.appendChild(entry);
-  });
+  function rebuildVoiceBankGrid() {
+    if (!vbGrid) return;
+    vbGrid.innerHTML = '';
+    const count = 100;
+    for (let i = 0; i < count; i++) {
+      const entry = document.createElement('div');
+      entry.className = 'vb-entry' + (i === currentPreset ? ' active' : '');
+      entry.dataset.preset = i;
+      const num = String(i).padStart(2, '0');
+      entry.innerHTML = `<span class="vb-num">${num}</span><span class="vb-name">${getPresetDisplayName(i)}</span>`;
+      entry.addEventListener('click', () => {
+        selectPreset(i);
+        window.synth.playClick();
+      });
+      vbGrid.appendChild(entry);
+    }
+  }
+  rebuildVoiceBankGrid();
 
   function loadPresetNameInput() {
     if (presetNameInput) {
@@ -239,6 +250,57 @@
 
   loadPresetNameInput();
   updateDisplay();
+
+  // ── Bank Switching ─────────────────────────────────────────────────
+  const bankABtn = document.getElementById('bank-a-btn');
+  const bankBBtn = document.getElementById('bank-b-btn');
+
+  function applyBankColors(bank) {
+    const root = document.documentElement;
+    if (bank === 'B') {
+      root.style.setProperty('--accent', '#cc22aa');
+      root.style.setProperty('--accent-10', 'rgba(204, 34, 170, 0.1)');
+      root.style.setProperty('--accent-15', 'rgba(204, 34, 170, 0.15)');
+      root.style.setProperty('--accent-20', 'rgba(204, 34, 170, 0.2)');
+      root.style.setProperty('--accent-25', 'rgba(204, 34, 170, 0.25)');
+      root.style.setProperty('--accent-50', 'rgba(204, 34, 170, 0.5)');
+      root.style.setProperty('--accent-08', 'rgba(204, 34, 170, 0.08)');
+    } else {
+      root.style.removeProperty('--accent');
+      root.style.removeProperty('--accent-10');
+      root.style.removeProperty('--accent-15');
+      root.style.removeProperty('--accent-20');
+      root.style.removeProperty('--accent-25');
+      root.style.removeProperty('--accent-50');
+      root.style.removeProperty('--accent-08');
+    }
+  }
+
+  function switchBank(bank) {
+    currentBank = bank;
+    localStorage.setItem('yamabruh_bank', bank);
+    window.synth.setBank(bank);
+    applyBankColors(bank);
+    bankABtn.classList.toggle('active', bank === 'A');
+    bankBBtn.classList.toggle('active', bank === 'B');
+    rebuildVoiceBankGrid();
+    // Re-sync sequences for new bank defaults
+    Object.keys(getDefaultSequenceDefs()).forEach((key) => syncSequenceToSynth(Number(key)));
+    Object.keys(sequenceDefs).forEach((key) => syncSequenceToSynth(Number(key)));
+    selectPreset(currentPreset);
+  }
+
+  bankABtn.addEventListener('click', () => switchBank('A'));
+  bankBBtn.addEventListener('click', () => switchBank('B'));
+
+  // Bank init is deferred to after sequenceDefs are loaded (see below)
+  window.synth.bank = currentBank;
+  applyBankColors(currentBank);
+  if (currentBank === 'B') {
+    bankABtn.classList.remove('active');
+    bankBBtn.classList.add('active');
+    rebuildVoiceBankGrid();
+  }
 
   // ── GLSL Background ──────────────────────────────────────────────
   const canvas = document.getElementById('bg-canvas');
@@ -517,8 +579,8 @@
   }
 
   if (keyboard) {
-    const START_NOTE = 54; // F#3
-    const END_NOTE = 78;   // F#5
+    const START_NOTE = 55; // G3
+    const END_NOTE = 77;   // F5
     const blackPattern = [0,1,0,1,0,0,1,0,1,0,1,0];
 
     const whiteNotes = [];
@@ -1731,7 +1793,7 @@
   }
 
   function defaultSequenceForPreset(index) {
-    return cloneSequenceDef(DEFAULT_SEQUENCE_DEFS[index] || null);
+    return cloneSequenceDef(getDefaultSequenceDefs()[index] || null);
   }
 
   function loadSequenceDefs() {
@@ -1765,14 +1827,14 @@
     if (Object.prototype.hasOwnProperty.call(sequenceDefs, index)) {
       return sequenceDefs[index] && sequenceDefs[index].enabled ? cloneSequenceDef(sequenceDefs[index]) : null;
     }
-    return cloneSequenceDef(DEFAULT_SEQUENCE_DEFS[index] || null);
+    return cloneSequenceDef(getDefaultSequenceDefs()[index] || null);
   }
 
   function syncSequenceToSynth(index) {
     window.synth.setSequenceDef(index, getSequenceDefForPreset(index));
   }
 
-  Object.keys(DEFAULT_SEQUENCE_DEFS).forEach((key) => syncSequenceToSynth(Number(key)));
+  Object.keys(getDefaultSequenceDefs()).forEach((key) => syncSequenceToSynth(Number(key)));
   Object.keys(sequenceDefs).forEach((key) => syncSequenceToSynth(Number(key)));
   loadSequenceEditor();
 
@@ -1804,7 +1866,7 @@
   function saveSequenceEditor() {
     const def = currentSequenceFromEditor();
     if (def) sequenceDefs[currentPreset] = def;
-    else if (DEFAULT_SEQUENCE_DEFS[currentPreset]) sequenceDefs[currentPreset] = { enabled: false };
+    else if (getDefaultSequenceDefs()[currentPreset]) sequenceDefs[currentPreset] = { enabled: false };
     else delete sequenceDefs[currentPreset];
     persistSequenceDefs();
     syncSequenceToSynth(currentPreset);
@@ -1835,14 +1897,14 @@
   });
 
   seqCrystalBtn.addEventListener('click', () => {
-    sequenceDefs[currentPreset] = cloneSequenceDef(DEFAULT_SEQUENCE_DEFS[88]);
+    sequenceDefs[currentPreset] = cloneSequenceDef(getDefaultSequenceDefs()[88]);
     persistSequenceDefs();
     syncSequenceToSynth(currentPreset);
     loadSequenceEditor();
   });
 
   seqClearBtn.addEventListener('click', () => {
-    if (DEFAULT_SEQUENCE_DEFS[currentPreset]) sequenceDefs[currentPreset] = { enabled: false };
+    if (getDefaultSequenceDefs()[currentPreset]) sequenceDefs[currentPreset] = { enabled: false };
     else delete sequenceDefs[currentPreset];
     persistSequenceDefs();
     syncSequenceToSynth(currentPreset);
@@ -2154,7 +2216,7 @@
       });
     }
     persistSequenceDefs();
-    Object.keys(DEFAULT_SEQUENCE_DEFS).forEach((key) => syncSequenceToSynth(Number(key)));
+    Object.keys(getDefaultSequenceDefs()).forEach((key) => syncSequenceToSynth(Number(key)));
     Object.keys(sequenceDefs).forEach((key) => syncSequenceToSynth(Number(key)));
 
     if (Array.isArray(state.drumPads) && state.drumPads.length) {

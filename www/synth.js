@@ -121,6 +121,7 @@ class YamaBruhSynth {
     this.wasmMemory = null;
     this.workletNode = null;
     this.currentPreset = 0;
+    this.bank = 'A';
     this.ready = false;
     this._presetCache = new Map();
     this.onMessage = null;
@@ -226,7 +227,14 @@ class YamaBruhSynth {
   }
 
   getPresetName(index) {
-    return PRESET_NAMES[index] || `Preset ${index + 1}`;
+    const names = this.bank === 'B' && typeof PRESET_NAMES_B !== 'undefined' ? PRESET_NAMES_B : PRESET_NAMES;
+    return names[index] || `Preset ${index + 1}`;
+  }
+
+  setBank(bank) {
+    this.bank = bank;
+    this._presetCache.clear();
+    this._sendPreset();
   }
 
   hashString(str) {
@@ -241,8 +249,9 @@ class YamaBruhSynth {
     if (this._presetCache.has(index)) return this._presetCache.get(index);
     // Use JS preset array (includes modulator envelope at indices 16-20)
     const idx = Math.max(0, Math.min(99, index));
-    const params = (typeof YAMABRUH_PRESETS !== 'undefined' && YAMABRUH_PRESETS[idx])
-      ? [...YAMABRUH_PRESETS[idx]]
+    const bankPresets = this.bank === 'B' && typeof YAMABRUH_PRESETS_B !== 'undefined' ? YAMABRUH_PRESETS_B : YAMABRUH_PRESETS;
+    const params = (typeof bankPresets !== 'undefined' && bankPresets[idx])
+      ? [...bankPresets[idx]]
       : [];
     // Fallback to WASM for base 16 params if JS array missing
     if (params.length === 0) {

@@ -1,3 +1,13 @@
+:root {
+  --accent: #22ccaa;
+  --accent-10: var(--accent-10);
+  --accent-15: rgba(34, 204, 170, 0.15);
+  --accent-20: var(--accent-20);
+  --accent-25: var(--accent-25);
+  --accent-50: rgba(34, 204, 170, 0.5);
+  --accent-08: rgba(34, 204, 170, 0.08);
+}
+
 /* ── Reset & Base ───────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -118,7 +128,7 @@ html, body {
 .panel-label {
   font-size: 9px;
   letter-spacing: 3px;
-  color: #22ccaa;
+  color: var(--accent);
   margin-bottom: 6px;
   font-weight: bold;
   text-transform: uppercase;
@@ -128,6 +138,32 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.bank-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bank-btn {
+  width: 24px;
+  height: 20px;
+  border: 1px solid #333;
+  border-radius: 2px;
+  background: rgba(0,0,0,0.4);
+  color: #555;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+}
+
+.bank-btn.active {
+  background: var(--accent-20);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .preset-name-input {
@@ -145,7 +181,7 @@ html, body {
 }
 
 .preset-name-input:focus {
-  border-color: #22ccaa;
+  border-color: var(--accent);
 }
 
 .preset-name-input::placeholder {
@@ -202,7 +238,7 @@ html, body {
 
 .vb-entry {
   font-size: 9px;
-  color: #22ccaa;
+  color: var(--accent);
   padding: 1px 4px;
   cursor: pointer;
   white-space: nowrap;
@@ -216,11 +252,11 @@ html, body {
 }
 
 .vb-entry:hover {
-  background: rgba(34, 204, 170, 0.1);
+  background: var(--accent-10);
 }
 
 .vb-entry.active {
-  background: rgba(34, 204, 170, 0.2);
+  background: var(--accent-20);
   color: #77ffdd;
   font-weight: bold;
 }
@@ -240,7 +276,7 @@ html, body {
 .voice-bank-grid::-webkit-scrollbar { height: 4px; }
 .voice-bank-grid::-webkit-scrollbar-track { background: transparent; }
 .voice-bank-grid::-webkit-scrollbar-thumb {
-  background: rgba(34, 204, 170, 0.25);
+  background: var(--accent-25);
   border-radius: 2px;
 }
 
@@ -328,7 +364,7 @@ html, body {
 
 .preset-readout {
   font-size: 12px;
-  color: #22ccaa;
+  color: var(--accent);
   margin-top: 8px;
   letter-spacing: 1px;
   font-weight: bold;
@@ -538,7 +574,7 @@ html, body {
 
 .id-field:focus {
   outline: none;
-  border-color: #22ccaa;
+  border-color: var(--accent);
   background: rgba(255,255,255,0.95);
 }
 
@@ -611,7 +647,7 @@ pre.code-snippet {
   border: 1px solid #333;
   border-radius: 3px;
   background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
-  color: #22ccaa;
+  color: var(--accent);
   font-family: 'Courier New', monospace;
   font-size: 10px;
   font-weight: bold;
@@ -626,7 +662,7 @@ pre.code-snippet {
 }
 
 .midi-btn.active {
-  border-color: #22ccaa;
+  border-color: var(--accent);
   color: #66ffdd;
 }
 
@@ -636,7 +672,7 @@ pre.code-snippet {
   border: 1px solid #333;
   border-radius: 2px;
   background: #1a1a1a;
-  color: #22ccaa;
+  color: var(--accent);
   font-family: 'Courier New', monospace;
   font-size: 10px;
   cursor: pointer;
@@ -767,9 +803,9 @@ pre.code-snippet {
 }
 
 .midi-learn-global.active {
-  background: rgba(34,204,170,0.2);
-  color: #22ccaa;
-  border-color: #22ccaa;
+  background: var(--accent-20);
+  color: var(--accent);
+  border-color: var(--accent);
   animation: learn-pulse 1s ease-in-out infinite;
 }
 
@@ -779,7 +815,7 @@ pre.code-snippet {
 }
 
 .learn-target {
-  outline: 2px solid #22ccaa !important;
+  outline: 2px solid var(--accent) !important;
   outline-offset: 2px;
 }
 
@@ -848,7 +884,7 @@ pre.code-snippet {
 }
 
 .fx-select:focus {
-  border-color: #22ccaa;
+  border-color: var(--accent);
 }
 
 /* ── Tweak Section (collapsible) ───────────────────────────────────── */
@@ -862,7 +898,7 @@ pre.code-snippet {
   border: 1px solid #2a2a2a;
   border-radius: 4px;
   background: rgba(0,0,0,0.3);
-  color: #22ccaa;
+  color: var(--accent);
   font-family: 'Courier New', monospace;
   font-size: 10px;
   font-weight: bold;
@@ -909,7 +945,7 @@ pre.code-snippet {
 .tweak-param label {
   font-size: 8px;
   letter-spacing: 2px;
-  color: #22ccaa;
+  color: var(--accent);
   font-weight: bold;
 }
 
@@ -932,7 +968,7 @@ pre.code-snippet {
   border-radius: 50%;
   border: 1px solid #444;
   background: rgba(0,0,0,0.3);
-  color: #22ccaa;
+  color: var(--accent);
   font-size: 11px;
   font-weight: bold;
   cursor: pointer;
@@ -942,7 +978,7 @@ pre.code-snippet {
 }
 
 .seq-hint-btn:hover {
-  background: rgba(34,204,170,0.15);
+  background: var(--accent-15);
 }
 
 .seq-note {
@@ -953,7 +989,7 @@ pre.code-snippet {
 }
 
 .seq-note code {
-  color: #22ccaa;
+  color: var(--accent);
   font-size: 9px;
 }
 
@@ -967,7 +1003,7 @@ pre.code-snippet {
   border: 1px solid #333;
   border-radius: 2px;
   background: #161616;
-  color: #22ccaa;
+  color: var(--accent);
   font-family: 'Courier New', monospace;
   font-size: 10px;
   box-sizing: border-box;
@@ -981,7 +1017,7 @@ pre.code-snippet {
   border: 1px solid #333;
   border-radius: 2px;
   background: #161616;
-  color: #22ccaa;
+  color: var(--accent);
   font-family: 'Courier New', monospace;
   font-size: 10px;
   line-height: 1.45;
@@ -1046,7 +1082,7 @@ pre.code-snippet {
   border: 1px solid #333;
   border-radius: 3px;
   background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
-  color: #22ccaa;
+  color: var(--accent);
   font-family: 'Courier New', monospace;
   font-size: 9px;
   font-weight: bold;
@@ -1124,7 +1160,7 @@ pre.code-snippet {
   border: 1px solid #333;
   border-radius: 2px;
   background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
-  color: #22ccaa;
+  color: var(--accent);
   font-family: 'Courier New', monospace;
   font-size: 8px;
   font-weight: bold;
@@ -1147,7 +1183,7 @@ pre.code-snippet {
 .editor-subtitle {
   font-size: 9px;
   letter-spacing: 3px;
-  color: #22ccaa;
+  color: var(--accent);
   font-weight: bold;
   text-transform: uppercase;
   margin-bottom: 8px;
@@ -1185,7 +1221,7 @@ pre.code-snippet {
 
 .ch-name {
   font-size: 7px;
-  color: #22ccaa;
+  color: var(--accent);
   letter-spacing: 0.5px;
   text-align: center;
   white-space: nowrap;
@@ -1201,7 +1237,7 @@ pre.code-snippet {
   border: 1px solid #333;
   border-radius: 2px;
   background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
-  color: #22ccaa;
+  color: var(--accent);
   font-family: 'Courier New', monospace;
   font-size: 7px;
   font-weight: bold;
@@ -1417,7 +1453,7 @@ pre.code-snippet {
     inset 2px 0 0 rgba(255,255,255,0.1),
     inset 0 -2px 0 rgba(0,0,0,0.25),
     inset -2px 0 0 rgba(0,0,0,0.15),
-    0 0 10px rgba(34,204,170,0.2),
+    0 0 10px var(--accent-20),
     0 3px 4px rgba(0,0,0,0.5);
 }
 
@@ -1485,8 +1521,8 @@ pre.code-snippet {
 }
 
 .drum-pad.active {
-  border-color: #22ccaa;
-  box-shadow: 0 0 0 1px rgba(34,204,170,0.25), 0 0 14px rgba(34,204,170,0.08);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-25), 0 0 14px var(--accent-08);
 }
 
 .drum-pad.playing {
@@ -1505,7 +1541,7 @@ pre.code-snippet {
 .drum-pad-name {
   font-family: 'Courier New', monospace;
   font-size: 10px;
-  color: #22ccaa;
+  color: var(--accent);
   letter-spacing: 1px;
   text-transform: uppercase;
 }
@@ -1552,7 +1588,7 @@ pre.code-snippet {
   font-family: 'Courier New', monospace;
   font-size: 11px;
   font-weight: bold;
-  color: #22ccaa;
+  color: var(--accent);
   letter-spacing: 1px;
   padding: 4px 8px;
   background: #060606;
@@ -1600,9 +1636,9 @@ pre.code-snippet {
 }
 
 .step-dot.active {
-  background: #22ccaa;
-  border-color: #22ccaa;
-  box-shadow: 0 0 6px rgba(34,204,170,0.5);
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 6px var(--accent-50);
 }
 
 .step-dot.beat {
@@ -1677,10 +1713,10 @@ pre.code-snippet {
   font-size: 10px;
   font-weight: bold;
   letter-spacing: 1.5px;
-  color: #22ccaa;
+  color: var(--accent);
   text-decoration: none;
   padding: 6px 14px;
-  border: 1px solid #22ccaa;
+  border: 1px solid var(--accent);
   border-radius: 1px;
   transition: background 0.15s, color 0.15s;
   box-shadow:
@@ -1689,7 +1725,7 @@ pre.code-snippet {
 }
 
 .cta-link:hover {
-  background: rgba(34,204,170,0.15);
+  background: var(--accent-15);
   color: #77ffdd;
 }
 
@@ -1715,7 +1751,7 @@ pre.code-snippet {
 }
 
 .footer-link:hover {
-  color: #22ccaa;
+  color: var(--accent);
 }
 
 /* ── Responsiveness ────────────────────────────────────────────────── */
