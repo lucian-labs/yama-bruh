@@ -163,7 +163,7 @@
           <div class="fx-module-label">DELAY</div>
           <div class="fx-knobs">
             <div class="fx-knob-group">
-              <label>TIME</label>
+              <label title="Delay time in beats — synced to BPM">TIME</label>
               <select id="delay-time" class="fx-select">
                 <option value="0.03125">1/32</option>
                 <option value="0.0625">1/16</option>
@@ -175,12 +175,12 @@
               </select>
             </div>
             <div class="fx-knob-group">
-              <label>FDBK</label>
+              <label title="Delay feedback — how much signal feeds back into the delay line">FDBK</label>
               <input type="range" min="0" max="100" step="1" value="30" id="delay-feedback">
               <span class="tw-val" id="delay-feedback-val">30</span>
             </div>
             <div class="fx-knob-group">
-              <label>MIX</label>
+              <label title="Delay dry/wet mix — 0 = dry only, 100 = wet only">MIX</label>
               <input type="range" min="0" max="100" step="1" value="25" id="delay-mix">
               <span class="tw-val" id="delay-mix-val">25</span>
             </div>
@@ -190,12 +190,12 @@
           <div class="fx-module-label">FILTER</div>
           <div class="fx-knobs">
             <div class="fx-knob-group">
-              <label>CUTOFF</label>
+              <label title="Lowpass filter frequency — rolls off highs below this point">CUTOFF</label>
               <input type="range" min="0" max="100" step="0.1" value="100" id="filter-cutoff">
               <span class="tw-val" id="filter-cutoff-val">20k</span>
             </div>
             <div class="fx-knob-group">
-              <label>RESO</label>
+              <label title="Filter resonance — boosts frequencies at the cutoff point">RESO</label>
               <input type="range" min="0" max="30" step="0.1" value="0" id="filter-reso">
               <span class="tw-val" id="filter-reso-val">0.0</span>
             </div>
@@ -212,47 +212,47 @@
         <div class="editor-subtitle">CARRIER</div>
         <div class="tweak-grid">
           <div class="tweak-param">
-            <label>RATIO</label>
+            <label title="Carrier frequency multiplier — 1=fundamental, 2=octave up, 0.5=octave down">RATIO</label>
             <input type="range" min="0.5" max="8" step="0.5" id="tw-carrier">
             <span class="tw-val" id="tw-carrier-val">1.00</span>
           </div>
           <div class="tweak-param">
-            <label>ATTACK</label>
+            <label title="Carrier attack time in seconds — how fast the note reaches full volume">ATTACK</label>
             <input type="range" min="0.001" max="3" step="0.001" id="tw-attack">
             <span class="tw-val" id="tw-attack-val">0.01</span>
           </div>
           <div class="tweak-param">
-            <label>DECAY</label>
+            <label title="Carrier decay time — how fast volume drops from peak to sustain level">DECAY</label>
             <input type="range" min="0.00005" max="0.99" step="0.00005" id="tw-decay">
             <span class="tw-val" id="tw-decay-val">0.06</span>
           </div>
           <div class="tweak-param">
-            <label>SUSTAIN</label>
+            <label title="Carrier sustain level — volume held while key is pressed (0-1)">SUSTAIN</label>
             <input type="range" min="0.006" max="1" step="0.001" id="tw-sustain">
             <span class="tw-val" id="tw-sustain-val">0.30</span>
           </div>
           <div class="tweak-param">
-            <label>RELEASE</label>
+            <label title="Carrier release time — how fast sound fades after key release">RELEASE</label>
             <input type="range" min="0.0015" max="0.99" step="0.0005" id="tw-release">
             <span class="tw-val" id="tw-release-val">0.1</span>
           </div>
           <div class="tweak-param">
-            <label>WAVE</label>
+            <label title="Carrier waveform: 0=sine 1=half-sine 2=abs-sine 3=quarter-sine 4=noise 5=tone+noise">WAVE</label>
             <input type="range" min="0" max="5" step="1" id="tw-cwave">
             <span class="tw-val" id="tw-cwave-val">0</span>
           </div>
           <div class="tweak-param">
-            <label>EG TYPE</label>
+            <label title="Envelope type: 0=sustained (holds while key down) 1=percussive (auto-releases after decay)">EG TYPE</label>
             <input type="range" min="0" max="1" step="1" id="tw-egtype">
             <span class="tw-val" id="tw-egtype-val">0</span>
           </div>
           <div class="tweak-param">
-            <label>TREMOLO</label>
+            <label title="Carrier tremolo — 3.7Hz amplitude wobble (YM2413 hardware LFO)">TREMOLO</label>
             <input type="range" min="0" max="0.5" step="0.5" id="tw-tremolo">
             <span class="tw-val" id="tw-tremolo-val">0.00</span>
           </div>
           <div class="tweak-param">
-            <label>KSL</label>
+            <label title="Key Scale Level — attenuates high notes. 0=off 1=1.5dB/oct 2=3dB/oct 3=6dB/oct">KSL</label>
             <input type="range" min="0" max="3" step="1" id="tw-ksl">
             <span class="tw-val" id="tw-ksl-val">0.00</span>
           </div>
@@ -261,47 +261,47 @@
         <div class="editor-subtitle">MODULATOR</div>
         <div class="tweak-grid">
           <div class="tweak-param">
-            <label>RATIO</label>
+            <label title="Modulator frequency multiplier — shapes the harmonic content of the tone">RATIO</label>
             <input type="range" min="0.5" max="9" step="0.5" id="tw-modratio">
             <span class="tw-val" id="tw-modratio-val">1.00</span>
           </div>
           <div class="tweak-param">
-            <label>DEPTH</label>
+            <label title="FM modulation depth in radians — higher = more harmonics/brightness (max ~4PI)">DEPTH</label>
             <input type="range" min="0.055" max="12.566" step="0.001" id="tw-modindex">
             <span class="tw-val" id="tw-modindex-val">2.00</span>
           </div>
           <div class="tweak-param">
-            <label>FEEDBACK</label>
+            <label title="Modulator self-feedback — feeds output back into itself for richer/harsher tones">FEEDBACK</label>
             <input type="range" min="0" max="12.566" step="0.001" id="tw-feedback">
             <span class="tw-val" id="tw-feedback-val">0.00</span>
           </div>
           <div class="tweak-param">
-            <label>ATTACK</label>
+            <label title="Modulator attack — how fast the brightness/harmonics reach full intensity">ATTACK</label>
             <input type="range" min="0.001" max="5" step="0.001" id="tw-matk">
             <span class="tw-val" id="tw-matk-val">0.001</span>
           </div>
           <div class="tweak-param">
-            <label>DECAY</label>
+            <label title="Modulator decay — how fast the brightness fades to sustain level">DECAY</label>
             <input type="range" min="0.00005" max="0.99" step="0.00005" id="tw-mdec">
             <span class="tw-val" id="tw-mdec-val">0.005</span>
           </div>
           <div class="tweak-param">
-            <label>SUSTAIN</label>
+            <label title="Modulator sustain — brightness level held while key is pressed">SUSTAIN</label>
             <input type="range" min="0.006" max="1" step="0.001" id="tw-msus">
             <span class="tw-val" id="tw-msus-val">0.006</span>
           </div>
           <div class="tweak-param">
-            <label>RELEASE</label>
+            <label title="Modulator release — how fast brightness fades after key release">RELEASE</label>
             <input type="range" min="0.00005" max="0.99" step="0.0005" id="tw-mrel">
             <span class="tw-val" id="tw-mrel-val">0.005</span>
           </div>
           <div class="tweak-param">
-            <label>WAVE</label>
+            <label title="Modulator waveform: 0=sine 1=half-sine 2=abs-sine 3=quarter-sine 4=noise">WAVE</label>
             <input type="range" min="0" max="4" step="1" id="tw-mwave">
             <span class="tw-val" id="tw-mwave-val">0</span>
           </div>
           <div class="tweak-param">
-            <label>EG TYPE</label>
+            <label title="Modulator envelope type: 0=sustained 1=percussive (brightness auto-fades)">EG TYPE</label>
             <input type="range" min="0" max="1" step="1" id="tw-megtype">
             <span class="tw-val" id="tw-megtype-val">0</span>
           </div>
