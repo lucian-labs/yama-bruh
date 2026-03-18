@@ -283,6 +283,7 @@
     applyBankColors(bank);
     bankABtn.classList.toggle('active', bank === 'A');
     bankBBtn.classList.toggle('active', bank === 'B');
+    document.getElementById('bank-label').textContent = bank === 'B' ? 'VIBE BANK' : 'VOICE BANK';
     rebuildVoiceBankGrid();
     // Re-sync sequences for new bank defaults
     Object.keys(getDefaultSequenceDefs()).forEach((key) => syncSequenceToSynth(Number(key)));
@@ -299,6 +300,7 @@
   if (currentBank === 'B') {
     bankABtn.classList.remove('active');
     bankBBtn.classList.add('active');
+    document.getElementById('bank-label').textContent = 'VIBE BANK';
     rebuildVoiceBankGrid();
   }
 

@@ -513,6 +513,18 @@ const DEFAULT_SEQUENCE_DEFS_B = {
 }`,
   },
 
+  // ── 34 Turbine Blade — brassy pluck octave ───────────────────────────────
+  34: {
+    enabled: true, name: 'Brass Pluck',
+    source: `{
+  gated: true,
+  g: 0.82,
+  offsets: [0, 12],
+  t: 0.25,
+  levels: [1, 0.72, 0.46, 0.24, 0.46, 0.72, 1],
+}`,
+  },
+
   // ── 40 White Wall — sustained noise swell (noteAlgo) ─────────────────────
   40: {
     enabled: true, name: 'Noise Swell',
