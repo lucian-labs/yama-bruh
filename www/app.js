@@ -7,7 +7,7 @@
   let playingSources = new Map();
   const chNameEls = [];
   const savedMidi = JSON.parse(localStorage.getItem('yamabruh_midi') || 'null');
-  const SEQUENCE_STORAGE_KEY = 'yamabruh_sequences_v1';
+  const SEQUENCE_STORAGE_KEY = 'yamabruh_sequences_v2';
   const VOICE_BANK_STORAGE_KEY = 'yamabruh_voice_bank_v1';
   const PRESET_NAMES_STORAGE_KEY = 'yamabruh_preset_names';
   const customPresetNames = JSON.parse(localStorage.getItem(PRESET_NAMES_STORAGE_KEY) || '{}');
