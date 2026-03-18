@@ -218,12 +218,12 @@
           </div>
           <div class="tweak-param">
             <label title="Carrier attack time in seconds — how fast the note reaches full volume">ATTACK</label>
-            <input type="range" min="0.001" max="3" step="0.001" id="tw-attack">
+            <input type="range" min="0" max="100" step="1" id="tw-attack" data-log="0.001:3">
             <span class="tw-val" id="tw-attack-val">0.01</span>
           </div>
           <div class="tweak-param">
             <label title="Carrier decay time — how fast volume drops from peak to sustain level">DECAY</label>
-            <input type="range" min="0.00005" max="0.99" step="0.00005" id="tw-decay">
+            <input type="range" min="0" max="100" step="1" id="tw-decay" data-log="0.005:2">
             <span class="tw-val" id="tw-decay-val">0.06</span>
           </div>
           <div class="tweak-param">
@@ -233,7 +233,7 @@
           </div>
           <div class="tweak-param">
             <label title="Carrier release time — how fast sound fades after key release">RELEASE</label>
-            <input type="range" min="0.0015" max="0.99" step="0.0005" id="tw-release">
+            <input type="range" min="0" max="100" step="1" id="tw-release" data-log="0.005:1">
             <span class="tw-val" id="tw-release-val">0.1</span>
           </div>
           <div class="tweak-param">
@@ -277,12 +277,12 @@
           </div>
           <div class="tweak-param">
             <label title="Modulator attack — how fast the brightness/harmonics reach full intensity">ATTACK</label>
-            <input type="range" min="0.001" max="5" step="0.001" id="tw-matk">
+            <input type="range" min="0" max="100" step="1" id="tw-matk" data-log="0.001:5">
             <span class="tw-val" id="tw-matk-val">0.001</span>
           </div>
           <div class="tweak-param">
             <label title="Modulator decay — how fast the brightness fades to sustain level">DECAY</label>
-            <input type="range" min="0.00005" max="0.99" step="0.00005" id="tw-mdec">
+            <input type="range" min="0" max="100" step="1" id="tw-mdec" data-log="0.005:2">
             <span class="tw-val" id="tw-mdec-val">0.005</span>
           </div>
           <div class="tweak-param">
@@ -292,7 +292,7 @@
           </div>
           <div class="tweak-param">
             <label title="Modulator release — how fast brightness fades after key release">RELEASE</label>
-            <input type="range" min="0.00005" max="0.99" step="0.0005" id="tw-mrel">
+            <input type="range" min="0" max="100" step="1" id="tw-mrel" data-log="0.005:1">
             <span class="tw-val" id="tw-mrel-val">0.005</span>
           </div>
           <div class="tweak-param">

@@ -1660,13 +1660,30 @@
     }
   });
 
+  // Log slider helpers: data-log="min:max" → slider 0-1000 maps to min..max logarithmically
+  function sliderToValue(slider) {
+    const log = slider.dataset.log;
+    if (!log) return parseFloat(slider.value);
+    const [lo, hi] = log.split(':').map(Number);
+    return lo * Math.pow(hi / lo, slider.value / 100);
+  }
+
+  function valueToSlider(slider, value) {
+    const log = slider.dataset.log;
+    if (!log) { slider.value = value; return; }
+    const [lo, hi] = log.split(':').map(Number);
+    const clamped = Math.max(lo, Math.min(hi, value));
+    slider.value = Math.round(100 * Math.log(clamped / lo) / Math.log(hi / lo));
+  }
+
   function loadTweakFromPreset() {
     const params = window.synth.getPresetParams(currentPreset);
     tweakSliders.forEach((slider, i) => {
       const pi = tweakParamIdx[i];
       const v = params[pi] || 0;
-      slider.value = v;
-      tweakVals[i].textContent = Number.isInteger(v) ? v.toString() : v.toFixed(3);
+      valueToSlider(slider, v);
+      const actual = sliderToValue(slider);
+      tweakVals[i].textContent = Number.isInteger(actual) ? actual.toString() : actual.toFixed(3);
     });
   }
 
@@ -1674,7 +1691,7 @@
     const base = window.synth.getPresetParams(currentPreset);
     const params = base.slice();
     tweakSliders.forEach((s, i) => {
-      params[tweakParamIdx[i]] = parseFloat(s.value);
+      params[tweakParamIdx[i]] = sliderToValue(s);
     });
     return params;
   }
@@ -1690,7 +1707,7 @@
     persistVoiceBankEdits();
     // Update value displays
     tweakSliders.forEach((slider, i) => {
-      const v = parseFloat(slider.value);
+      const v = sliderToValue(slider);
       tweakVals[i].textContent = Number.isInteger(v) ? v.toString() : v.toFixed(3);
     });
   }
