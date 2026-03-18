@@ -1397,6 +1397,24 @@
     window.drums.setChoke(on);
   });
 
+  // Mono mode toggle
+  const seqMonoEl = document.getElementById('seq-mono');
+  const seqMonoVal = document.getElementById('seq-mono-val');
+  const savedMono = localStorage.getItem('yamabruh_mono') === '1';
+  seqMonoEl.checked = savedMono;
+  seqMonoVal.textContent = savedMono ? 'ON' : 'OFF';
+  if (window.synth.workletNode) {
+    window.synth.workletNode.port.postMessage({ type: 'monoMode', on: savedMono });
+  }
+  seqMonoEl.addEventListener('change', () => {
+    const on = seqMonoEl.checked;
+    seqMonoVal.textContent = on ? 'ON' : 'OFF';
+    localStorage.setItem('yamabruh_mono', on ? '1' : '0');
+    if (window.synth.workletNode) {
+      window.synth.workletNode.port.postMessage({ type: 'monoMode', on });
+    }
+  });
+
   drumToggle.addEventListener('click', () => {
     const open = drumBody.classList.toggle('open');
     drumToggle.classList.toggle('open', open);
