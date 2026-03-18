@@ -59,19 +59,20 @@ function normalizeSequenceDef(def) {
   const hasAlgorithm = typeof algorithmFn === 'function';
   const offsets = parseNumberList(config.offsets);
   const levels = parseNumberList(config.levels);
-  if (!hasAlgorithm && !offsets.length) return null;
-  const baseLength = Math.max(offsets.length, 1);
   const rawTimes = parseNumberList(config.times);
   const defaultTime = Number(config.t ?? config.time) || 1;
   const times = rawTimes.length ? rawTimes : [defaultTime];
-  const stepLevels = Array.from({ length: baseLength }, (_, i) => clamp(levels[i] ?? levels[levels.length - 1] ?? 1, 0.01, 2));
+  const baseLength = Math.max(offsets.length, levels.length, times.length, hasAlgorithm ? 1 : 0);
+  if (!hasAlgorithm && !baseLength) return null;
+  const stepOffsets = Array.from({ length: baseLength }, (_, i) => offsets.length ? offsets[i % offsets.length] : 0);
+  const stepLevels = Array.from({ length: baseLength }, (_, i) => clamp(levels.length ? levels[i % levels.length] : 1, 0.01, 2));
   const stepTimes = Array.from({ length: baseLength }, (_, i) => clamp(times[i % times.length], 0.01, 8));
   return {
     enabled: true,
     name: String(def.name || config.name || ''),
     gated: !!config.gated,
     gate: clamp(Number(config.g ?? config.gate ?? 0.82), 0.05, 1.5),
-    offsets,
+    offsets: stepOffsets,
     times: stepTimes,
     levels: stepLevels,
     defaultTime: clamp(defaultTime, 0.01, 8),
