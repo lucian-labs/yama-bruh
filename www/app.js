@@ -75,6 +75,16 @@
       enabled: true, name: 'Quack',
       source: '{\n  g: 0.5,\n  offsets: [0, 0, 3],\n  times: [0.15, 0.1, 0.25],\n  levels: [1, 0.6, 0.8],\n}',
     },
+    // 80 Dog Pianist — piano + human voice layered
+    80: {
+      enabled: true, name: 'Dog Pianist',
+      source: '{\n  layer: [0, 70],\n}',
+    },
+    // 82 Baby Doll — voice + celesta
+    82: {
+      enabled: true, name: 'Baby Doll',
+      source: '{\n  layer: [9, 72],\n}',
+    },
     // 83 Telephone Bell — classic ring
     83: {
       enabled: true, name: 'Phone Ring',
@@ -1528,7 +1538,7 @@
     if (!def) return '';
     if (typeof def.source === 'string' && def.source.trim()) return def.source.trim();
     const lines = ['{'];
-    ['gated', 'g', 'n', 'v', 't', 'cents', 'offsets', 'times', 'levels', 'algorithm', 'noteAlgo'].forEach((key) => {
+    ['gated', 'g', 'n', 'v', 't', 'cents', 'layer', 'offsets', 'times', 'levels', 'algorithm', 'noteAlgo'].forEach((key) => {
       const value = def[key];
       if (value === undefined || value === null || value === '') return;
       const formatted = (key === 'algorithm' || key === 'noteAlgo') && typeof value === 'string'

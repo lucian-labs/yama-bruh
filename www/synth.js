@@ -63,7 +63,8 @@ function normalizeSequenceDef(def) {
   const defaultTime = Number(config.t ?? config.time) || 1;
   const times = rawTimes.length ? rawTimes : [defaultTime];
   const baseLength = Math.max(offsets.length, levels.length, times.length, hasAlgorithm ? 1 : 0);
-  if (!hasAlgorithm && !baseLength) return null;
+  const hasLayer = Array.isArray(config.layer) && config.layer.length > 0;
+  if (!hasAlgorithm && !baseLength && !hasLayer) return null;
   const stepOffsets = Array.from({ length: baseLength }, (_, i) => offsets.length ? offsets[i % offsets.length] : 0);
   const stepLevels = Array.from({ length: baseLength }, (_, i) => clamp(levels.length ? levels[i % levels.length] : 1, 0.01, 2));
   const stepTimes = Array.from({ length: baseLength }, (_, i) => clamp(times[i % times.length], 0.01, 8));
@@ -82,6 +83,7 @@ function normalizeSequenceDef(def) {
     initN: Number.isFinite(Number(config.n)) ? Number(config.n) : null,
     initCents: Number.isFinite(Number(config.cents)) ? Number(config.cents) : 0,
     noteAlgo: typeof config.noteAlgo === 'function' ? config.noteAlgo.toString() : (typeof config.noteAlgo === 'string' ? config.noteAlgo.trim() : null),
+    layer: Array.isArray(config.layer) ? config.layer.filter(v => Number.isFinite(Number(v))).map(Number) : [],
     source: typeof def.source === 'string' ? def.source : '',
     algorithm: typeof algorithmValue === 'function' ? algorithmValue.toString() : algorithm,
     algorithmFn,
@@ -125,6 +127,7 @@ class YamaBruhSynth {
     this._activeSequences = new Map();
     this._noteEndListeners = new Map();
     this._sequenceCounter = 1;
+    this._layerMap = new Map();
     this.bpm = 120;
   }
 
@@ -541,6 +544,11 @@ class YamaBruhSynth {
       return token;
     }
 
+    if (sequence.offsets.length === 0) {
+      // Layer-only sequence — just play the main note
+      this._postNoteOn(token, midiNote, velocity, preset);
+      return token;
+    }
     runStep(0);
     return token;
   }
@@ -577,14 +585,34 @@ class YamaBruhSynth {
       ? this.getPresetParams(presetIndex)
       : this.getPresetParams(this.currentPreset);
     const sequence = this.getSequenceDef(resolvedPreset);
+
+    // Fire layer voices
+    const layers = sequence?.layer || [];
+    const layerIds = [];
+    for (const layerPresetIdx of layers) {
+      const layerPreset = this.getPresetParams(layerPresetIdx);
+      const layerId = `layer:${midiNote}:${layerPresetIdx}`;
+      this._postNoteOn(layerId, midiNote, velocity, layerPreset);
+      layerIds.push(layerId);
+    }
+
     if (sequence) {
-      return this._playSequence(midiNote, velocity, resolvedPreset, preset, sequence);
+      const token = this._playSequence(midiNote, velocity, resolvedPreset, preset, sequence);
+      if (layerIds.length) this._layerMap.set(token, layerIds);
+      return token;
     }
     this._postNoteOn(midiNote, midiNote, velocity, preset);
+    if (layerIds.length) this._layerMap.set(midiNote, layerIds);
     return midiNote;
   }
 
   stopNote(noteId) {
+    // Stop layers
+    const layerIds = this._layerMap.get(noteId);
+    if (layerIds) {
+      for (const id of layerIds) this._postNoteOff(id);
+      this._layerMap.delete(noteId);
+    }
     if (typeof noteId === 'string' && this._activeSequences.has(noteId)) {
       const sequence = this._activeSequences.get(noteId);
       sequence.released = true;
