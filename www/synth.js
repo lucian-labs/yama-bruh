@@ -523,6 +523,7 @@ class YamaBruhSynth {
         return;
       }
 
+      const isLastStep = index === sequence.offsets.length - 1;
       const stepNote = midiNote + sequence.offsets[index];
       const stepVelocity = clamp(velocity * sequence.levels[index], 0.001, 1);
       const stepMs = this._beatsToMs(sequence.times[index]);
@@ -532,6 +533,12 @@ class YamaBruhSynth {
       stopCurrentVoice();
       state.currentVoiceId = voiceId;
       this._postNoteOn(voiceId, stepNote, stepVelocity, preset, 0, sequence.noteAlgo);
+
+      if (isLastStep && sequence.gated && !state.released) {
+        // Last step + gated: hold the note until key release
+        state.holdingLastNote = true;
+        return;
+      }
 
       schedule(() => {
         if (state.currentVoiceId === voiceId) {
@@ -627,8 +634,21 @@ class YamaBruhSynth {
       this._layerMap.delete(noteId);
     }
     if (typeof noteId === 'string' && this._activeSequences.has(noteId)) {
-      const sequence = this._activeSequences.get(noteId);
-      sequence.released = true;
+      const state = this._activeSequences.get(noteId);
+      state.released = true;
+      // If holding last note, finish now
+      if (state.holdingLastNote) {
+        if (state.currentVoiceId) {
+          this._postNoteOff(state.currentVoiceId);
+          state.currentVoiceId = null;
+        }
+        state.stopped = true;
+        state.timers.forEach((t) => clearTimeout(t));
+        state.timers.clear();
+        this._activeSequences.delete(noteId);
+        this._emitNoteEnded(noteId);
+        return true;
+      }
       return false;
     }
     if (!this.workletNode) return;
