@@ -62,20 +62,26 @@
 
       <div class="voice-selector">
         <div class="panel-label">VOICE SELECTOR</div>
-        <div class="selector-grid" id="selector-grid">
-          <div class="sel-row">
-            <div class="sel-cell"><span class="sel-label">0</span><button class="sel-btn" data-num="0"></button></div>
-            <div class="sel-cell"><span class="sel-label">1</span><button class="sel-btn" data-num="1"></button></div>
-            <div class="sel-cell"><span class="sel-label">2</span><button class="sel-btn" data-num="2"></button></div>
-            <div class="sel-cell"><span class="sel-label">3</span><button class="sel-btn" data-num="3"></button></div>
-            <div class="sel-cell"><span class="sel-label">4</span><button class="sel-btn" data-num="4"></button></div>
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div class="sel-cell"><span class="sel-label">--</span><button class="sel-btn sel-btn-yellow" id="btn-no-preset"></button></div>
+            <div class="sel-cell"><span class="sel-label">RND</span><button class="sel-btn sel-btn-yellow" id="btn-rand-preset"></button></div>
           </div>
-          <div class="sel-row">
-            <div class="sel-cell"><span class="sel-label">5</span><button class="sel-btn" data-num="5"></button></div>
-            <div class="sel-cell"><span class="sel-label">6</span><button class="sel-btn" data-num="6"></button></div>
-            <div class="sel-cell"><span class="sel-label">7</span><button class="sel-btn" data-num="7"></button></div>
-            <div class="sel-cell"><span class="sel-label">8</span><button class="sel-btn" data-num="8"></button></div>
-            <div class="sel-cell"><span class="sel-label">9</span><button class="sel-btn" data-num="9"></button></div>
+          <div class="selector-grid" id="selector-grid">
+            <div class="sel-row">
+              <div class="sel-cell"><span class="sel-label">0</span><button class="sel-btn" data-num="0"></button></div>
+              <div class="sel-cell"><span class="sel-label">1</span><button class="sel-btn" data-num="1"></button></div>
+              <div class="sel-cell"><span class="sel-label">2</span><button class="sel-btn" data-num="2"></button></div>
+              <div class="sel-cell"><span class="sel-label">3</span><button class="sel-btn" data-num="3"></button></div>
+              <div class="sel-cell"><span class="sel-label">4</span><button class="sel-btn" data-num="4"></button></div>
+            </div>
+            <div class="sel-row">
+              <div class="sel-cell"><span class="sel-label">5</span><button class="sel-btn" data-num="5"></button></div>
+              <div class="sel-cell"><span class="sel-label">6</span><button class="sel-btn" data-num="6"></button></div>
+              <div class="sel-cell"><span class="sel-label">7</span><button class="sel-btn" data-num="7"></button></div>
+              <div class="sel-cell"><span class="sel-label">8</span><button class="sel-btn" data-num="8"></button></div>
+              <div class="sel-cell"><span class="sel-label">9</span><button class="sel-btn" data-num="9"></button></div>
+            </div>
           </div>
         </div>
       </div>

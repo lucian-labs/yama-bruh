@@ -453,6 +453,19 @@ html, body {
   transition: transform 0.04s, box-shadow 0.04s;
 }
 
+/* Yellow variant for special buttons (--/RAND) */
+.sel-btn-yellow {
+  background:
+    linear-gradient(180deg,
+      #f0d060 0%,
+      #d4b840 12%,
+      #c0a830 40%,
+      #b09820 65%,
+      #988018 88%,
+      #806810 100%
+    ) !important;
+}
+
 /* Rough texture noise overlay */
 .sel-btn::before {
   content: '';

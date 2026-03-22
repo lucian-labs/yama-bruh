@@ -598,10 +598,10 @@ class YamaBruhSynth {
     this.ensureContext();
     if (!this.workletNode) return midiNote;
 
-    const resolvedPreset = presetIndex !== undefined ? presetIndex : this.currentPreset;
-    const preset = presetIndex !== undefined
-      ? this.getPresetParams(presetIndex)
-      : this.getPresetParams(this.currentPreset);
+    let resolvedPreset = presetIndex !== undefined ? presetIndex : this.currentPreset;
+    // Random-per-note mode: -1 sentinel
+    if (resolvedPreset === -1) resolvedPreset = Math.floor(Math.random() * 100);
+    const preset = this.getPresetParams(resolvedPreset);
     const sequence = this.getSequenceDef(resolvedPreset);
 
     // Fire layer voices

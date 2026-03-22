@@ -51,23 +51,35 @@
 
       <div class="voice-selector">
         <div class="panel-label">VOICE SELECTOR</div>
-        <div class="selector-grid" id="selector-grid">
-          <div class="sel-row">
-            <div class="sel-cell"><span class="sel-label">0</span><button class="sel-btn" data-num="0"></button></div>
-            <div class="sel-cell"><span class="sel-label">1</span><button class="sel-btn" data-num="1"></button></div>
-            <div class="sel-cell"><span class="sel-label">2</span><button class="sel-btn" data-num="2"></button></div>
-            <div class="sel-cell"><span class="sel-label">3</span><button class="sel-btn" data-num="3"></button></div>
-            <div class="sel-cell"><span class="sel-label">4</span><button class="sel-btn" data-num="4"></button></div>
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div class="sel-cell"><span class="sel-label">--</span><button class="sel-btn sel-btn-yellow" id="btn-no-preset"></button></div>
+            <div class="sel-cell"><span class="sel-label">RND</span><button class="sel-btn sel-btn-yellow" id="btn-rand-preset"></button></div>
           </div>
-          <div class="sel-row">
-            <div class="sel-cell"><span class="sel-label">5</span><button class="sel-btn" data-num="5"></button></div>
-            <div class="sel-cell"><span class="sel-label">6</span><button class="sel-btn" data-num="6"></button></div>
-            <div class="sel-cell"><span class="sel-label">7</span><button class="sel-btn" data-num="7"></button></div>
-            <div class="sel-cell"><span class="sel-label">8</span><button class="sel-btn" data-num="8"></button></div>
-            <div class="sel-cell"><span class="sel-label">9</span><button class="sel-btn" data-num="9"></button></div>
+          <div class="selector-grid" id="selector-grid">
+            <div class="sel-row">
+              <div class="sel-cell"><span class="sel-label">0</span><button class="sel-btn" data-num="0"></button></div>
+              <div class="sel-cell"><span class="sel-label">1</span><button class="sel-btn" data-num="1"></button></div>
+              <div class="sel-cell"><span class="sel-label">2</span><button class="sel-btn" data-num="2"></button></div>
+              <div class="sel-cell"><span class="sel-label">3</span><button class="sel-btn" data-num="3"></button></div>
+              <div class="sel-cell"><span class="sel-label">4</span><button class="sel-btn" data-num="4"></button></div>
+            </div>
+            <div class="sel-row">
+              <div class="sel-cell"><span class="sel-label">5</span><button class="sel-btn" data-num="5"></button></div>
+              <div class="sel-cell"><span class="sel-label">6</span><button class="sel-btn" data-num="6"></button></div>
+              <div class="sel-cell"><span class="sel-label">7</span><button class="sel-btn" data-num="7"></button></div>
+              <div class="sel-cell"><span class="sel-label">8</span><button class="sel-btn" data-num="8"></button></div>
+              <div class="sel-cell"><span class="sel-label">9</span><button class="sel-btn" data-num="9"></button></div>
+            </div>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Mood Selector -->
+    <div class="id-section">
+      <div class="panel-label">MOOD</div>
+      <div id="mood-grid" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
     </div>
 
     <!-- Seed Config -->
@@ -76,11 +88,18 @@
       <div class="id-row">
         <input class="id-field" type="text" id="seed-input" value="yama-bruh.lucianlabs.ca">
       </div>
+      <div class="panel-label" style="margin-top:8px;">PATCH SEED</div>
+      <div class="id-row">
+        <input class="id-field" type="text" id="patch-seed-input" placeholder="(optional — overrides timbre)">
+      </div>
     </div>
 
     <!-- Ringtone IDs -->
     <div class="id-section">
-      <div class="panel-label">RANDOM IDs</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="panel-label" style="margin:0;">RANDOM IDs</div>
+        <button class="tweak-reset" id="btn-reroll" style="padding:2px 8px;font-size:9px;letter-spacing:1px;">RANDOMIZE</button>
+      </div>
       <div id="random-ids" class="id-list"></div>
       <div class="panel-label">CUSTOM IDs</div>
       <div id="custom-ids" class="id-list"></div>
@@ -105,7 +124,8 @@
 
 let wav = Ringtone.generate(
   from: "task-abc-123",
-  appIdentifier: "ca.lucianlabs.myapp"
+  appIdentifier: "ca.lucianlabs.myapp",
+  mood: .pretty
 )
 try wav.write(to: soundURL)</pre>
       <a href="https://github.com/ELI7VH/yama-bruh" class="cta-link" target="_blank" rel="noopener">VIEW ON GITHUB &rarr;</a>
@@ -123,8 +143,10 @@ try wav.write(to: soundURL)</pre>
 
   <script src="yamabruh-notify.js"></script>
   <script>
-    const savedRingtonePreset = parseInt(localStorage.getItem('yamabruh_ringtone_preset') || '88');
-    const yb = new YamaBruhNotify({ seed: 'yama-bruh.lucianlabs.ca', preset: savedRingtonePreset });
+    const savedRingtonePreset = localStorage.getItem('yamabruh_ringtone_preset');
+    const savedMood = localStorage.getItem('yamabruh_mood') || 'experimental';
+    const initPreset = savedRingtonePreset !== null ? parseInt(savedRingtonePreset) : null;
+    const yb = new YamaBruhNotify({ seed: 'yama-bruh.lucianlabs.ca', preset: initPreset, mode: savedMood });
     const NAMES = YamaBruhNotify.PRESET_NAMES;
 
     const lcdInfo = document.getElementById('lcd-info');
@@ -132,30 +154,74 @@ try wav.write(to: soundURL)</pre>
     const randomContainer = document.getElementById('random-ids');
     const customContainer = document.getElementById('custom-ids');
 
-    // Preset selection
-    let currentPreset = savedRingtonePreset;
+    // Preset selection — null means "random per seed"
+    let currentPreset = initPreset;
+    let isRandomPreset = currentPreset === null;
 
     function updateDisplay() {
-      segDigits.textContent = String(currentPreset).padStart(2, '0');
-      yb.preset = currentPreset;
+      if (isRandomPreset) {
+        segDigits.textContent = '--';
+        yb.preset = null;
+      } else {
+        segDigits.textContent = String(currentPreset).padStart(2, '0');
+        yb.preset = currentPreset;
+      }
     }
 
     function selectPreset(num) {
-      currentPreset = Math.max(0, Math.min(98, num));
-      updateDisplay();
-      lcdInfo.textContent = NAMES[currentPreset] || 'Preset ' + currentPreset;
-      localStorage.setItem('yamabruh_ringtone_preset', currentPreset);
+      if (num === null) {
+        isRandomPreset = true;
+        currentPreset = null;
+        updateDisplay();
+        lcdInfo.textContent = 'Random';
+        localStorage.removeItem('yamabruh_ringtone_preset');
+      } else {
+        isRandomPreset = false;
+        currentPreset = Math.max(0, Math.min(98, num));
+        updateDisplay();
+        lcdInfo.textContent = NAMES[currentPreset] || 'Preset ' + currentPreset;
+        localStorage.setItem('yamabruh_ringtone_preset', currentPreset);
+      }
     }
 
     function enterDigit(d) {
-      // Shift left: current ones digit becomes tens, new digit becomes ones
-      const oldOnes = currentPreset % 10;
-      const newPreset = (oldOnes * 10) + parseInt(d);
+      const base = isRandomPreset ? 0 : (currentPreset % 10);
+      const newPreset = (base * 10) + parseInt(d);
       selectPreset(newPreset);
     }
 
-    // Seed input
+    // ── Mood selector ──
+    const moodGrid = document.getElementById('mood-grid');
+    let currentMood = savedMood;
+
+    YamaBruhNotify.MOOD_NAMES.forEach(name => {
+      const btn = document.createElement('button');
+      btn.className = 'tweak-reset';
+      btn.textContent = name.toUpperCase();
+      btn.dataset.mood = name;
+      btn.style.cssText = 'padding:6px 12px;font-size:11px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;';
+      if (name === currentMood) btn.style.background = 'rgba(90,234,170,0.3)';
+      btn.addEventListener('click', () => {
+        currentMood = name;
+        yb.mode = name;
+        localStorage.setItem('yamabruh_mood', name);
+        moodGrid.querySelectorAll('button').forEach(b => b.style.background = '');
+        btn.style.background = 'rgba(90,234,170,0.3)';
+        lcdInfo.textContent = name.toUpperCase();
+        updateSnippet();
+      });
+      moodGrid.appendChild(btn);
+    });
+
+    // ── Yellow preset buttons ──
+    document.getElementById('btn-no-preset').addEventListener('pointerdown', () => selectPreset(null));
+    document.getElementById('btn-rand-preset').addEventListener('pointerdown', () => {
+      selectPreset(Math.floor(Math.random() * 99));
+    });
+
+    // Seed inputs
     const seedInput = document.getElementById('seed-input');
+    const patchSeedInput = document.getElementById('patch-seed-input');
     const codeSnippet = document.getElementById('code-snippet');
     const copyBtn = document.getElementById('copy-btn');
 
@@ -163,13 +229,18 @@ try wav.write(to: soundURL)</pre>
 
     function updateSnippet() {
       const s = seedInput.value || 'my-app';
-      const p = currentPreset;
+      const ps = patchSeedInput.value;
+      const presetLine = isRandomPreset
+        ? `    // preset: derived from seeds`
+        : `    preset: ${currentPreset},  // ${NAMES[currentPreset] || 'Preset ' + currentPreset}`;
+      const patchLine = ps ? `\n    patchSeed: '${ps}',` : '';
       codeSnippet.textContent =
 `<script src="https://yama-bruh.lucianlabs.ca/yamabruh-notify.js"><\/script>
 <script>
   const notify = new YamaBruhNotify({
     seed: '${s}',
-    preset: ${p},  // ${NAMES[p] || 'Preset ' + p}
+    mode: '${currentMood}',${patchLine}
+${presetLine}
   });
   notify.play(${lastPlayedId ? "'" + lastPlayedId + "'" : ''});
 <\/script>`;
@@ -177,6 +248,11 @@ try wav.write(to: soundURL)</pre>
 
     seedInput.addEventListener('input', () => {
       yb.seed = seedInput.value;
+      updateSnippet();
+    });
+
+    patchSeedInput.addEventListener('input', () => {
+      yb.patchSeed = patchSeedInput.value || null;
       updateSnippet();
     });
 
@@ -229,19 +305,30 @@ try wav.write(to: soundURL)</pre>
       return id;
     }
 
-    const randomIds = Array.from({ length: 3 }, generateId);
+    let randomIds = Array.from({ length: 3 }, generateId);
     const savedCustom = JSON.parse(localStorage.getItem('yamabruh_custom_ids') || '["yama-bruh-id","",""]');
     let activeBtn = null;
 
-    // Build random ID rows
-    randomIds.forEach((id, i) => {
-      const row = document.createElement('div');
-      row.className = 'id-row';
-      row.innerHTML = `
-        <input class="id-field" type="text" value="${id}" readonly>
-        <button class="play-btn" data-rid="${i}">&#9654;</button>
-      `;
-      randomContainer.appendChild(row);
+    function buildRandomRows() {
+      randomContainer.innerHTML = '';
+      randomIds.forEach((id, i) => {
+        const row = document.createElement('div');
+        row.className = 'id-row';
+        row.innerHTML = `
+          <input class="id-field" type="text" value="${id}" readonly>
+          <button class="play-btn" data-rid="${i}">&#9654;</button>
+        `;
+        randomContainer.appendChild(row);
+      });
+    }
+    buildRandomRows();
+
+    // Reroll random IDs
+    document.getElementById('btn-reroll').addEventListener('click', () => {
+      randomIds = Array.from({ length: 3 }, generateId);
+      buildRandomRows();
+      lcdInfo.textContent = 'REROLLED';
+      setTimeout(() => { lcdInfo.textContent = ''; }, 1000);
     });
 
     // Build custom ID rows

@@ -1,12 +1,1 @@
-{
-  "version": "0.0.1",
-  "configurations": [
-    {
-      "name": "yama-bruh",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["-e", "require('child_process').execSync('npx serve www -l 3456', {stdio:'inherit'})"],
-      "port": 3456,
-      "autoPort": false
-    }
-  ]
-}
+{"version":"0.0.1","configurations":[{"name":"yama-bruh","runtimeExecutable":"node","runtimeArgs":["C:/Program Files/nodejs/node_modules/npm/bin/npx-cli.js","http-server","www","-p","3456","-c-1"],"port":3456}]}

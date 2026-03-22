@@ -144,10 +144,12 @@ function _ym2413Wave(phase, type) {
 class YamaBruhNotify {
   constructor(config = {}) {
     this.sampleRate = config.sampleRate || 44100;
-    this.preset = config.preset ?? 88;
+    this.preset = config.preset !== undefined ? config.preset : null;
     this.bpm = config.bpm || 140;
     this.volume = config.volume ?? 0.8;
-    this.seed = config.seed || null;
+    this.seed = config.seed || null;         // instance/app seed — prefixes patch + melody
+    this.patchSeed = config.patchSeed || null; // patch seed — determines timbre
+    this.mode = config.mode || 'experimental';
     this.ctx = null;
     this._source = null;
   }
@@ -317,20 +319,166 @@ class YamaBruhNotify {
     return count;
   }
 
+  // ── All scales (semitone intervals within one octave) ──
+  static get SCALES() { return {
+    major:          [0,2,4,5,7,9,11],
+    dorian:         [0,2,3,5,7,9,10],
+    phrygian:       [0,1,3,5,7,8,10],
+    lydian:         [0,2,4,6,7,9,11],
+    mixolydian:     [0,2,4,5,7,9,10],
+    aeolian:        [0,2,3,5,7,8,10],
+    locrian:        [0,1,3,5,6,8,10],
+    harmonicMinor:  [0,2,3,5,7,8,11],
+    melodicMinor:   [0,2,3,5,7,9,11],
+    pentMajor:      [0,2,4,7,9],
+    pentMinor:      [0,3,5,7,10],
+    blues:          [0,3,5,6,7,10],
+    wholeTone:      [0,2,4,6,8,10],
+    doubleHarmonic: [0,1,4,5,7,8,11],
+    hungarianMinor: [0,2,3,6,7,8,11],
+    phrygianDom:    [0,1,4,5,7,8,10],
+    neapolitanMin:  [0,1,3,4,7,8,10],
+    neapolitanMaj:  [0,1,3,5,7,9,11],
+    altered:        [0,1,3,5,6,8,10],
+    prometheus:     [0,2,4,6,9,10],
+    kumoi:          [0,2,3,7,8],
+    japanese:       [0,2,3,7,9],
+    hirajoshi:      [0,1,5,7,10],
+    iwato:          [0,1,3,7,8],
+    enigmatic:      [0,1,3,6,7,9,10],
+    persian:        [0,1,4,6,8,10,11],
+    arabian:        [0,2,4,5,6,8,10],
+    pelog:          [0,1,3,4,7,9,10],
+    gypsy:          [0,2,3,6,7,8,10],
+    flamenco:       [0,1,4,5,7,8,11],
+    bebopDom:       [0,2,4,5,7,9,10,11],
+    lydianDom:      [0,2,4,6,7,9,10],
+    bluesMajor:     [0,3,4,7,9,10],
+    dimWH:          [0,2,3,5,6,8,9,11],
+    dimHW:          [0,1,3,4,6,7,9,10],
+    augmented:      [0,4,6,7,11],
+    egyptian:       [0,2,5,7,10],
+    balinese:       [0,1,5,7,8],
+    bebopMinor:     [0,2,3,5,7,8,10,11],
+  }; }
+
+  // ── Mood definitions ──
+  // Each mood picks from a curated pool of scales and tweaks sequence params
+  static get MOODS() { return {
+    pretty: {
+      scales: ['pentMajor','pentMinor','major','lydian','mixolydian'],
+      movements: [1,-1,2,-2,1,-1,2,-2,0,3,-3],
+      durations: [0.25,0.25,0.5,0.5,1.0],
+      noteRange: [4,6], rootBase: 60, rootSpread: 3, resolve: true,
+    },
+    experimental: {
+      scales: null, // all scales
+      movements: [0,2,-2,3,-3,4,-4,6,-6],
+      durations: [0.125,0.25,0.5,1.0,2.0],
+      noteRange: [3,5], rootBase: 54, rootSpread: 3, resolve: false,
+    },
+    depressing: {
+      scales: ['aeolian','harmonicMinor','phrygian','pentMinor','locrian','neapolitanMin'],
+      movements: [-1,-2,1,-1,-2,-3,0,-1,2],
+      durations: [0.5,0.5,1.0,1.0,2.0],
+      noteRange: [3,5], rootBase: 48, rootSpread: 2, resolve: false,
+    },
+    spooky: {
+      scales: ['dimWH','dimHW','wholeTone','locrian','altered','hungarianMinor','iwato','enigmatic'],
+      movements: [1,-1,3,-3,6,-6,4,-4,0],
+      durations: [0.25,0.5,0.5,1.0,0.125],
+      noteRange: [3,5], rootBase: 48, rootSpread: 4, resolve: false,
+    },
+    dreamy: {
+      scales: ['lydian','pentMajor','wholeTone','major','mixolydian'],
+      movements: [1,-1,2,-2,0,1,-1,3,2],
+      durations: [0.5,0.5,1.0,1.0,2.0],
+      noteRange: [4,6], rootBase: 60, rootSpread: 2, resolve: true,
+    },
+    aggressive: {
+      scales: ['phrygian','phrygianDom','blues','dimHW','flamenco','hungarianMinor'],
+      movements: [2,-2,3,-3,4,-4,6,-6,1],
+      durations: [0.125,0.125,0.25,0.25,0.5],
+      noteRange: [4,6], rootBase: 42, rootSpread: 3, resolve: false,
+    },
+    exotic: {
+      scales: ['doubleHarmonic','persian','arabian','pelog','gypsy','flamenco','hirajoshi','kumoi','japanese','balinese'],
+      movements: [1,-1,2,-2,3,-3,0,1,4],
+      durations: [0.25,0.25,0.5,0.5,1.0],
+      noteRange: [3,5], rootBase: 54, rootSpread: 3, resolve: false,
+    },
+    jazzy: {
+      scales: ['dorian','mixolydian','lydianDom','bebopDom','bebopMinor','melodicMinor','bluesMajor','blues'],
+      movements: [1,-1,2,-2,3,-3,4,0,-4],
+      durations: [0.25,0.25,0.5,0.125,0.5],
+      noteRange: [4,6], rootBase: 54, rootSpread: 3, resolve: true,
+    },
+    ethereal: {
+      scales: ['wholeTone','pentMajor','lydian','augmented','prometheus'],
+      movements: [2,-2,3,-3,1,-1,0,4,5],
+      durations: [0.5,1.0,1.0,2.0,0.5],
+      noteRange: [3,5], rootBase: 60, rootSpread: 3, resolve: true,
+    },
+    mechanical: {
+      scales: ['dimWH','dimHW','wholeTone','augmented'],
+      movements: [1,1,-1,-1,2,-2,3,0,0],
+      durations: [0.125,0.25,0.125,0.25,0.5],
+      noteRange: [5,8], rootBase: 54, rootSpread: 2, resolve: false,
+    },
+  }; }
+
+  /** List available mood names */
+  static get MOOD_NAMES() { return Object.keys(YamaBruhNotify.MOODS); }
+
   _generateSequence(seed) {
     const rng = this._rng(seed);
-    const numNotes = 3 + (seed % 3);
-    const movements = [0, 2, -2, 3, -3, 4, -4, 6, -6];
-    const durations = [0.125, 0.25, 0.5, 1.0, 2.0];
-    const octaveOffset = rng.range(3) * 12;
-    let currentNote = 54 + octaveOffset;
-    const notes = [];
+    const allScales = YamaBruhNotify.SCALES;
+    const mood = YamaBruhNotify.MOODS[this.mode] || YamaBruhNotify.MOODS.experimental;
 
+    // Pick scale pool — null means all
+    const scaleKeys = mood.scales || Object.keys(allScales);
+    const baseScale = allScales[scaleKeys[rng.range(scaleKeys.length)]];
+
+    // Pick a random mode (rotate the scale)
+    const modeIdx = rng.range(baseScale.length);
+    const root12 = baseScale[modeIdx];
+    const scale = [];
+    for (let i = 0; i < baseScale.length; i++) {
+      const idx = (modeIdx + i) % baseScale.length;
+      let semitone = baseScale[idx] - root12;
+      if (semitone < 0) semitone += 12;
+      scale.push(semitone);
+    }
+    scale.sort((a, b) => a - b);
+
+    // Map a scale degree (can span octaves) to semitones from root
+    const degToSemitone = (deg) => {
+      const len = scale.length;
+      const oct = Math.floor(deg / len);
+      const idx = ((deg % len) + len) % len;
+      return oct * 12 + scale[idx];
+    };
+
+    const movements = mood.movements;
+    const durations = mood.durations;
+    const numNotes = mood.noteRange[0] + (seed % (mood.noteRange[1] - mood.noteRange[0] + 1));
+    const octaveOffset = rng.range(mood.rootSpread) * 12;
+    const rootMidi = mood.rootBase + octaveOffset;
+    let currentDeg = rng.range(scale.length);
+
+    const notes = [];
     for (let i = 0; i < numNotes; i++) {
-      currentNote += movements[rng.range(9)];
-      if (currentNote < 42) currentNote += 12;
-      if (currentNote > 84) currentNote -= 12;
-      notes.push({ note: currentNote, dur: durations[rng.range(5)] });
+      // Resolve last note to consonant degree (root, 3rd, or octave)
+      if (mood.resolve && i === numNotes - 1) {
+        const targets = [0, 2, scale.length]; // root, 3rd scale degree, octave
+        currentDeg = targets[rng.range(targets.length)];
+      } else {
+        currentDeg += movements[rng.range(movements.length)];
+      }
+
+      const note = rootMidi + degToSemitone(currentDeg);
+      const clamped = note < 42 ? note + 12 : note > 84 ? note - 12 : note;
+      notes.push({ note: clamped, dur: durations[rng.range(durations.length)] });
     }
     return notes;
   }
@@ -338,23 +486,44 @@ class YamaBruhNotify {
   /**
    * Play a ringtone from a seed string.
    * @param {string} seedStr - Any string (user ID, event name, etc.)
-   * @param {object} opts - Optional overrides: { preset, bpm, volume, onDone }
+   * @param {object} opts - Optional overrides: { preset, bpm, volume, mode, onDone }
    * @returns {AudioBufferSourceNode} The playing source node
    */
   play(seedStr, opts = {}) {
     const ctx = this._ensureCtx();
-    const preset = this._getPreset(opts.preset ?? this.preset);
     const bpm = opts.bpm || this.bpm;
     const volume = opts.volume ?? this.volume;
     const beatDuration = 60 / bpm;
 
+    // ── Melody seed: instanceSeed + idSeed, or random if no id
     if (seedStr === undefined || seedStr === null || seedStr === '') {
       seedStr = 'auto-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
     }
+    const melodyRaw = this.seed ? this.seed + ':' + String(seedStr) : String(seedStr);
+    const seed = this._hash(melodyRaw);
 
-    const raw = this.seed ? this.seed + ':' + String(seedStr) : String(seedStr);
-    const seed = this._hash(raw);
+    const prevMode = this.mode;
+    if (opts.mode) this.mode = opts.mode;
     const sequence = this._generateSequence(seed);
+    this.mode = prevMode;
+
+    // ── Patch seed: explicit preset > instanceSeed + patchSeed > random
+    const presetIdx = opts.preset ?? this.preset;
+    let resolvedPresetIdx;
+    if (presetIdx != null) {
+      resolvedPresetIdx = presetIdx;
+    } else {
+      const ps = opts.patchSeed ?? this.patchSeed;
+      if (ps != null || this.seed) {
+        // Combine instance seed + patch seed for deterministic preset
+        const patchRaw = (this.seed || '') + ':patch:' + (ps != null ? String(ps) : '');
+        resolvedPresetIdx = this._hash(patchRaw) % YAMABRUH_PRESETS.length;
+      } else {
+        // No seeds at all — random per play
+        resolvedPresetIdx = Math.floor(Math.random() * YAMABRUH_PRESETS.length);
+      }
+    }
+    const preset = this._getPreset(resolvedPresetIdx);
 
     let totalBeats = 0;
     for (const n of sequence) totalBeats += n.dur;
@@ -402,6 +571,8 @@ class YamaBruhNotify {
     if (config.preset !== undefined) this.preset = config.preset;
     if (config.bpm !== undefined) this.bpm = config.bpm;
     if (config.volume !== undefined) this.volume = config.volume;
+    if (config.mode !== undefined) this.mode = config.mode;
+    if (config.patchSeed !== undefined) this.patchSeed = config.patchSeed;
     if (config.sampleRate !== undefined) this.sampleRate = config.sampleRate;
   }
 

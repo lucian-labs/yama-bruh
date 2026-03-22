@@ -14,8 +14,10 @@ Drop-in ringtone player for any site. Pure JS, no WASM, no dependencies.
 <script src="https://yama-bruh.lucianlabs.ca/yamabruh-notify.js"></script>
 <script>
   const notify = new YamaBruhNotify({
-    seed: 'my-app.example.com',  // deterministic per-app ringtones
-    preset: 88,                   // Telephone (0-98)
+    seed: 'my-app.example.com',  // instance seed — prefixes patch + melody
+    patchSeed: 'brass-family',   // patch seed — determines timbre (optional)
+    mode: 'pretty',               // mood (see below)
+    preset: 88,                   // explicit preset override (0-98), or omit for seed-derived
   });
 
   // Play a deterministic ringtone from any ID
@@ -25,11 +27,44 @@ Drop-in ringtone player for any site. Pure JS, no WASM, no dependencies.
   notify.play();
 
   // Override defaults per-call
-  notify.play('order-456', { preset: 60, bpm: 160, volume: 0.5 });
+  notify.play('order-456', { mode: 'spooky', preset: 60, bpm: 160, volume: 0.5 });
 </script>
 ```
 
 Same seed + same ID = same ringtone every time, across all devices.
+
+### Seed Architecture
+
+Three seeds control the output, each prefixed by the instance seed:
+
+| Seed | Determines | Composed as |
+|------|-----------|-------------|
+| **Instance seed** (`seed`) | App identity — prefixes both patch and melody | Set once per app |
+| **Patch seed** (`patchSeed`) | Timbre/preset | `hash(instanceSeed + patchSeed)` → preset index |
+| **Melody seed** (per-call ID) | Note sequence | `hash(instanceSeed + id)` → melody |
+
+If no instance seed is set, same IDs produce the same melody across apps. If no patch seed is set, the preset is derived from the instance seed alone. If neither is set, preset is random per play.
+
+### Moods
+
+Each mood curates which scales are used, how notes move, and whether the melody resolves to a consonant ending.
+
+| Mood | Character |
+|------|-----------|
+| `pretty` | Pentatonic/major scales, stepwise motion, resolves to root/3rd/octave |
+| `experimental` | All 39 scales + all modes, original wild behavior (default) |
+| `depressing` | Minor/Phrygian/Locrian, downward bias, slow, low register |
+| `spooky` | Diminished/whole tone/Locrian/Iwato, large jumps, unsettling |
+| `dreamy` | Lydian/pentatonic/whole tone, floaty, long sustains, resolves |
+| `aggressive` | Phrygian/blues/diminished/flamenco, fast, low, wide jumps |
+| `exotic` | Double harmonic/Persian/Arabian/gypsy/hirajoshi, world scales |
+| `jazzy` | Dorian/bebop/melodic minor/blues, chromatic passing tones, resolves |
+| `ethereal` | Whole tone/augmented/Lydian/Prometheus, wide intervals, long sustains |
+| `mechanical` | Diminished/whole tone/augmented, repetitive, fast, robotic |
+
+### Preset Selection
+
+When `preset` is omitted (or set to `null`), the preset is derived deterministically from the instance `seed` — every ringtone from the same app uses the same FM voice. Set an explicit `preset` (0-98) to override.
 
 ## The Prompt
 
@@ -62,8 +97,11 @@ import YamaBruh
 let wav = Ringtone.generate(from: "task-abc-123", appIdentifier: "ca.lucianlabs.groundcontrol")
 try wav.write(to: fileURL)
 
+// Use a mood and patch seed to shape the output
+let wav = Ringtone.generate(from: "alert-id", appIdentifier: "com.example", patchIdentifier: "brass", mood: .pretty)
+
 // Numeric seeds for direct control
-let wav = Ringtone.generate(seed: 42, appSeed: 99)
+let wav = Ringtone.generate(seed: 42, appSeed: 99, patchSeed: 7, mood: .spooky)
 
 // Override the preset instead of deriving from app seed
 let wav = Ringtone.generate(seed: 42, presetIndex: 88) // Telephone
@@ -103,14 +141,15 @@ For iOS notifications, write the WAV to `Library/Sounds/` and reference it via `
 
 | Type | Purpose |
 |------|---------|
-| `Ringtone.generate(seed:appSeed:presetIndex:bpm:sampleRate:)` | Generate WAV `Data` from numeric seeds |
-| `Ringtone.generate(from:appIdentifier:presetIndex:bpm:sampleRate:)` | Generate from string identifiers (DJB2 hashed) |
-| `Ringtone.generate(seed:appSeed:preset:bpm:sampleRate:)` | Generate with a specific `OPLLPreset` |
+| `Ringtone.generate(seed:appSeed:patchSeed:presetIndex:mood:bpm:sampleRate:)` | Generate WAV `Data` from numeric seeds |
+| `Ringtone.generate(from:appIdentifier:patchIdentifier:presetIndex:mood:bpm:sampleRate:)` | Generate from string identifiers (DJB2 hashed) |
+| `Ringtone.generate(seed:appSeed:preset:mood:bpm:sampleRate:)` | Generate with a specific `OPLLPreset` |
 | `OPLLSynth.renderNote(freq:duration:preset:sampleRate:buffer:offset:velocity:)` | Render a single note with per-operator envelopes |
 | `OPLLPreset.fromRegisters(_:)` | Convert raw YM2413 register bytes to a preset |
 | `OPLLPreset(_ legacy:)` | Convert a legacy `FMPreset` to OPLL format |
 | `FMSynth.renderNote(freq:duration:preset:sampleRate:buffer:offset:velocity:)` | Legacy: render a single FM note (shared ADSR) |
-| `SequenceGenerator.generate(seed:)` | Get the deterministic note sequence for a seed |
+| `SequenceGenerator.generate(seed:mood:)` | Get the deterministic note sequence for a seed and mood |
+| `SequenceGenerator.Mood` | Mood enum: `.pretty`, `.experimental`, `.spooky`, etc. |
 | `SequenceGenerator.djb2Hash(_:)` | Hash a string to a UInt32 seed |
 | `WavWriter.encode(samples:sampleRate:channels:)` | Encode a float buffer as 16-bit PCM WAV |
 | `FMPresets.all` | All 99 legacy presets |
@@ -148,8 +187,8 @@ Build with [XcodeGen](https://github.com/yonaskolb/XcodeGen): `cd app && xcodege
 
 - **Swift Package** (`Sources/YamaBruh/`): OPLL-accurate FM engine, 99 legacy presets, seed-based sequence generation, WAV encoding. No dependencies. iOS 16+ / macOS 13+ / watchOS 9+.
 - **iOS App** (`app/`): Two-target XcodeGen project (app + AUv3 extension), StoreKit 2 IAP, preset bank system with JSON-defined sellable packs.
-- **WASM Core** (Rust → `yama_bruh.wasm`): Seeded PRNG, F#m pentatonic sequence generation, 2-op FM synthesis with 99 presets, audio buffer rendering
-- **Standalone Notify Engine** (`yamabruh-notify.js`): Pure JS FM synth, no WASM dependency, all 99 presets embedded, drop-in `<script>` tag
+- **WASM Core** (Rust → `yama_bruh.wasm`): Seeded PRNG, sequence generation, 2-op FM synthesis with 99 presets, audio buffer rendering
+- **Standalone Notify Engine** (`yamabruh-notify.js`): Pure JS FM synth, no WASM dependency, 99 presets, 39 scales with modal rotation, 10 moods, drop-in `<script>` tag
 - **Web Audio API**: Real-time FM synth for keyboard/MIDI playback with low latency
 - **GLSL Shader**: Full-page WebGL shader generating weathered plastic texture with mouse-responsive specular highlights and key-press flash
 - **Web MIDI API**: Connect any MIDI controller to play through the selected preset
@@ -194,3 +233,7 @@ synth.setCustomParams({
   feedback: 0.1,      // Modulator self-feedback (0-1)
 });
 ```
+
+## License
+
+MIT - see [LICENSE](LICENSE).

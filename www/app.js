@@ -786,6 +786,21 @@
     });
   });
 
+  // Yellow preset buttons
+  const btnNoPreset = document.getElementById('btn-no-preset');
+  const btnRandPreset = document.getElementById('btn-rand-preset');
+  if (btnNoPreset) btnNoPreset.addEventListener('pointerdown', () => {
+    currentPreset = -1;
+    window.synth.currentPreset = -1;
+    document.getElementById('seg-digits').textContent = '--';
+    const lcdInfo = document.getElementById('lcd-info');
+    if (lcdInfo) lcdInfo.textContent = 'Random / Note';
+    localStorage.setItem('yamabruh_preset', -1);
+  });
+  if (btnRandPreset) btnRandPreset.addEventListener('pointerdown', () => {
+    selectPreset(Math.floor(Math.random() * 100));
+  });
+
   // ── Synth Page UI (only on index.html) ────────────────────────────
   const midiBtn = document.getElementById('midi-btn');
   if (midiBtn) { // guard: synth page only
