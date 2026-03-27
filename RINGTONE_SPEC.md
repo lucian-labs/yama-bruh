@@ -45,8 +45,11 @@ new YamaBruhNotify({
   bpm: 140,                      // tempo (beats per minute)
   volume: 0.8,                   // master volume (0-1)
   sampleRate: 44100,             // sample rate in Hz
-  minLength: 3,                  // minimum notes per ringtone (overrides mode default)
-  maxLength: 5,                  // maximum notes per ringtone (overrides mode default)
+  minLength: 3,                  // minimum notes per ringtone (default 2)
+  maxLength: 5,                  // maximum notes (null = mode default)
+  speed: 1,                      // BPM multiplier (0.25-4), 2 = double speed
+  octave: 0,                     // octave offset (-5..5)
+  note: 0,                       // semitone offset (-12..12)
 })
 ```
 

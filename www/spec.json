@@ -13,8 +13,11 @@
     "bpm": { "type": "integer", "default": 140, "description": "Tempo in beats per minute" },
     "volume": { "type": "number", "min": 0, "max": 1, "default": 0.8, "description": "Master volume" },
     "sampleRate": { "type": "integer", "default": 44100, "description": "Sample rate in Hz" },
-    "minLength": { "type": "integer", "min": 1, "default": null, "description": "Minimum number of notes — overrides the mode's default range" },
-    "maxLength": { "type": "integer", "min": 1, "default": null, "description": "Maximum number of notes — overrides the mode's default range" }
+    "minLength": { "type": "integer", "min": 1, "default": 2, "description": "Minimum number of notes (floor for mode range)" },
+    "maxLength": { "type": "integer", "min": 1, "default": null, "description": "Maximum number of notes — null = use mode default" },
+    "speed": { "type": "number", "min": 0.25, "max": 4, "default": 1, "description": "BPM multiplier — 2 = double speed, 0.5 = half speed" },
+    "octave": { "type": "integer", "min": -5, "max": 5, "default": 0, "description": "Octave offset applied to all notes" },
+    "note": { "type": "integer", "min": -12, "max": 12, "default": 0, "description": "Semitone offset applied to all notes" }
   },
 
   "modes": [

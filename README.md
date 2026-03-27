@@ -18,8 +18,11 @@ Drop-in ringtone player for any site. Pure JS, no WASM, no dependencies.
     patchSeed: 'brass-family',   // patch seed — determines timbre (optional)
     mode: 0,                      // mood 0-9 (see below)
     preset: 88,                   // explicit preset override (0-99), or omit for seed-derived
-    minLength: 3,                 // minimum notes (overrides mode default)
-    maxLength: 5,                 // maximum notes (overrides mode default)
+    minLength: 3,                 // minimum notes (default 2)
+    maxLength: 5,                 // maximum notes (null = mode default)
+    speed: 1,                     // BPM multiplier (0.25-4)
+    octave: 0,                    // octave offset (-5..5)
+    note: 0,                      // semitone offset (-12..12)
   });
 
   // Play a deterministic ringtone from any ID

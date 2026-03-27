@@ -150,8 +150,11 @@ class YamaBruhNotify {
     this.seed = config.seed || null;         // instance/app seed — prefixes patch + melody
     this.patchSeed = config.patchSeed || null; // patch seed — determines timbre
     this.mode = config.mode !== undefined ? config.mode : 1; // 1 = experimental
-    this.minLength = config.minLength ?? null;
-    this.maxLength = config.maxLength ?? null;
+    this.minLength = config.minLength ?? 2;
+    this.maxLength = config.maxLength ?? null;  // null = use mode default
+    this.speed = config.speed ?? 1;       // BPM multiplier (0.25-4)
+    this.octave = config.octave ?? 0;     // octave offset (-5..5)
+    this.note = config.note ?? 0;         // semitone offset (-12..12)
     this.ctx = null;
     this._source = null;
   }
@@ -521,6 +524,12 @@ class YamaBruhNotify {
     const sequence = this._generateSequence(seed, minLen, maxLen);
     this.mode = prevMode;
 
+    // ── Speed, octave, note offsets
+    const speed = opts.speed ?? this.speed;
+    const octaveOffset = Math.max(-5, Math.min(5, opts.octave ?? this.octave));
+    const noteOffset = Math.max(-12, Math.min(12, opts.note ?? this.note));
+    const pitchShift = octaveOffset * 12 + noteOffset;
+
     // ── Patch seed: explicit preset > instanceSeed + patchSeed > random
     const presetIdx = opts.preset ?? this.preset;
     let resolvedPresetIdx;
@@ -539,16 +548,17 @@ class YamaBruhNotify {
     }
     const preset = this._getPreset(resolvedPresetIdx);
 
+    const effectiveBeatDuration = beatDuration / speed;
     let totalBeats = 0;
     for (const n of sequence) totalBeats += n.dur;
     const maxRelease = preset[6];
-    const totalSamples = Math.ceil((totalBeats * beatDuration + maxRelease) * this.sampleRate);
+    const totalSamples = Math.ceil((totalBeats * effectiveBeatDuration + maxRelease) * this.sampleRate);
 
     const buf = new Float32Array(totalSamples);
     let offset = 0;
     for (const n of sequence) {
-      const freq = this._midiToFreq(n.note);
-      const durSecs = n.dur * beatDuration;
+      const freq = this._midiToFreq(n.note + pitchShift);
+      const durSecs = n.dur * effectiveBeatDuration;
       this._renderNote(freq, durSecs, preset, buf, offset, volume);
       offset += Math.floor(durSecs * this.sampleRate);
     }
@@ -590,6 +600,9 @@ class YamaBruhNotify {
     if (config.sampleRate !== undefined) this.sampleRate = config.sampleRate;
     if (config.minLength !== undefined) this.minLength = config.minLength;
     if (config.maxLength !== undefined) this.maxLength = config.maxLength;
+    if (config.speed !== undefined) this.speed = config.speed;
+    if (config.octave !== undefined) this.octave = config.octave;
+    if (config.note !== undefined) this.note = config.note;
   }
 
   /** List available preset names */
