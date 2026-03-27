@@ -45,6 +45,8 @@ new YamaBruhNotify({
   bpm: 140,                      // tempo (beats per minute)
   volume: 0.8,                   // master volume (0-1)
   sampleRate: 44100,             // sample rate in Hz
+  minLength: 3,                  // minimum notes per ringtone (overrides mode default)
+  maxLength: 5,                  // maximum notes per ringtone (overrides mode default)
 })
 ```
 
@@ -56,7 +58,7 @@ All fields are optional. Omitting everything gives you random ringtones with the
 |--------|-------------|
 | `play(id?, opts?)` | Play a ringtone. `id` is any string — same string = same sound. Omit for a random one-shot. |
 | `stop()` | Stop the current ringtone immediately. |
-| `configure(opts)` | Update defaults (preset, bpm, volume, mode, patchSeed, sampleRate). |
+| `configure(opts)` | Update defaults (preset, bpm, volume, mode, patchSeed, sampleRate, minLength, maxLength). |
 
 ### Per-Call Overrides
 

@@ -150,6 +150,8 @@ class YamaBruhNotify {
     this.seed = config.seed || null;         // instance/app seed — prefixes patch + melody
     this.patchSeed = config.patchSeed || null; // patch seed — determines timbre
     this.mode = config.mode !== undefined ? config.mode : 1; // 1 = experimental
+    this.minLength = config.minLength ?? null;
+    this.maxLength = config.maxLength ?? null;
     this.ctx = null;
     this._source = null;
   }
@@ -437,7 +439,7 @@ class YamaBruhNotify {
     return idx >= 0 ? idx : 1; // default to experimental
   }
 
-  _generateSequence(seed) {
+  _generateSequence(seed, minLen, maxLen) {
     const rng = this._rng(seed);
     const allScales = YamaBruhNotify.SCALES;
     const moodIdx = YamaBruhNotify._resolveMode(this.mode);
@@ -469,7 +471,9 @@ class YamaBruhNotify {
 
     const movements = mood.movements;
     const durations = mood.durations;
-    const numNotes = mood.noteRange[0] + (seed % (mood.noteRange[1] - mood.noteRange[0] + 1));
+    const lo = minLen ?? mood.noteRange[0];
+    const hi = maxLen ?? mood.noteRange[1];
+    const numNotes = lo + (seed % (Math.max(hi, lo) - lo + 1));
     const octaveOffset = rng.range(mood.rootSpread) * 12;
     const rootMidi = mood.rootBase + octaveOffset;
     let currentDeg = rng.range(scale.length);
@@ -511,8 +515,10 @@ class YamaBruhNotify {
     const seed = this._hash(melodyRaw);
 
     const prevMode = this.mode;
-    if (opts.mode) this.mode = opts.mode;
-    const sequence = this._generateSequence(seed);
+    if (opts.mode !== undefined) this.mode = opts.mode;
+    const minLen = opts.minLength ?? this.minLength;
+    const maxLen = opts.maxLength ?? this.maxLength;
+    const sequence = this._generateSequence(seed, minLen, maxLen);
     this.mode = prevMode;
 
     // ── Patch seed: explicit preset > instanceSeed + patchSeed > random
@@ -582,6 +588,8 @@ class YamaBruhNotify {
     if (config.mode !== undefined) this.mode = config.mode;
     if (config.patchSeed !== undefined) this.patchSeed = config.patchSeed;
     if (config.sampleRate !== undefined) this.sampleRate = config.sampleRate;
+    if (config.minLength !== undefined) this.minLength = config.minLength;
+    if (config.maxLength !== undefined) this.maxLength = config.maxLength;
   }
 
   /** List available preset names */
