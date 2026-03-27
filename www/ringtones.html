@@ -235,7 +235,7 @@ try wav.write(to: soundURL)</pre>
         : `    preset: ${currentPreset},  // ${NAMES[currentPreset] || 'Preset ' + currentPreset}`;
       const patchLine = ps ? `\n    patchSeed: '${ps}',` : '';
       codeSnippet.textContent =
-`<script src="https://yama-bruh.lucianlabs.ca/yamabruh-notify.js"><\/script>
+`<script src="https://cdn.lucianlabs.ca/scripts/yamabruh-notify.js"><\/script>
 <script>
   const notify = new YamaBruhNotify({
     seed: '${s}',

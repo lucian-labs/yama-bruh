@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Deterministic 2-operator FM synth ringtone generator. Seeded PRNG + YM2413-style synthesis = same seed, same sound, every time.",
   "url": "https://yama-bruh.lucianlabs.ca",
-  "script": "https://yama-bruh.lucianlabs.ca/yamabruh-notify.js",
+  "script": "https://cdn.lucianlabs.ca/scripts/yamabruh-notify.js",
 
   "parameters": {
     "seed": { "type": "string", "description": "Instance/app seed — prefixes patch + melody seeds for app-wide identity" },

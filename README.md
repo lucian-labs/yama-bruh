@@ -10,19 +10,24 @@ WebAssembly 2-op FM synth ringtone generator. Generates deterministic 3-5 tone r
 
 Drop-in ringtone player for any site. Pure JS, no WASM, no dependencies.
 
+**CDN:** `https://cdn.lucianlabs.ca/scripts/yamabruh-notify.js`
+**Spec:** [`/spec.json`](https://yama-bruh.lucianlabs.ca/spec.json) — machine-readable manifest of all banks, patches, modes, scales, waveforms, and patch format.
+
 ```html
-<script src="https://yama-bruh.lucianlabs.ca/yamabruh-notify.js"></script>
+<script src="https://cdn.lucianlabs.ca/scripts/yamabruh-notify.js"></script>
 <script>
   const notify = new YamaBruhNotify({
     seed: 'my-app.example.com',  // instance seed — prefixes patch + melody
     patchSeed: 'brass-family',   // patch seed — determines timbre (optional)
-    mode: 0,                      // mood 0-9 (see below)
     preset: 88,                   // explicit preset override (0-99), or omit for seed-derived
-    minLength: 3,                 // minimum notes (default 2)
-    maxLength: 5,                 // maximum notes (null = mode default)
+    mode: 0,                      // mood 0-9 (see below)
+    bpm: 140,                     // tempo in BPM
+    volume: 0.8,                  // master volume (0-1)
     speed: 1,                     // BPM multiplier (0.25-4)
     octave: 0,                    // octave offset (-5..5)
     note: 0,                      // semitone offset (-12..12)
+    minLength: 3,                 // minimum notes (default 2)
+    maxLength: 5,                 // maximum notes (null = mode default)
   });
 
   // Play a deterministic ringtone from any ID

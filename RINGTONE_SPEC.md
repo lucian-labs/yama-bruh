@@ -23,7 +23,7 @@ All three produce byte-identical output from the same seeds.
 ### Minimal Setup
 
 ```html
-<script src="https://yama-bruh.lucianlabs.ca/yamabruh-notify.js"></script>
+<script src="https://cdn.lucianlabs.ca/scripts/yamabruh-notify.js"></script>
 <script>
   const notify = new YamaBruhNotify({ seed: 'my-app.example.com', mode: 0 });
 
