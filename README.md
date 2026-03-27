@@ -16,8 +16,8 @@ Drop-in ringtone player for any site. Pure JS, no WASM, no dependencies.
   const notify = new YamaBruhNotify({
     seed: 'my-app.example.com',  // instance seed — prefixes patch + melody
     patchSeed: 'brass-family',   // patch seed — determines timbre (optional)
-    mode: 'pretty',               // mood (see below)
-    preset: 88,                   // explicit preset override (0-98), or omit for seed-derived
+    mode: 0,                      // mood 0-9 (see below)
+    preset: 88,                   // explicit preset override (0-99), or omit for seed-derived
   });
 
   // Play a deterministic ringtone from any ID
@@ -27,7 +27,7 @@ Drop-in ringtone player for any site. Pure JS, no WASM, no dependencies.
   notify.play();
 
   // Override defaults per-call
-  notify.play('order-456', { mode: 'spooky', preset: 60, bpm: 160, volume: 0.5 });
+  notify.play('order-456', { mode: 3, preset: 60, bpm: 160, volume: 0.5 });
 </script>
 ```
 
@@ -49,18 +49,18 @@ If no instance seed is set, same IDs produce the same melody across apps. If no 
 
 Each mood curates which scales are used, how notes move, and whether the melody resolves to a consonant ending.
 
-| Mood | Character |
-|------|-----------|
-| `pretty` | Pentatonic/major scales, stepwise motion, resolves to root/3rd/octave |
-| `experimental` | All 39 scales + all modes, original wild behavior (default) |
-| `depressing` | Minor/Phrygian/Locrian, downward bias, slow, low register |
-| `spooky` | Diminished/whole tone/Locrian/Iwato, large jumps, unsettling |
-| `dreamy` | Lydian/pentatonic/whole tone, floaty, long sustains, resolves |
-| `aggressive` | Phrygian/blues/diminished/flamenco, fast, low, wide jumps |
-| `exotic` | Double harmonic/Persian/Arabian/gypsy/hirajoshi, world scales |
-| `jazzy` | Dorian/bebop/melodic minor/blues, chromatic passing tones, resolves |
-| `ethereal` | Whole tone/augmented/Lydian/Prometheus, wide intervals, long sustains |
-| `mechanical` | Diminished/whole tone/augmented, repetitive, fast, robotic |
+| Mode | Name | Character |
+|------|------|-----------|
+| 0 | pretty | Pentatonic/major scales, stepwise motion, resolves to root/3rd/octave |
+| 1 | experimental | All 39 scales + all modes, original wild behavior (default) |
+| 2 | depressing | Minor/Phrygian/Locrian, downward bias, slow, low register |
+| 3 | spooky | Diminished/whole tone/Locrian/Iwato, large jumps, unsettling |
+| 4 | dreamy | Lydian/pentatonic/whole tone, floaty, long sustains, resolves |
+| 5 | aggressive | Phrygian/blues/diminished/flamenco, fast, low, wide jumps |
+| 6 | exotic | Double harmonic/Persian/Arabian/gypsy/hirajoshi, world scales |
+| 7 | jazzy | Dorian/bebop/melodic minor/blues, chromatic passing tones, resolves |
+| 8 | ethereal | Whole tone/augmented/Lydian/Prometheus, wide intervals, long sustains |
+| 9 | mechanical | Diminished/whole tone/augmented, repetitive, fast, robotic |
 
 ### Preset Selection
 

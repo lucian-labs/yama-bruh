@@ -144,7 +144,7 @@ try wav.write(to: soundURL)</pre>
   <script src="yamabruh-notify.js"></script>
   <script>
     const savedRingtonePreset = localStorage.getItem('yamabruh_ringtone_preset');
-    const savedMood = localStorage.getItem('yamabruh_mood') || 'experimental';
+    const savedMood = parseInt(localStorage.getItem('yamabruh_mood')) || 1; // 1 = experimental
     const initPreset = savedRingtonePreset !== null ? parseInt(savedRingtonePreset) : null;
     const yb = new YamaBruhNotify({ seed: 'yama-bruh.lucianlabs.ca', preset: initPreset, mode: savedMood });
     const NAMES = YamaBruhNotify.PRESET_NAMES;
@@ -194,17 +194,17 @@ try wav.write(to: soundURL)</pre>
     const moodGrid = document.getElementById('mood-grid');
     let currentMood = savedMood;
 
-    YamaBruhNotify.MOOD_NAMES.forEach(name => {
+    YamaBruhNotify.MOOD_NAMES.forEach((name, idx) => {
       const btn = document.createElement('button');
       btn.className = 'tweak-reset';
       btn.textContent = name.toUpperCase();
-      btn.dataset.mood = name;
+      btn.dataset.mood = idx;
       btn.style.cssText = 'padding:6px 12px;font-size:11px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;';
-      if (name === currentMood) btn.style.background = 'rgba(90,234,170,0.3)';
+      if (idx === currentMood) btn.style.background = 'rgba(90,234,170,0.3)';
       btn.addEventListener('click', () => {
-        currentMood = name;
-        yb.mode = name;
-        localStorage.setItem('yamabruh_mood', name);
+        currentMood = idx;
+        yb.mode = idx;
+        localStorage.setItem('yamabruh_mood', idx);
         moodGrid.querySelectorAll('button').forEach(b => b.style.background = '');
         btn.style.background = 'rgba(90,234,170,0.3)';
         lcdInfo.textContent = name.toUpperCase();
@@ -239,7 +239,7 @@ try wav.write(to: soundURL)</pre>
 <script>
   const notify = new YamaBruhNotify({
     seed: '${s}',
-    mode: '${currentMood}',${patchLine}
+    mode: ${currentMood},  // ${YamaBruhNotify.MOOD_NAMES[currentMood]}${patchLine}
 ${presetLine}
   });
   notify.play(${lastPlayedId ? "'" + lastPlayedId + "'" : ''});

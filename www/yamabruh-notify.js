@@ -149,7 +149,7 @@ class YamaBruhNotify {
     this.volume = config.volume ?? 0.8;
     this.seed = config.seed || null;         // instance/app seed — prefixes patch + melody
     this.patchSeed = config.patchSeed || null; // patch seed — determines timbre
-    this.mode = config.mode || 'experimental';
+    this.mode = config.mode !== undefined ? config.mode : 1; // 1 = experimental
     this.ctx = null;
     this._source = null;
   }
@@ -362,78 +362,86 @@ class YamaBruhNotify {
     bebopMinor:     [0,2,3,5,7,8,10,11],
   }; }
 
-  // ── Mood definitions ──
+  // ── Mood definitions (indexed 0-9) ──
   // Each mood picks from a curated pool of scales and tweaks sequence params
-  static get MOODS() { return {
-    pretty: {
+  static get MOODS() { return [
+    /* 0 pretty       */ { name: 'pretty',
       scales: ['pentMajor','pentMinor','major','lydian','mixolydian'],
       movements: [1,-1,2,-2,1,-1,2,-2,0,3,-3],
       durations: [0.25,0.25,0.5,0.5,1.0],
       noteRange: [4,6], rootBase: 60, rootSpread: 3, resolve: true,
     },
-    experimental: {
+    /* 1 experimental */ { name: 'experimental',
       scales: null, // all scales
       movements: [0,2,-2,3,-3,4,-4,6,-6],
       durations: [0.125,0.25,0.5,1.0,2.0],
       noteRange: [3,5], rootBase: 54, rootSpread: 3, resolve: false,
     },
-    depressing: {
+    /* 2 depressing   */ { name: 'depressing',
       scales: ['aeolian','harmonicMinor','phrygian','pentMinor','locrian','neapolitanMin'],
       movements: [-1,-2,1,-1,-2,-3,0,-1,2],
       durations: [0.5,0.5,1.0,1.0,2.0],
       noteRange: [3,5], rootBase: 48, rootSpread: 2, resolve: false,
     },
-    spooky: {
+    /* 3 spooky       */ { name: 'spooky',
       scales: ['dimWH','dimHW','wholeTone','locrian','altered','hungarianMinor','iwato','enigmatic'],
       movements: [1,-1,3,-3,6,-6,4,-4,0],
       durations: [0.25,0.5,0.5,1.0,0.125],
       noteRange: [3,5], rootBase: 48, rootSpread: 4, resolve: false,
     },
-    dreamy: {
+    /* 4 dreamy       */ { name: 'dreamy',
       scales: ['lydian','pentMajor','wholeTone','major','mixolydian'],
       movements: [1,-1,2,-2,0,1,-1,3,2],
       durations: [0.5,0.5,1.0,1.0,2.0],
       noteRange: [4,6], rootBase: 60, rootSpread: 2, resolve: true,
     },
-    aggressive: {
+    /* 5 aggressive   */ { name: 'aggressive',
       scales: ['phrygian','phrygianDom','blues','dimHW','flamenco','hungarianMinor'],
       movements: [2,-2,3,-3,4,-4,6,-6,1],
       durations: [0.125,0.125,0.25,0.25,0.5],
       noteRange: [4,6], rootBase: 42, rootSpread: 3, resolve: false,
     },
-    exotic: {
+    /* 6 exotic       */ { name: 'exotic',
       scales: ['doubleHarmonic','persian','arabian','pelog','gypsy','flamenco','hirajoshi','kumoi','japanese','balinese'],
       movements: [1,-1,2,-2,3,-3,0,1,4],
       durations: [0.25,0.25,0.5,0.5,1.0],
       noteRange: [3,5], rootBase: 54, rootSpread: 3, resolve: false,
     },
-    jazzy: {
+    /* 7 jazzy        */ { name: 'jazzy',
       scales: ['dorian','mixolydian','lydianDom','bebopDom','bebopMinor','melodicMinor','bluesMajor','blues'],
       movements: [1,-1,2,-2,3,-3,4,0,-4],
       durations: [0.25,0.25,0.5,0.125,0.5],
       noteRange: [4,6], rootBase: 54, rootSpread: 3, resolve: true,
     },
-    ethereal: {
+    /* 8 ethereal     */ { name: 'ethereal',
       scales: ['wholeTone','pentMajor','lydian','augmented','prometheus'],
       movements: [2,-2,3,-3,1,-1,0,4,5],
       durations: [0.5,1.0,1.0,2.0,0.5],
       noteRange: [3,5], rootBase: 60, rootSpread: 3, resolve: true,
     },
-    mechanical: {
+    /* 9 mechanical   */ { name: 'mechanical',
       scales: ['dimWH','dimHW','wholeTone','augmented'],
       movements: [1,1,-1,-1,2,-2,3,0,0],
       durations: [0.125,0.25,0.125,0.25,0.5],
       noteRange: [5,8], rootBase: 54, rootSpread: 2, resolve: false,
     },
-  }; }
+  ]; }
 
-  /** List available mood names */
-  static get MOOD_NAMES() { return Object.keys(YamaBruhNotify.MOODS); }
+  /** List available mood names (indexed 0-9) */
+  static get MOOD_NAMES() { return YamaBruhNotify.MOODS.map(m => m.name); }
+
+  /** Resolve a mode value (number or legacy string) to a mood index */
+  static _resolveMode(mode) {
+    if (typeof mode === 'number') return Math.max(0, Math.min(mode, YamaBruhNotify.MOODS.length - 1));
+    const idx = YamaBruhNotify.MOODS.findIndex(m => m.name === mode);
+    return idx >= 0 ? idx : 1; // default to experimental
+  }
 
   _generateSequence(seed) {
     const rng = this._rng(seed);
     const allScales = YamaBruhNotify.SCALES;
-    const mood = YamaBruhNotify.MOODS[this.mode] || YamaBruhNotify.MOODS.experimental;
+    const moodIdx = YamaBruhNotify._resolveMode(this.mode);
+    const mood = YamaBruhNotify.MOODS[moodIdx];
 
     // Pick scale pool — null means all
     const scaleKeys = mood.scales || Object.keys(allScales);
