@@ -87,6 +87,13 @@
       </div>
     </div>
 
+    <!-- Embed Code -->
+    <div class="id-section">
+      <div class="panel-label">EMBED CODE</div>
+      <pre id="code-snippet" style="background:rgba(0,0,0,0.6);border:2px solid rgba(90,234,170,0.4);border-radius:2px;padding:12px;font-family:'Courier New',monospace;font-size:11px;color:#5aeaaa;white-space:pre-wrap;word-break:break-all;line-height:1.5;"></pre>
+      <button class="tweak-reset" id="copy-btn" style="margin-top:8px;">COPY TO CLIPBOARD</button>
+    </div>
+
     <!-- Random Range -->
     <div class="id-section">
       <div class="panel-label">RANDOM RANGE</div>
@@ -96,6 +103,11 @@
         </label>
         <label style="font-size:11px;color:#999;letter-spacing:1px;">RANGE
           <input class="id-field" type="number" id="range-span" value="24" min="0" max="48" style="width:60px;text-align:center;">
+        </label>
+        <label style="font-size:11px;color:#999;letter-spacing:1px;">SCALE
+          <select class="id-field" id="range-scale" style="width:140px;background:rgba(0,0,0,0.4);color:#5aeaaa;border:1px solid rgba(90,234,170,0.3);font-family:'Courier New',monospace;font-size:11px;padding:4px;">
+            <option value="">CHROMATIC</option>
+          </select>
         </label>
       </div>
       <div style="margin-top:10px;">
@@ -159,13 +171,6 @@
       </div>
     </div>
 
-    <!-- Embed Code -->
-    <div class="id-section">
-      <div class="panel-label">EMBED CODE</div>
-      <pre id="code-snippet" style="background:rgba(0,0,0,0.6);border:2px solid rgba(90,234,170,0.4);border-radius:2px;padding:12px;font-family:'Courier New',monospace;font-size:11px;color:#5aeaaa;white-space:pre-wrap;word-break:break-all;line-height:1.5;"></pre>
-      <button class="tweak-reset" id="copy-btn" style="margin-top:8px;">COPY TO CLIPBOARD</button>
-    </div>
-
     <!-- Footer -->
     <footer class="site-footer">
       <a href="https://lucianlabs.ca" class="footer-link" target="_blank" rel="noopener">lucianlabs.ca</a>
@@ -191,8 +196,18 @@
     const noteVolume = document.getElementById('note-volume');
     const rangeRoot = document.getElementById('range-root');
     const rangeSpan = document.getElementById('range-span');
+    const rangeScale = document.getElementById('range-scale');
     const codeSnippet = document.getElementById('code-snippet');
     const copyBtn = document.getElementById('copy-btn');
+
+    // Populate scale selector from the notify engine
+    const SCALES = YamaBruhNotify.SCALES;
+    Object.keys(SCALES).forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name.toUpperCase();
+      rangeScale.appendChild(opt);
+    });
 
     let currentPreset = savedPreset;
 
@@ -213,8 +228,6 @@
       const midi = parseInt(midiNote.value) || 60;
       const dur = parseFloat(noteDuration.value) || 0.5;
       const vol = parseFloat(noteVolume.value) || 0.8;
-      const root = parseInt(rangeRoot.value) || 48;
-      const range = parseInt(rangeSpan.value) || 24;
       codeSnippet.textContent =
 `<script src="https://cdn.lucianlabs.ca/scripts/yamabruh-notify.js"><\/script>
 <script src="https://cdn.lucianlabs.ca/scripts/yamabruh-sfx.js"><\/script>
@@ -225,11 +238,7 @@
     duration: ${dur},
   });
 
-  // Exact note
   sfx.playNote(${midi});
-
-  // Random note in range
-  sfx.playNote({ root: ${root}, range: ${range} });
 <\/script>`;
     }
 
@@ -271,8 +280,26 @@
       const range = Math.max(0, Math.min(48, parseInt(rangeSpan.value) || 24));
       const dur = parseFloat(noteDuration.value) || 0.5;
       const vol = parseFloat(noteVolume.value) || 0.8;
-      sfx.playNote({ root, range }, { duration: dur, volume: vol });
-      lcdInfo.textContent = 'RANDOM ' + root + '-' + (root + range);
+      const scaleName = rangeScale.value;
+
+      let midi;
+      if (scaleName && SCALES[scaleName]) {
+        const intervals = SCALES[scaleName];
+        const octaves = Math.ceil(range / 12) || 1;
+        const pool = [];
+        for (let o = 0; o <= octaves; o++) {
+          for (const s of intervals) {
+            const n = root + o * 12 + s;
+            if (n >= root && n <= root + range) pool.push(n);
+          }
+        }
+        midi = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : root;
+      } else {
+        midi = root + Math.floor(Math.random() * (range + 1));
+      }
+
+      sfx.playNote(midi, { duration: dur, volume: vol });
+      lcdInfo.textContent = (scaleName ? scaleName.toUpperCase() + ' ' : 'RANDOM ') + midi;
     });
 
     document.getElementById('btn-stop').addEventListener('click', () => {
@@ -281,7 +308,7 @@
     });
 
     // Update snippet on input changes
-    [midiNote, noteDuration, noteVolume, rangeRoot, rangeSpan].forEach(el => {
+    [midiNote, noteDuration, noteVolume].forEach(el => {
       el.addEventListener('input', updateSnippet);
     });
 
