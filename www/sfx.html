@@ -103,6 +103,41 @@
       </div>
     </div>
 
+    <!-- Custom Preset Reference -->
+    <div class="id-section">
+      <div class="panel-label">CUSTOM PRESET FORMAT</div>
+      <pre style="background:rgba(0,0,0,0.6);border:2px solid rgba(90,234,170,0.4);border-radius:2px;padding:12px;font-family:'Courier New',monospace;font-size:10px;color:#5aeaaa;white-space:pre-wrap;word-break:break-all;line-height:1.6;">// [cr, mr, mi, atk, dec, sus, rel, fb, c_wave, m_wave,
+//  trem, vib, ksr, ksl, mod_lvl, eg_type,
+//  m_atk, m_dec, m_sus, m_rel, m_eg_type]
+
+// cr/mr:     carrier/mod frequency ratio (0.5, 1-15)
+// mi:        modulation depth in radians (0-12.566)
+// atk/dec:   attack/decay time in seconds
+// sus:       sustain level (0-1)
+// rel:       release time in seconds
+// fb:        modulator self-feedback in radians (0-12.566)
+// c/m_wave:  0=sine 1=half-sine 2=abs-sine 3=qtr-sine 4=noise 5=tone+noise
+// trem:      tremolo depth at 3.7 Hz (0-1)
+// vib:       chip vibrato depth at 6.4 Hz (0-1)
+// ksr:       key-rate scaling (0-1)
+// ksl:       key-level scaling (0-3)
+// mod_lvl:   modulator output amplitude (0-1)
+// eg_type:   0=sustained  1=percussive</pre>
+
+      <div class="panel-label" style="margin-top:12px;">EXAMPLE: CUSTOM LASER SHOT</div>
+      <pre id="custom-example" style="background:rgba(0,0,0,0.6);border:2px solid rgba(90,234,170,0.4);border-radius:2px;padding:12px;font-family:'Courier New',monospace;font-size:11px;color:#5aeaaa;white-space:pre-wrap;word-break:break-all;line-height:1.5;">const sfx = new YamaBruhSFX();
+
+// Define a custom preset inline
+const LASER = [4, 1, 9.42, 0.001, 0.08, 0.01, 0.06,
+               3.14, 3, 0, 0, 0, 0.3, 2, 1, 1,
+               0.001, 0.04, 0.01, 0.05, 1];
+
+// Temporarily swap the preset bank entry and play
+YAMABRUH_PRESETS[99] = LASER;  // overwrite slot 99
+sfx.playNote(72, { preset: 99, duration: 0.15 });</pre>
+      <button class="tweak-reset" id="copy-custom-btn" style="margin-top:8px;">COPY EXAMPLE</button>
+    </div>
+
     <!-- Embed Code -->
     <div class="id-section">
       <div class="panel-label">EMBED CODE</div>
@@ -231,6 +266,13 @@
 
     copyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(codeSnippet.textContent).then(() => {
+        lcdInfo.textContent = 'COPIED!';
+        setTimeout(() => { lcdInfo.textContent = ''; }, 1500);
+      });
+    });
+
+    document.getElementById('copy-custom-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(document.getElementById('custom-example').textContent).then(() => {
         lcdInfo.textContent = 'COPIED!';
         setTimeout(() => { lcdInfo.textContent = ''; }, 1500);
       });
