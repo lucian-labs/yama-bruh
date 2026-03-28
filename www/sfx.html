@@ -124,18 +124,20 @@
 // mod_lvl:   modulator output amplitude (0-1)
 // eg_type:   0=sustained  1=percussive</pre>
 
-      <div class="panel-label" style="margin-top:12px;">EXAMPLE: CUSTOM LASER SHOT</div>
-      <pre id="custom-example" style="background:rgba(0,0,0,0.6);border:2px solid rgba(90,234,170,0.4);border-radius:2px;padding:12px;font-family:'Courier New',monospace;font-size:11px;color:#5aeaaa;white-space:pre-wrap;word-break:break-all;line-height:1.5;">const sfx = new YamaBruhSFX();
-
-// Define a custom preset inline
-const LASER = [4, 1, 9.42, 0.001, 0.08, 0.01, 0.06,
-               3.14, 3, 0, 0, 0, 0.3, 2, 1, 1,
-               0.001, 0.04, 0.01, 0.05, 1];
-
-// Temporarily swap the preset bank entry and play
-YAMABRUH_PRESETS[99] = LASER;  // overwrite slot 99
-sfx.playNote(72, { preset: 99, duration: 0.15 });</pre>
-      <button class="tweak-reset" id="copy-custom-btn" style="margin-top:8px;">COPY EXAMPLE</button>
+      <div class="panel-label" style="margin-top:12px;">CUSTOM PRESET</div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:8px;">
+        <label style="font-size:11px;color:#999;letter-spacing:1px;">MIDI
+          <input class="id-field" type="number" id="custom-midi" value="72" min="0" max="127" style="width:60px;text-align:center;">
+        </label>
+        <label style="font-size:11px;color:#999;letter-spacing:1px;">DURATION
+          <input class="id-field" type="number" id="custom-dur" value="0.15" min="0.01" max="2" step="0.01" style="width:70px;text-align:center;">
+        </label>
+      </div>
+      <textarea id="custom-preset-input" spellcheck="false" style="background:rgba(0,0,0,0.6);border:2px solid rgba(90,234,170,0.4);border-radius:2px;padding:12px;font-family:'Courier New',monospace;font-size:11px;color:#5aeaaa;white-space:pre;word-break:break-all;line-height:1.5;width:100%;box-sizing:border-box;resize:vertical;min-height:60px;" rows="3">[4, 1, 9.42, 0.001, 0.08, 0.01, 0.06, 3.14, 3, 0, 0, 0, 0.3, 2, 1, 1, 0.001, 0.04, 0.01, 0.05, 1]</textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="tweak-reset" id="btn-play-custom" style="padding:8px 16px;">PLAY</button>
+        <button class="tweak-reset" id="copy-custom-btn" style="padding:8px 16px;">COPY</button>
+      </div>
     </div>
 
     <!-- Embed Code -->
@@ -271,8 +273,23 @@ sfx.playNote(72, { preset: 99, duration: 0.15 });</pre>
       });
     });
 
+    document.getElementById('btn-play-custom').addEventListener('click', () => {
+      try {
+        const raw = document.getElementById('custom-preset-input').value.trim();
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr) || arr.length < 7) throw new Error('Need at least 7 values');
+        YAMABRUH_PRESETS[99] = arr;
+        const midi = Math.max(0, Math.min(127, parseInt(document.getElementById('custom-midi').value) || 72));
+        const dur = parseFloat(document.getElementById('custom-dur').value) || 0.15;
+        sfx.playNote(midi, { preset: 99, duration: dur });
+        lcdInfo.textContent = 'CUSTOM NOTE ' + midi;
+      } catch (e) {
+        lcdInfo.textContent = 'PARSE ERROR';
+      }
+    });
+
     document.getElementById('copy-custom-btn').addEventListener('click', () => {
-      navigator.clipboard.writeText(document.getElementById('custom-example').textContent).then(() => {
+      navigator.clipboard.writeText(document.getElementById('custom-preset-input').value).then(() => {
         lcdInfo.textContent = 'COPIED!';
         setTimeout(() => { lcdInfo.textContent = ''; }, 1500);
       });
