@@ -205,6 +205,75 @@ class YamaBruhSFX {
 
   /** Preset names (delegates to shared bank) */
   static get PRESET_NAMES() { return YamaBruhNotify.PRESET_NAMES; }
+
+  /**
+   * Convert 8 raw YM2413 register bytes (R#00-R#07) to a 21-element preset array.
+   * Matches the Swift OPLLPreset.fromRegisters() implementation.
+   * @param {number[]} r - 8 register bytes (0-255)
+   * @returns {number[]} 21-element preset array
+   */
+  static fromRegisters(r) {
+    if (!r || r.length < 8) throw new Error('Need 8 register bytes (R#00-R#07)');
+
+    const AR_TABLE = [99, 5, 3, 1.8, 1.0, 0.6, 0.35, 0.2, 0.12, 0.07, 0.04, 0.02, 0.01, 0.005, 0.003, 0.001];
+    const DR_TABLE = [99, 30, 18, 10, 6, 3.5, 2.0, 1.0, 0.5, 0.3, 0.15, 0.08, 0.04, 0.02, 0.01, 0.005];
+    const FB_TABLE = [0, Math.PI/16, Math.PI/8, Math.PI/4, Math.PI/2, Math.PI, Math.PI*2, Math.PI*4];
+    const multVal = m => m === 0 ? 0.5 : m;
+    const slLevel = sl => Math.pow(10, -3 * sl / 20);
+
+    const modAM   = !!(r[0] & 0x80);
+    const modVIB  = !!(r[0] & 0x40);
+    const modEG   = !!(r[0] & 0x20);
+    const modKSR  = !!(r[0] & 0x10);
+    const modMULT = r[0] & 0x0F;
+
+    const carAM   = !!(r[1] & 0x80);
+    const carVIB  = !!(r[1] & 0x40);
+    const carEG   = !!(r[1] & 0x20);
+    const carKSR  = !!(r[1] & 0x10);
+    const carMULT = r[1] & 0x0F;
+
+    const modTL   = r[2] & 0x3F;
+    const carWF   = (r[3] & 0x20) ? 1 : 0;
+    const modWF   = (r[3] & 0x10) ? 1 : 0;
+    const fbRaw   = (r[3] >> 1) & 0x07;
+
+    const modAR = (r[4] >> 4) & 0x0F; const modDR = r[4] & 0x0F;
+    const carAR = (r[5] >> 4) & 0x0F; const carDR = r[5] & 0x0F;
+    const modSL = (r[6] >> 4) & 0x0F; const modRR = r[6] & 0x0F;
+    const carSL = (r[7] >> 4) & 0x0F; const carRR = r[7] & 0x0F;
+
+    const tlLinear = Math.pow(10, -0.75 * modTL / 20);
+    const mi = tlLinear * 4 * Math.PI;
+    const fb = FB_TABLE[fbRaw];
+
+    // [cr, mr, mi, atk, dec, sus, rel, fb, c_wave, m_wave,
+    //  trem, vib, ksr, ksl, mod_lvl, eg_type,
+    //  m_atk, m_dec, m_sus, m_rel, m_eg_type]
+    return [
+      multVal(carMULT),           // cr
+      multVal(modMULT),           // mr
+      mi,                         // mi
+      AR_TABLE[Math.min(carAR, 15)], // atk
+      DR_TABLE[Math.min(carDR, 15)], // dec
+      slLevel(carSL),             // sus
+      DR_TABLE[Math.min(carRR, 15)], // rel
+      fb,                         // fb
+      carWF,                      // c_wave
+      modWF,                      // m_wave
+      carAM ? 0.5 : 0,           // trem
+      carVIB ? 0.5 : 0,          // vib
+      carKSR ? 0.3 : 0,          // ksr
+      1,                          // ksl
+      1,                          // mod_lvl
+      carEG ? 0 : 1,             // eg_type (EG=sustained→0, percussive→1)
+      AR_TABLE[Math.min(modAR, 15)], // m_atk
+      DR_TABLE[Math.min(modDR, 15)], // m_dec
+      slLevel(modSL),             // m_sus
+      DR_TABLE[Math.min(modRR, 15)], // m_rel
+      modEG ? 0 : 1,             // m_eg_type
+    ];
+  }
 }
 
 if (typeof window !== 'undefined') window.YamaBruhSFX = YamaBruhSFX;

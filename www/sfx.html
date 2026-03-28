@@ -140,6 +140,25 @@
       </div>
     </div>
 
+    <!-- Register Bytes -->
+    <div class="id-section">
+      <div class="panel-label">YM2413 REGISTER BYTES</div>
+      <div style="font-size:10px;color:#666;margin-bottom:8px;letter-spacing:0.5px;">8 hex bytes (R#00-R#07) — paste from chip dumps, PSS-170 captures, or YMWAVE exports</div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:8px;">
+        <label style="font-size:11px;color:#999;letter-spacing:1px;">MIDI
+          <input class="id-field" type="number" id="reg-midi" value="60" min="0" max="127" style="width:60px;text-align:center;">
+        </label>
+        <label style="font-size:11px;color:#999;letter-spacing:1px;">DURATION
+          <input class="id-field" type="number" id="reg-dur" value="0.3" min="0.01" max="2" step="0.01" style="width:70px;text-align:center;">
+        </label>
+      </div>
+      <textarea id="register-input" spellcheck="false" style="background:rgba(0,0,0,0.6);border:2px solid rgba(90,234,170,0.4);border-radius:2px;padding:12px;font-family:'Courier New',monospace;font-size:13px;color:#5aeaaa;white-space:pre;width:100%;box-sizing:border-box;resize:vertical;min-height:40px;letter-spacing:2px;" rows="1">0xE2, 0x21, 0x17, 0x00, 0xF0, 0x54, 0x00, 0xF4</textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="tweak-reset" id="btn-play-regs" style="padding:8px 16px;">PLAY</button>
+        <button class="tweak-reset" id="btn-convert-regs" style="padding:8px 16px;">CONVERT TO ARRAY</button>
+      </div>
+    </div>
+
     <!-- Embed Code -->
     <div class="id-section">
       <div class="panel-label">EMBED CODE</div>
@@ -283,6 +302,39 @@
         const dur = parseFloat(document.getElementById('custom-dur').value) || 0.15;
         sfx.playNote(midi, { preset: 99, duration: dur });
         lcdInfo.textContent = 'CUSTOM NOTE ' + midi;
+      } catch (e) {
+        lcdInfo.textContent = 'PARSE ERROR';
+      }
+    });
+
+    function parseRegisterInput() {
+      const raw = document.getElementById('register-input').value.trim();
+      // Accept: 0xE2, 0x21... or E2 21... or 0xE2 0x21... or [0xE2, 0x21...]
+      const hexMatches = raw.match(/[0-9a-fA-F]{2}/g);
+      if (!hexMatches || hexMatches.length < 8) throw new Error('Need 8 hex bytes');
+      return hexMatches.slice(0, 8).map(h => parseInt(h, 16));
+    }
+
+    document.getElementById('btn-play-regs').addEventListener('click', () => {
+      try {
+        const bytes = parseRegisterInput();
+        const preset = YamaBruhSFX.fromRegisters(bytes);
+        YAMABRUH_PRESETS[99] = preset;
+        const midi = Math.max(0, Math.min(127, parseInt(document.getElementById('reg-midi').value) || 60));
+        const dur = parseFloat(document.getElementById('reg-dur').value) || 0.3;
+        sfx.playNote(midi, { preset: 99, duration: dur });
+        lcdInfo.textContent = 'REG ' + bytes.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+      } catch (e) {
+        lcdInfo.textContent = 'PARSE ERROR';
+      }
+    });
+
+    document.getElementById('btn-convert-regs').addEventListener('click', () => {
+      try {
+        const bytes = parseRegisterInput();
+        const preset = YamaBruhSFX.fromRegisters(bytes);
+        document.getElementById('custom-preset-input').value = JSON.stringify(preset.map(v => Math.round(v * 1000) / 1000));
+        lcdInfo.textContent = 'CONVERTED';
       } catch (e) {
         lcdInfo.textContent = 'PARSE ERROR';
       }
