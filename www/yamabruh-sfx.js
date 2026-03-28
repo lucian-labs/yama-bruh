@@ -1,17 +1,16 @@
-// ── YAMA-BRUH SFX Engine ──────────────────────────────────────────────
+// ── YAMA-BRUH SFX Engine (YM2413 Extended) ────────────────────────────
 // Single-note FM synth for game sound effects and sound design.
-// Uses the same YM2413-style 2-op FM engine and preset bank as yamabruh-notify.js.
-// Polyphonic — multiple sounds can overlap.
-//
-// Requires: yamabruh-notify.js loaded first (for YAMABRUH_PRESETS + _ym2413Wave)
+// Full YM2413 OPLL: waveforms, tremolo, chip vibrato, KSR, KSL, mod level.
+// Polyphonic — multiple sounds can overlap. No WASM, no dependencies beyond
+// yamabruh-notify.js (shared preset bank + waveform functions).
 //
 // Usage:
 //   <script src="yamabruh-notify.js"></script>
 //   <script src="yamabruh-sfx.js"></script>
 //   <script>
-//     const sfx = new YamaBruhSFX();
-//     sfx.playNote(60);                          // middle C, default preset
-//     sfx.playNote(72, { preset: 88 });           // C5 with Crystal preset
+//     const sfx = new YamaBruhSFX({ preset: 88 });
+//     sfx.playNote(60);                          // middle C
+//     sfx.playNote(72, { preset: 60, duration: 0.1 }); // C5, short hit
 //     sfx.playNote({ root: 36, range: 24 });      // random note in range
 //     sfx.stopAll();
 //   </script>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YAMA-BRUH — Sound Designer</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HJPFEY11D7"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-HJPFEY11D7')</script>
+  <script>if(!location.hash) history.replaceState(null,'',location.pathname+'#sfx')</script>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+
+  <div id="app">
+    <!-- Air vents -->
+    <div class="air-vents">
+      <div class="vent-slat"></div><div class="vent-slat"></div><div class="vent-slat"></div><div class="vent-slat"></div>
+      <div class="vent-slat"></div><div class="vent-slat"></div><div class="vent-slat"></div><div class="vent-slat"></div>
+    </div>
+
+    <!-- Header plate -->
+    <div class="plate-header">
+      <div class="brand-group">
+        <a href="index.html#synth" class="brand" style="text-decoration:none;color:inherit;">YAMA-BRUH</a>
+        <div class="brand-sub">Sound Designer</div>
+      </div>
+      <div class="model-text">YB-SFX</div>
+    </div>
+
+    <div class="case-grooves"></div>
+
+    <!-- Controls: Display + Voice Selector -->
+    <div class="controls-row">
+      <div class="display-unit">
+        <div class="display-label">VOICE / SFX</div>
+        <div class="seg-housing">
+          <div class="seg-digits" id="seg-digits">00</div>
+        </div>
+        <div class="display-status" id="lcd-info">Piano 1</div>
+      </div>
+
+      <div class="voice-selector">
+        <div class="panel-label">VOICE SELECTOR</div>
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div class="sel-cell"><span class="sel-label">RND</span><button class="sel-btn sel-btn-yellow" id="btn-rand-preset"></button></div>
+          </div>
+          <div class="selector-grid" id="selector-grid">
+            <div class="sel-row">
+              <div class="sel-cell"><span class="sel-label">0</span><button class="sel-btn" data-num="0"></button></div>
+              <div class="sel-cell"><span class="sel-label">1</span><button class="sel-btn" data-num="1"></button></div>
+              <div class="sel-cell"><span class="sel-label">2</span><button class="sel-btn" data-num="2"></button></div>
+              <div class="sel-cell"><span class="sel-label">3</span><button class="sel-btn" data-num="3"></button></div>
+              <div class="sel-cell"><span class="sel-label">4</span><button class="sel-btn" data-num="4"></button></div>
+            </div>
+            <div class="sel-row">
+              <div class="sel-cell"><span class="sel-label">5</span><button class="sel-btn" data-num="5"></button></div>
+              <div class="sel-cell"><span class="sel-label">6</span><button class="sel-btn" data-num="6"></button></div>
+              <div class="sel-cell"><span class="sel-label">7</span><button class="sel-btn" data-num="7"></button></div>
+              <div class="sel-cell"><span class="sel-label">8</span><button class="sel-btn" data-num="8"></button></div>
+              <div class="sel-cell"><span class="sel-label">9</span><button class="sel-btn" data-num="9"></button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Note Controls -->
+    <div class="id-section">
+      <div class="panel-label">NOTE</div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+        <label style="font-size:11px;color:#999;letter-spacing:1px;">MIDI
+          <input class="id-field" type="number" id="midi-note" value="60" min="0" max="127" style="width:60px;text-align:center;">
+        </label>
+        <label style="font-size:11px;color:#999;letter-spacing:1px;">DURATION
+          <input class="id-field" type="number" id="note-duration" value="0.5" min="0.01" max="2" step="0.01" style="width:70px;text-align:center;">
+        </label>
+        <label style="font-size:11px;color:#999;letter-spacing:1px;">VOLUME
+          <input class="id-field" type="number" id="note-volume" value="0.8" min="0" max="1" step="0.05" style="width:60px;text-align:center;">
+        </label>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="tweak-reset" id="btn-play-note" style="padding:8px 16px;">PLAY NOTE</button>
+        <button class="tweak-reset" id="btn-stop" style="padding:8px 16px;">STOP ALL</button>
+      </div>
+    </div>
+
+    <!-- Random Range -->
+    <div class="id-section">
+      <div class="panel-label">RANDOM RANGE</div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+        <label style="font-size:11px;color:#999;letter-spacing:1px;">ROOT
+          <input class="id-field" type="number" id="range-root" value="48" min="0" max="127" style="width:60px;text-align:center;">
+        </label>
+        <label style="font-size:11px;color:#999;letter-spacing:1px;">RANGE
+          <input class="id-field" type="number" id="range-span" value="24" min="0" max="48" style="width:60px;text-align:center;">
+        </label>
+      </div>
+      <div style="margin-top:10px;">
+        <button class="tweak-reset" id="btn-play-random" style="padding:8px 16px;">PLAY RANDOM</button>
+      </div>
+    </div>
+
+    <!-- Embed Code -->
+    <div class="id-section">
+      <div class="panel-label">EMBED CODE</div>
+      <pre id="code-snippet" style="background:rgba(0,0,0,0.6);border:2px solid rgba(90,234,170,0.4);border-radius:2px;padding:12px;font-family:'Courier New',monospace;font-size:11px;color:#5aeaaa;white-space:pre-wrap;word-break:break-all;line-height:1.5;"></pre>
+      <button class="tweak-reset" id="copy-btn" style="margin-top:8px;">COPY TO CLIPBOARD</button>
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <a href="https://lucianlabs.ca" class="footer-link" target="_blank" rel="noopener">lucianlabs.ca</a>
+      <a href="index.html#synth" class="footer-link">SYNTH</a>
+      <a href="ringtones.html#ringtones" class="footer-link">RINGTONES</a>
+      <a href="ymwave.html#ymwave" class="footer-link">YMWAVE</a>
+      <a href="simplym.html#simplym" class="footer-link">SIMPLYM</a>
+      <a href="https://lucianlabs.ca/blog/yama-bruh.html" class="footer-link" target="_blank" rel="noopener">BLOG</a>
+    </footer>
+  </div>
+
+  <script src="yamabruh-notify.js"></script>
+  <script src="yamabruh-sfx.js"></script>
+  <script>
+    const NAMES = YamaBruhNotify.PRESET_NAMES;
+    const savedPreset = parseInt(localStorage.getItem('yamabruh_sfx_preset')) || 0;
+    const sfx = new YamaBruhSFX({ preset: savedPreset });
+
+    const lcdInfo = document.getElementById('lcd-info');
+    const segDigits = document.getElementById('seg-digits');
+    const midiNote = document.getElementById('midi-note');
+    const noteDuration = document.getElementById('note-duration');
+    const noteVolume = document.getElementById('note-volume');
+    const rangeRoot = document.getElementById('range-root');
+    const rangeSpan = document.getElementById('range-span');
+    const codeSnippet = document.getElementById('code-snippet');
+    const copyBtn = document.getElementById('copy-btn');
+
+    let currentPreset = savedPreset;
+
+    function selectPreset(num) {
+      currentPreset = Math.max(0, Math.min(99, num));
+      sfx.preset = currentPreset;
+      segDigits.textContent = String(currentPreset).padStart(2, '0');
+      lcdInfo.textContent = NAMES[currentPreset] || 'Preset ' + currentPreset;
+      localStorage.setItem('yamabruh_sfx_preset', currentPreset);
+      updateSnippet();
+    }
+
+    function enterDigit(d) {
+      selectPreset((currentPreset % 10) * 10 + parseInt(d));
+    }
+
+    function updateSnippet() {
+      const midi = parseInt(midiNote.value) || 60;
+      const dur = parseFloat(noteDuration.value) || 0.5;
+      const vol = parseFloat(noteVolume.value) || 0.8;
+      const root = parseInt(rangeRoot.value) || 48;
+      const range = parseInt(rangeSpan.value) || 24;
+      codeSnippet.textContent =
+`<script src="https://cdn.lucianlabs.ca/scripts/yamabruh-notify.js"><\/script>
+<script src="https://cdn.lucianlabs.ca/scripts/yamabruh-sfx.js"><\/script>
+<script>
+  const sfx = new YamaBruhSFX({
+    preset: ${currentPreset},  // ${NAMES[currentPreset]}
+    volume: ${vol},
+    duration: ${dur},
+  });
+
+  // Exact note
+  sfx.playNote(${midi});
+
+  // Random note in range
+  sfx.playNote({ root: ${root}, range: ${range} });
+<\/script>`;
+    }
+
+    // Voice selector buttons
+    document.querySelectorAll('.sel-btn[data-num]').forEach(btn => {
+      btn.addEventListener('pointerdown', () => enterDigit(btn.dataset.num));
+    });
+
+    document.getElementById('btn-rand-preset').addEventListener('pointerdown', () => {
+      selectPreset(Math.floor(Math.random() * 100));
+    });
+
+    // Keyboard: number keys + arrows
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.key >= '0' && e.key <= '9' && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        enterDigit(e.key);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectPreset(currentPreset + 1);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectPreset(currentPreset - 1);
+      }
+    });
+
+    // Play buttons
+    document.getElementById('btn-play-note').addEventListener('click', () => {
+      const midi = Math.max(0, Math.min(127, parseInt(midiNote.value) || 60));
+      const dur = parseFloat(noteDuration.value) || 0.5;
+      const vol = parseFloat(noteVolume.value) || 0.8;
+      sfx.playNote(midi, { duration: dur, volume: vol });
+      lcdInfo.textContent = 'NOTE ' + midi;
+    });
+
+    document.getElementById('btn-play-random').addEventListener('click', () => {
+      const root = Math.max(0, Math.min(127, parseInt(rangeRoot.value) || 48));
+      const range = Math.max(0, Math.min(48, parseInt(rangeSpan.value) || 24));
+      const dur = parseFloat(noteDuration.value) || 0.5;
+      const vol = parseFloat(noteVolume.value) || 0.8;
+      sfx.playNote({ root, range }, { duration: dur, volume: vol });
+      lcdInfo.textContent = 'RANDOM ' + root + '-' + (root + range);
+    });
+
+    document.getElementById('btn-stop').addEventListener('click', () => {
+      sfx.stopAll();
+      lcdInfo.textContent = 'STOPPED';
+    });
+
+    // Update snippet on input changes
+    [midiNote, noteDuration, noteVolume, rangeRoot, rangeSpan].forEach(el => {
+      el.addEventListener('input', updateSnippet);
+    });
+
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(codeSnippet.textContent).then(() => {
+        lcdInfo.textContent = 'COPIED!';
+        setTimeout(() => { lcdInfo.textContent = ''; }, 1500);
+      });
+    });
+
+    // Init
+    selectPreset(currentPreset);
+  </script>
+  <script src="https://lucianlabs.ca/choppa-badge.js"></script>
+</body>
+</html>
