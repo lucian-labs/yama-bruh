@@ -94,7 +94,7 @@ Add via SPM for generative notification sounds in any Apple app:
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/ELI7VH/yama-bruh", branch: "main"),
+    .package(url: "https://github.com/lucian-labs/yama-bruh", branch: "main"),
 ]
 ```
 
