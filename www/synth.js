@@ -25,7 +25,8 @@ function compileSequenceAlgorithm(source) {
   const text = String(source || '').trim();
   if (!text) return null;
   try {
-    const fn = new Function(`${SEQ_MATH_PREAMBLE}return (${text});`)();
+    // Closing `)` on its own line so a trailing `//` comment in the source can't eat it
+    const fn = new Function(`${SEQ_MATH_PREAMBLE}return (\n${text}\n);`)();
     return typeof fn === 'function' ? fn : null;
   } catch (error) {
     console.error('[SEQ ALGO] Invalid algorithm:', error);
@@ -37,7 +38,8 @@ function compileSequenceSource(source) {
   const text = String(source || '').trim();
   if (!text) return null;
   try {
-    const value = new Function(`${SEQ_MATH_PREAMBLE}return (${text});`)();
+    // Closing `)` on its own line so a trailing `//` comment in the source can't eat it
+    const value = new Function(`${SEQ_MATH_PREAMBLE}return (\n${text}\n);`)();
     return value && typeof value === 'object' ? value : null;
   } catch (error) {
     console.error('[SEQ SOURCE] Invalid sequence object:', error);

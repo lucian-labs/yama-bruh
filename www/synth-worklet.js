@@ -677,7 +677,8 @@ const _MATH_PREAMBLE = 'const{sin,cos,abs,floor,ceil,round,min,max,pow,sqrt,log,
 function compileNoteAlgo(source) {
   if (!source || typeof source !== 'string') return null;
   try {
-    return new Function(_MATH_PREAMBLE + 'return (' + source + ');')();
+    // Closing `)` on its own line so a trailing `//` comment in the source can't eat it
+    return new Function(_MATH_PREAMBLE + 'return (\n' + source + '\n);')();
   } catch (e) { return null; }
 }
 
