@@ -42,7 +42,11 @@
     <!-- Controls: Display + Voice Selector -->
     <div class="controls-row">
       <div class="display-unit">
-        <div class="display-label">VOICE / RINGTONE</div>
+        <div class="display-label" style="display:flex;align-items:center;gap:8px;">
+          <span>VOICE / RINGTONE</span>
+          <button class="bank-btn active" id="bank-a-btn">A</button>
+          <button class="bank-btn" id="bank-b-btn">B</button>
+        </div>
         <div class="seg-housing">
           <div class="seg-digits" id="seg-digits">88</div>
         </div>
@@ -143,12 +147,17 @@ try wav.write(to: soundURL)</pre>
   </div>
 
   <script src="yamabruh-notify.js"></script>
+  <script src="yamabruh-bank-b.js"></script>
   <script>
     const savedRingtonePreset = localStorage.getItem('yamabruh_ringtone_preset');
     const savedMood = parseInt(localStorage.getItem('yamabruh_mood')) || 1; // 1 = experimental
+    const savedBank = localStorage.getItem('yamabruh_ringtone_bank') || 'A';
     const initPreset = savedRingtonePreset !== null ? parseInt(savedRingtonePreset) : null;
-    const yb = new YamaBruhNotify({ seed: 'yama-bruh.lucianlabs.ca', preset: initPreset, mode: savedMood });
-    const NAMES = YamaBruhNotify.PRESET_NAMES;
+    const yb = new YamaBruhNotify({ seed: 'yama-bruh.lucianlabs.ca', preset: initPreset, mode: savedMood, bank: savedBank });
+
+    function getNames() {
+      return yb.bank === 'B' && typeof PRESET_NAMES_B !== 'undefined' ? PRESET_NAMES_B : YamaBruhNotify.PRESET_NAMES;
+    }
 
     const lcdInfo = document.getElementById('lcd-info');
     const segDigits = document.getElementById('seg-digits');
@@ -180,7 +189,7 @@ try wav.write(to: soundURL)</pre>
         isRandomPreset = false;
         currentPreset = Math.max(0, Math.min(98, num));
         updateDisplay();
-        lcdInfo.textContent = NAMES[currentPreset] || 'Preset ' + currentPreset;
+        lcdInfo.textContent = getNames()[currentPreset] || 'Preset ' + currentPreset;
         localStorage.setItem('yamabruh_ringtone_preset', currentPreset);
       }
     }
@@ -214,6 +223,30 @@ try wav.write(to: soundURL)</pre>
       moodGrid.appendChild(btn);
     });
 
+    // ── Bank toggle ──
+    const bankABtn = document.getElementById('bank-a-btn');
+    const bankBBtn = document.getElementById('bank-b-btn');
+
+    function switchBank(bank) {
+      yb.bank = bank;
+      localStorage.setItem('yamabruh_ringtone_bank', bank);
+      bankABtn.classList.toggle('active', bank === 'A');
+      bankBBtn.classList.toggle('active', bank === 'B');
+      const isB = bank === 'B';
+      document.documentElement.style.setProperty('--accent', isB ? '#cc22aa' : '#5aeaaa');
+      document.documentElement.style.setProperty('--accent-20', isB ? 'rgba(204,34,170,0.2)' : 'rgba(90,234,170,0.2)');
+      if (!isRandomPreset) {
+        lcdInfo.textContent = getNames()[currentPreset] || 'Preset ' + currentPreset;
+      }
+      updateSnippet();
+    }
+
+    bankABtn.addEventListener('click', () => switchBank('A'));
+    bankBBtn.addEventListener('click', () => switchBank('B'));
+
+    // Init bank from saved
+    if (savedBank === 'B') switchBank('B');
+
     // ── Yellow preset buttons ──
     document.getElementById('btn-no-preset').addEventListener('pointerdown', () => selectPreset(null));
     document.getElementById('btn-rand-preset').addEventListener('pointerdown', () => {
@@ -233,14 +266,18 @@ try wav.write(to: soundURL)</pre>
       const ps = patchSeedInput.value;
       const presetLine = isRandomPreset
         ? `    // preset: derived from seeds`
-        : `    preset: ${currentPreset},  // ${NAMES[currentPreset] || 'Preset ' + currentPreset}`;
+        : `    preset: ${currentPreset},  // ${getNames()[currentPreset] || 'Preset ' + currentPreset}`;
       const patchLine = ps ? `\n    patchSeed: '${ps}',` : '';
+      const bankLine = yb.bank === 'B' ? `\n    bank: 'B',` : '';
+      const bankBScript = yb.bank === 'B'
+        ? `\n<script src="https://cdn.lucianlabs.ca/scripts/yamabruh-bank-b.js"><\/script>`
+        : '';
       codeSnippet.textContent =
-`<script src="https://cdn.lucianlabs.ca/scripts/yamabruh-notify.js"><\/script>
+`<script src="https://cdn.lucianlabs.ca/scripts/yamabruh-notify.js"><\/script>${bankBScript}
 <script>
   const notify = new YamaBruhNotify({
     seed: '${s}',
-    mode: ${currentMood},  // ${YamaBruhNotify.MOOD_NAMES[currentMood]}${patchLine}
+    mode: ${currentMood},  // ${YamaBruhNotify.MOOD_NAMES[currentMood]}${bankLine}${patchLine}
 ${presetLine}
   });
   notify.play(${lastPlayedId ? "'" + lastPlayedId + "'" : ''});
@@ -391,5 +428,18 @@ ${presetLine}
     });
   </script>
   <script src="https://lucianlabs.ca/choppa-badge.js"></script>
-</body>
+
+    <!-- the Lucian Labs widget dock, served from lucianlabs.ca. every widget
+         lives in it and starts put away — this is a synth first. -->
+    <script defer src="https://lucianlabs.ca/v2/ll-dock.js?v=2"></script>
+    <script defer src="https://lucianlabs.ca/v2/ll-shop.js?v=2"></script>
+    <script defer src="https://lucianlabs.ca/v2/ll-radio.js?v=2"></script>
+    <script defer src="https://lucianlabs.ca/v2/ll-clock.js?v=2"></script>
+    <script defer src="https://lucianlabs.ca/v2/ll-hire.js?v=2"></script>
+    <script defer src="https://lucianlabs.ca/v2/ll-devlog.js?v=2"></script>
+    <script defer src="https://lucianlabs.ca/v2/ll-blog.js?v=2"></script>
+    <script defer src="https://lucianlabs.ca/v2/ll-ring.js?v=2"></script>
+    <script defer src="https://lucianlabs.ca/v2/ll-labs.js?v=2"></script>
+    <ll-dock></ll-dock>
+  </body>
 </html>

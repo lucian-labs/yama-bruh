@@ -145,6 +145,7 @@ class YamaBruhNotify {
   constructor(config = {}) {
     this.sampleRate = config.sampleRate || 44100;
     this.preset = config.preset !== undefined ? config.preset : null;
+    this.bank = config.bank || 'A';        // 'A' or 'B' — requires YAMABRUH_PRESETS_B global for B
     this.bpm = config.bpm || 140;
     this.volume = config.volume ?? 0.8;
     this.seed = config.seed || null;         // instance/app seed — prefixes patch + melody
@@ -190,9 +191,15 @@ class YamaBruhNotify {
     };
   }
 
+  _getPresets() {
+    if (this.bank === 'B' && typeof YAMABRUH_PRESETS_B !== 'undefined') return YAMABRUH_PRESETS_B;
+    return YAMABRUH_PRESETS;
+  }
+
   _getPreset(index) {
-    const i = Math.max(0, Math.min(99, index));
-    return YAMABRUH_PRESETS[i] || YAMABRUH_PRESETS[0];
+    const presets = this._getPresets();
+    const i = Math.max(0, Math.min(presets.length - 1, index));
+    return presets[i] || presets[0];
   }
 
   _midiToFreq(note) {
@@ -540,10 +547,10 @@ class YamaBruhNotify {
       if (ps != null || this.seed) {
         // Combine instance seed + patch seed for deterministic preset
         const patchRaw = (this.seed || '') + ':patch:' + (ps != null ? String(ps) : '');
-        resolvedPresetIdx = this._hash(patchRaw) % YAMABRUH_PRESETS.length;
+        resolvedPresetIdx = this._hash(patchRaw) % this._getPresets().length;
       } else {
         // No seeds at all — random per play
-        resolvedPresetIdx = Math.floor(Math.random() * YAMABRUH_PRESETS.length);
+        resolvedPresetIdx = Math.floor(Math.random() * this._getPresets().length);
       }
     }
     const preset = this._getPreset(resolvedPresetIdx);
@@ -593,6 +600,7 @@ class YamaBruhNotify {
   /** Update default config */
   configure(config) {
     if (config.preset !== undefined) this.preset = config.preset;
+    if (config.bank !== undefined) this.bank = config.bank;
     if (config.bpm !== undefined) this.bpm = config.bpm;
     if (config.volume !== undefined) this.volume = config.volume;
     if (config.mode !== undefined) this.mode = config.mode;
@@ -603,6 +611,14 @@ class YamaBruhNotify {
     if (config.speed !== undefined) this.speed = config.speed;
     if (config.octave !== undefined) this.octave = config.octave;
     if (config.note !== undefined) this.note = config.note;
+  }
+
+  /** Get preset name for the current bank */
+  getPresetName(index) {
+    const names = this.bank === 'B' && typeof PRESET_NAMES_B !== 'undefined'
+      ? PRESET_NAMES_B
+      : YamaBruhNotify.PRESET_NAMES;
+    return names[index] || 'Preset ' + index;
   }
 
   /** List available preset names */
