@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- slip node arrival: before first paint, hold the page in the colour of the
+       curtain it came through, so a jump has no blank frame. The dock stays
+       visible; ll-ring.js lifts the rest. Only acts on ?ll=ring. -->
+  <script>(function(){try{var q=new URLSearchParams(location.search);if(q.get('ll')!=='ring')return;var bg=q.get('llbg')||'';if(!/^(#[0-9a-f]{3,8}|rgba?\([0-9 .,%]+\))$/i.test(bg))bg='#060a10';var d=document.documentElement;d.setAttribute('data-ll-arriving','');d.style.setProperty('background',bg,'important');var s=document.createElement('style');s.textContent='html[data-ll-arriving] body{visibility:hidden}html[data-ll-arriving] ll-dock{visibility:visible}';document.head.appendChild(s);setTimeout(function(){d.removeAttribute('data-ll-arriving');d.style.removeProperty('background')},2500)}catch(e){}})()</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YAMA-BRUH — FM Ringtone Generator</title>
