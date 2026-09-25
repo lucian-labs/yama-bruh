@@ -1,11 +1,32 @@
 :root {
+  /* the brand's tokens — lucianlabs.ca/branding/yama-bruh.css, same values.
+     The site reads these; the brand page reads its own copy of them. */
+  --bg: #1a1a1a;
+  --panel: rgba(0, 0, 0, 0.55);
+  --panel-solid: #0f0f0f;
+  --screen: #060606;
+  --line: #2a2a2a;
+  --line-hi: #333333;
+  --line-lo: #222222;
+  --ink: #d0ccc4;
+  --label: #ccccbb;
+  --muted: #777777;
+  --faint: #555555;
+  --dim: #444444;
   --accent: #22ccaa;
-  --accent-10: var(--accent-10);
-  --accent-15: rgba(34, 204, 170, 0.15);
-  --accent-20: var(--accent-20);
-  --accent-25: var(--accent-25);
-  --accent-50: rgba(34, 204, 170, 0.5);
+  --accent-hi: #77ffdd;
+  --status: #558877;
+  --led: #ff4444;
+  --good: #3cc88a;
+  --bad: #ff4444;
+  /* the accent's washes. These used to reference themselves, which is a cycle,
+     so every hover and A/B toggle that read them painted nothing. */
   --accent-08: rgba(34, 204, 170, 0.08);
+  --accent-10: rgba(34, 204, 170, 0.10);
+  --accent-15: rgba(34, 204, 170, 0.15);
+  --accent-20: rgba(34, 204, 170, 0.20);
+  --accent-25: rgba(34, 204, 170, 0.25);
+  --accent-50: rgba(34, 204, 170, 0.50);
 }
 
 /* ── Reset & Base ───────────────────────────────────────────────────── */
@@ -557,6 +578,15 @@ html, body {
 /* ── ID Sections ───────────────────────────────────────────────────── */
 .id-section {
   margin: 0 14px 16px;
+  padding: 12px 14px;
+  background:
+    linear-gradient(165deg, rgba(40,40,40,0.15) 0%, transparent 40%, rgba(60,60,60,0.08) 70%, transparent 100%),
+    rgba(0,0,0,0.55);
+  border: 1px solid #262626;
+  border-top-color: #333;
+  border-bottom-color: #1c1c1c;
+  border-radius: 2px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -2px 6px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.02);
 }
 
 .id-list {
@@ -574,21 +604,24 @@ html, body {
 
 .id-field {
   flex: 1;
-  padding: 6px 8px;
-  border: 1px solid #333;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.88);
-  color: #1a1a1a;
+  padding: 7px 9px;
+  border: 1px solid #222;
+  border-top-color: #181818;
+  border-bottom-color: #2a2a2a;
+  border-radius: 3px;
+  background: var(--screen);
+  color: #5aeaaa;
   font-family: 'Courier New', monospace;
   font-size: 11px;
   letter-spacing: 0.5px;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.03);
 }
+.id-field::placeholder { color: #3a5a4e; }
 
 .id-field:focus {
   outline: none;
   border-color: var(--accent);
-  background: rgba(255,255,255,0.95);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.8), 0 0 0 2px var(--accent-25);
 }
 
 .id-field[readonly] {
@@ -597,9 +630,12 @@ html, body {
 }
 
 pre.code-snippet {
-  background: rgba(0,0,0,0.6);
-  border: 2px solid rgba(90,234,170,0.4);
-  border-radius: 2px;
+  background: var(--screen);
+  border: 1px solid #222;
+  border-top-color: #181818;
+  border-bottom-color: #2a2a2a;
+  border-radius: 3px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.03);
   padding: 12px;
   font-family: 'Courier New', monospace;
   font-size: 11px;
@@ -1092,21 +1128,37 @@ pre.code-snippet {
 
 .tweak-reset {
   margin-top: 12px;
-  padding: 8px 16px;
-  border: 1px solid #333;
-  border-radius: 3px;
-  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
-  color: var(--accent);
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 1px;
+  background: linear-gradient(180deg, #999 0%, #777 15%, #606060 55%, #505050 85%, #444 100%);
+  color: #fff;
   font-family: 'Courier New', monospace;
   font-size: 9px;
   font-weight: bold;
   letter-spacing: 2px;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.35);
   cursor: pointer;
-  transition: background 0.15s;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.2), inset 2px 0 0 rgba(255,255,255,0.1),
+    inset 0 -2px 0 rgba(0,0,0,0.3), inset -2px 0 0 rgba(0,0,0,0.2),
+    0 3px 4px rgba(0,0,0,0.5);
+  transition: transform 0.04s, box-shadow 0.04s, background 0.1s;
 }
 
 .tweak-reset:hover {
-  background: linear-gradient(180deg, #333 0%, #222 100%);
+  background: linear-gradient(180deg, #aaa 0%, #888 15%, #707070 55%, #606060 85%, #555 100%);
+}
+.tweak-reset.active, .tweak-reset[aria-pressed="true"] {
+  background: linear-gradient(180deg, #5aeaaa 0%, #3cc88a 15%, #30b87a 55%, #28a870 85%, #1e9060 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.2), inset 2px 0 0 rgba(255,255,255,0.1),
+    inset 0 -2px 0 rgba(0,0,0,0.25), inset -2px 0 0 rgba(0,0,0,0.15),
+    0 0 10px var(--accent-20), 0 3px 4px rgba(0,0,0,0.5);
+}
+.tweak-reset:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.4);
 }
 
 .tweak-btn-row {
@@ -1714,9 +1766,12 @@ pre.code-snippet {
 }
 
 .cta-code {
-  background: rgba(0,0,0,0.5);
-  border: 1px solid rgba(90,234,170,0.25);
-  border-radius: 2px;
+  background: var(--screen);
+  border: 1px solid #222;
+  border-top-color: #181818;
+  border-bottom-color: #2a2a2a;
+  border-radius: 3px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.03);
   padding: 10px 12px;
   font-family: 'Courier New', monospace;
   font-size: 10px;
@@ -1733,20 +1788,26 @@ pre.code-snippet {
   font-size: 10px;
   font-weight: bold;
   letter-spacing: 1.5px;
-  color: var(--accent);
+  color: #06301e;
   text-decoration: none;
-  padding: 6px 14px;
-  border: 1px solid var(--accent);
+  padding: 8px 16px;
+  border: 0;
   border-radius: 1px;
-  transition: background 0.15s, color 0.15s;
+  background: linear-gradient(180deg, #5aeaaa 0%, #3cc88a 12%, #30b87a 40%, #28a870 65%, #1e9060 88%, #1a7850 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.05),
-    0 2px 4px rgba(0,0,0,0.3);
+    inset 0 2px 0 rgba(255,255,255,0.2), inset 2px 0 0 rgba(255,255,255,0.1),
+    inset 0 -2px 0 rgba(0,0,0,0.25), inset -2px 0 0 rgba(0,0,0,0.15),
+    0 3px 4px rgba(0,0,0,0.5);
+  transition: transform 0.04s, box-shadow 0.04s, background 0.1s;
 }
 
 .cta-link:hover {
-  background: var(--accent-15);
-  color: #77ffdd;
+  background: linear-gradient(180deg, #6cf4b8 0%, #46d496 12%, #38c486 40%, #2eb478 65%, #249c68 88%, #1e8458 100%);
+  color: #06301e;
+}
+.cta-link:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 1px rgba(0,0,0,0.4);
 }
 
 /* ── Footer ────────────────────────────────────────────────────────── */
@@ -1788,4 +1849,20 @@ pre.code-snippet {
   .drum-pad-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .rhythm-btn { width: 42px; height: 14px; }
   .step-dot { width: 6px; height: 6px; }
+}
+
+/* ── The brand's behaviour (lucianlabs.ca/branding/UX.md) ───────────── */
+/* keyboard focus is the one ring in the look */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* the whole labelled cell is the target — a thumb hits it, not the 18px cap */
+.sel-cell { min-height: 44px; justify-content: flex-end; }
+/* on a phone, a field is 16px or the browser zooms the page on focus */
+@media (pointer: coarse) {
+  input[type="text"], input[type="number"], input[type="time"], select, textarea,
+  .id-field, .preset-name-input, .inl { font-size: 16px; }
+}
+/* the state still lands; the breathing and the ping resolve at once */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; }
+  .sel-btn:active, .rhythm-btn:active { transform: none; }
 }

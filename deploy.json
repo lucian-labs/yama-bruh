@@ -2,21 +2,33 @@
   "name": "yama-bruh",
   "type": "static",
   "source": "www/",
-  "domain": "yamabruh.lucianlabs.ca",
+  "domain": "yama-bruh.lucianlabs.ca",
   "files": [
     "index.html",
+    "ringtones.html",
+    "sfx.html",
+    "simplym.html",
+    "ymwave.html",
     "style.css",
+    "chrome.css",
+    "hardware.css",
+    "favicon.svg",
+    "spec.json",
     "app.js",
     "synth.js",
     "synth-worklet.js",
     "drum-worklet.js",
     "drums.js",
     "midi.js",
+    "yamabruh-notify.js",
+    "yamabruh-sfx.js",
+    "yamabruh-bank-b.js",
     "yama_bruh.wasm"
   ],
   "headers": {
     "*.wasm": "application/wasm",
     "*.js": "application/javascript; charset=utf-8"
   },
-  "notes": "Pure static site — no build step, no node_modules. Just serve www/ as root. WASM needs application/wasm MIME type. AudioWorklet requires HTTPS + secure context. CORS not needed (same-origin only)."
+  "notes": "Pure static site \u2014 no build step, no node_modules. Just serve www/ as root. WASM needs application/wasm MIME type. AudioWorklet requires HTTPS + secure context. CORS not needed (same-origin only).",
+  "brand": "https://lucianlabs.ca/branding/yama-bruh.md"
 }

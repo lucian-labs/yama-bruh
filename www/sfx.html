@@ -4,8 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YAMA-BRUH — Sound Designer</title>
+  <meta name="description" content="A sound designer for YAMA-BRUH: pick a preset, set a note and duration, copy the call.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yama-bruh.lucianlabs.ca/sfx.html">
+  <meta property="og:title" content="YAMA-BRUH — Sound Designer">
+  <meta property="og:description" content="A sound designer for YAMA-BRUH: pick a preset, set a note and duration, copy the call.">
+  <meta property="og:image" content="https://lucianlabs.ca/blog/img/yama-bruh/hero.webp">
+  <meta property="og:site_name" content="YAMA-BRUH">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#1a1a1a">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="chrome.css">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-HJPFEY11D7"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-HJPFEY11D7')</script>
   <script>if(!location.hash) history.replaceState(null,'',location.pathname+location.search+'#sfx')</script>
@@ -26,6 +36,13 @@
         <a href="index.html#synth" class="brand" style="text-decoration:none;color:inherit;">YAMA-BRUH</a>
         <div class="brand-sub">Sound Designer</div>
       </div>
+      <nav class="yb-nav" aria-label="YAMA-BRUH">
+        <a href="index.html#synth">SYNTH</a>
+        <a href="ringtones.html#ringtones">RINGTONES</a>
+        <a href="sfx.html#sfx" aria-current="page">SFX</a>
+        <a href="simplym.html#simplym">SIMPLYM</a>
+        <a href="ymwave.html#ymwave">YMWAVE</a>
+      </nav>
       <div class="model-text">YB-SFX</div>
     </div>
 
@@ -90,7 +107,7 @@
     <!-- Embed Code -->
     <div class="id-section">
       <div class="panel-label">EMBED CODE</div>
-      <pre id="code-snippet" style="background:rgba(0,0,0,0.6);border:2px solid rgba(90,234,170,0.4);border-radius:2px;padding:12px;font-family:'Courier New',monospace;font-size:11px;color:#5aeaaa;white-space:pre-wrap;word-break:break-all;line-height:1.5;"></pre>
+      <pre id="code-snippet" class="code-snippet"></pre>
       <button class="tweak-reset" id="copy-btn" style="margin-top:8px;">COPY TO CLIPBOARD</button>
     </div>
 
@@ -118,7 +135,7 @@
     <!-- Custom Preset Reference -->
     <div class="id-section">
       <div class="panel-label">CUSTOM PRESET FORMAT</div>
-      <pre style="background:rgba(0,0,0,0.6);border:2px solid rgba(90,234,170,0.4);border-radius:2px;padding:12px;font-family:'Courier New',monospace;font-size:10px;color:#5aeaaa;white-space:pre-wrap;word-break:break-all;line-height:1.6;">// [cr, mr, mi, atk, dec, sus, rel, fb, c_wave, m_wave,
+      <pre class="code-snippet" style="font-size:10px;line-height:1.6;">// [cr, mr, mi, atk, dec, sus, rel, fb, c_wave, m_wave,
 //  trem, vib, ksr, ksl, mod_lvl, eg_type,
 //  m_atk, m_dec, m_sus, m_rel, m_eg_type]
 
@@ -172,13 +189,12 @@
     </div>
 
     <!-- Footer -->
-    <footer class="site-footer">
+    <footer class="site-footer yb-footer">
       <a href="https://lucianlabs.ca" class="footer-link" target="_blank" rel="noopener">lucianlabs.ca</a>
-      <a href="index.html#synth" class="footer-link">SYNTH</a>
-      <a href="ringtones.html#ringtones" class="footer-link">RINGTONES</a>
-      <a href="ymwave.html#ymwave" class="footer-link">YMWAVE</a>
-      <a href="simplym.html#simplym" class="footer-link">SIMPLYM</a>
       <a href="https://lucianlabs.ca/blog/yama-bruh.html" class="footer-link" target="_blank" rel="noopener">BLOG</a>
+      <a href="https://lucianlabs.ca/branding/yama-bruh.html" class="footer-link" target="_blank" rel="noopener">BRAND</a>
+      <a href="spec.json" class="footer-link">SPEC.JSON</a>
+      <a href="https://github.com/lucian-labs/yama-bruh" class="footer-link" target="_blank" rel="noopener">GITHUB</a>
     </footer>
   </div>
 

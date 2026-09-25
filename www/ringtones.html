@@ -4,8 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YAMA-BRUH — Ringtones</title>
+  <meta name="description" content="Deterministic ringtones from any ID — nine moods, 99 voices, and an embed snippet for your own site.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yama-bruh.lucianlabs.ca/ringtones.html">
+  <meta property="og:title" content="YAMA-BRUH — Ringtones">
+  <meta property="og:description" content="Deterministic ringtones from any ID — nine moods, 99 voices, and an embed snippet for your own site.">
+  <meta property="og:image" content="https://lucianlabs.ca/blog/img/yama-bruh/hero.webp">
+  <meta property="og:site_name" content="YAMA-BRUH">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#1a1a1a">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="chrome.css">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-HJPFEY11D7"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-HJPFEY11D7')</script>
   <script>if(!location.hash) history.replaceState(null,'',location.pathname+location.search+'#ringtones')</script>
@@ -33,6 +43,13 @@
         <a href="index.html#synth" class="brand" style="text-decoration:none;color:inherit;">YAMA-BRUH</a>
         <div class="brand-sub">Ringtones</div>
       </div>
+      <nav class="yb-nav" aria-label="YAMA-BRUH">
+        <a href="index.html#synth">SYNTH</a>
+        <a href="ringtones.html#ringtones" aria-current="page">RINGTONES</a>
+        <a href="sfx.html#sfx">SFX</a>
+        <a href="simplym.html#simplym">SIMPLYM</a>
+        <a href="ymwave.html#ymwave">YMWAVE</a>
+      </nav>
       <div class="model-text">YB-99FM</div>
     </div>
 
@@ -136,13 +153,12 @@ try wav.write(to: soundURL)</pre>
     </div>
 
     <!-- Footer -->
-    <footer class="site-footer">
+    <footer class="site-footer yb-footer">
       <a href="https://lucianlabs.ca" class="footer-link" target="_blank" rel="noopener">lucianlabs.ca</a>
-      <a href="index.html#synth" class="footer-link">SYNTH</a>
-      <a href="ymwave.html#ymwave" class="footer-link">YMWAVE</a>
-      <a href="simplym.html#simplym" class="footer-link">SIMPLYM</a>
-      <a href="sfx.html#sfx" class="footer-link">SFX</a>
       <a href="https://lucianlabs.ca/blog/yama-bruh.html" class="footer-link" target="_blank" rel="noopener">BLOG</a>
+      <a href="https://lucianlabs.ca/branding/yama-bruh.html" class="footer-link" target="_blank" rel="noopener">BRAND</a>
+      <a href="spec.json" class="footer-link">SPEC.JSON</a>
+      <a href="https://github.com/lucian-labs/yama-bruh" class="footer-link" target="_blank" rel="noopener">GITHUB</a>
     </footer>
   </div>
 
@@ -210,13 +226,13 @@ try wav.write(to: soundURL)</pre>
       btn.textContent = name.toUpperCase();
       btn.dataset.mood = idx;
       btn.style.cssText = 'padding:6px 12px;font-size:11px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;';
-      if (idx === currentMood) btn.style.background = 'rgba(90,234,170,0.3)';
+      if (idx === currentMood) btn.classList.add('active');
       btn.addEventListener('click', () => {
         currentMood = idx;
         yb.mode = idx;
         localStorage.setItem('yamabruh_mood', idx);
-        moodGrid.querySelectorAll('button').forEach(b => b.style.background = '');
-        btn.style.background = 'rgba(90,234,170,0.3)';
+        moodGrid.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
         lcdInfo.textContent = name.toUpperCase();
         updateSnippet();
       });

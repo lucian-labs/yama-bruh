@@ -8,8 +8,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YAMA-BRUH — FM Ringtone Generator</title>
+  <meta name="description" content="Play a Yamaha PSS-470 in the browser: a 2-op FM synth with 99 voices, rhythm patterns, a keyboard, MIDI, and deterministic ringtones from any ID.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yama-bruh.lucianlabs.ca/">
+  <meta property="og:title" content="YAMA-BRUH — FM Ringtone Generator">
+  <meta property="og:description" content="Play a Yamaha PSS-470 in the browser: a 2-op FM synth with 99 voices, rhythm patterns, a keyboard, MIDI, and deterministic ringtones from any ID.">
+  <meta property="og:image" content="https://lucianlabs.ca/blog/img/yama-bruh/hero.webp">
+  <meta property="og:site_name" content="YAMA-BRUH">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#1a1a1a">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="chrome.css">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-HJPFEY11D7"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-HJPFEY11D7')</script>
   <script>if(!location.hash) history.replaceState(null,'',location.pathname+location.search+'#synth')</script>
@@ -27,6 +37,13 @@
         <div class="brand">YAMA-BRUH</div>
         <div class="brand-sub">PortaSound</div>
       </div>
+      <nav class="yb-nav" aria-label="YAMA-BRUH">
+        <a href="index.html#synth" aria-current="page">SYNTH</a>
+        <a href="ringtones.html#ringtones">RINGTONES</a>
+        <a href="sfx.html#sfx">SFX</a>
+        <a href="simplym.html#simplym">SIMPLYM</a>
+        <a href="ymwave.html#ymwave">YMWAVE</a>
+      </nav>
       <div class="model-text">YM-ELI7VH</div>
     </div>
 
@@ -524,13 +541,12 @@
     </div>
 
     <!-- Footer -->
-    <footer class="site-footer">
+    <footer class="site-footer yb-footer">
       <a href="https://lucianlabs.ca" class="footer-link" target="_blank" rel="noopener">lucianlabs.ca</a>
-      <a href="ringtones.html#ringtones" class="footer-link">RINGTONES</a>
-      <a href="ymwave.html#ymwave" class="footer-link">YMWAVE</a>
-      <a href="simplym.html#simplym" class="footer-link">SIMPLYM</a>
-      <a href="sfx.html#sfx" class="footer-link">SFX</a>
       <a href="https://lucianlabs.ca/blog/yama-bruh.html" class="footer-link" target="_blank" rel="noopener">BLOG</a>
+      <a href="https://lucianlabs.ca/branding/yama-bruh.html" class="footer-link" target="_blank" rel="noopener">BRAND</a>
+      <a href="spec.json" class="footer-link">SPEC.JSON</a>
+      <a href="https://github.com/lucian-labs/yama-bruh" class="footer-link" target="_blank" rel="noopener">GITHUB</a>
     </footer>
   </div>
 

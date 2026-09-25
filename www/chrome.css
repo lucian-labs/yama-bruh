@@ -1,0 +1,55 @@
+/* chrome.css — the parts of YAMA-BRUH every page shares: the family nav in
+   the name plate, and the foot. The synth pages (index, ringtones, sfx) get
+   their tokens from style.css; simplym and ymwave carry their own editors and
+   load only this, so it defines what it needs in full and reads nothing else.
+   Brand: https://lucianlabs.ca/branding/yama-bruh.md */
+
+.yb-nav { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+/* in the name plate the nav takes its own row under the mark and the model
+   number, so the wordmark never wraps to make room for it */
+.plate-header { flex-wrap: wrap; row-gap: 6px; }
+.plate-header .brand { white-space: nowrap; }
+.plate-header .yb-nav { flex-basis: 100%; order: 3; }
+.yb-nav a {
+  display: inline-flex; align-items: center; min-height: 28px;
+  padding: 6px 8px; border-radius: 1px;
+  font-family: 'Courier New', Courier, monospace; font-size: 9px; font-weight: bold;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: #558877; text-decoration: none;
+  transition: color 0.15s, background 0.15s;
+}
+.yb-nav a:hover { color: #22ccaa; background: rgba(34, 204, 170, 0.08); }
+.yb-nav a[aria-current="page"] { color: #77ffdd; background: rgba(34, 204, 170, 0.2); }
+.yb-nav a:focus-visible { outline: 2px solid #22ccaa; outline-offset: 2px; }
+
+/* the editors have no plate: the nav sits above their title with the mark */
+.yb-nav.standalone { margin-bottom: 14px; }
+.yb-nav .yb-mark {
+  padding-left: 0; margin-right: 6px;
+  font-size: 11px; letter-spacing: 3px; color: #d0ccc4;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6);
+}
+.yb-nav .yb-mark:hover { color: #22ccaa; background: none; }
+
+.yb-footer {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+  gap: 6px 14px; margin: 24px 14px 0; padding: 12px 0 0;
+  border-top: 1px solid #2a2a2a;
+}
+.yb-footer.standalone { margin: 32px 0 0; }
+.yb-footer .footer-link {
+  font-family: 'Courier New', Courier, monospace; font-size: 9px; font-weight: bold;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: #558877; text-decoration: none; transition: color 0.15s;
+}
+.yb-footer .footer-link:hover { color: #22ccaa; }
+.yb-footer .footer-link:focus-visible { outline: 2px solid #22ccaa; outline-offset: 2px; }
+
+/* a thumb hits a 44-unit target, even when the print is small */
+@media (pointer: coarse) {
+  .yb-nav a { min-height: 44px; padding: 0 10px; }
+  .yb-footer .footer-link { display: inline-flex; align-items: center; min-height: 44px; }
+}
+@media (max-width: 480px) {
+  .yb-nav a { font-size: 8px; padding: 6px 6px; }
+}

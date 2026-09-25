@@ -4,7 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SIMPLYM — Freeform FM Designer</title>
+  <meta name="description" content="SIMPLYM — a freeform FM designer for YAMA-BRUH: layers, operators, envelopes, no chip constraints.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yama-bruh.lucianlabs.ca/simplym.html">
+  <meta property="og:title" content="SIMPLYM — Freeform FM Designer">
+  <meta property="og:description" content="SIMPLYM — a freeform FM designer for YAMA-BRUH: layers, operators, envelopes, no chip constraints.">
+  <meta property="og:image" content="https://lucianlabs.ca/blog/img/yama-bruh/hero.webp">
+  <meta property="og:site_name" content="YAMA-BRUH">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#1a1a1a">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="chrome.css">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-HJPFEY11D7"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-HJPFEY11D7')</script>
   <script>if(!location.hash) history.replaceState(null,'',location.pathname+location.search+'#simplym')</script>
@@ -300,9 +310,20 @@ h1 {
   .param-grid { grid-template-columns: 1fr; }
 }
   </style>
+  <link rel="stylesheet" href="hardware.css">
 </head>
 <body>
 <div id="app">
+  <div class="air-vents" aria-hidden="true"><div class="vent-slat"></div><div class="vent-slat"></div><div class="vent-slat"></div><div class="vent-slat"></div><div class="vent-slat"></div><div class="vent-slat"></div><div class="vent-slat"></div><div class="vent-slat"></div></div>
+  <nav class="yb-nav standalone" aria-label="YAMA-BRUH">
+    <a class="yb-mark" href="index.html#synth">YAMA-BRUH</a>
+    <a href="index.html#synth">SYNTH</a>
+    <a href="ringtones.html#ringtones">RINGTONES</a>
+    <a href="sfx.html#sfx">SFX</a>
+    <a href="simplym.html#simplym" aria-current="page">SIMPLYM</a>
+    <a href="ymwave.html#ymwave">YMWAVE</a>
+  </nav>
+  <div class="case-grooves" aria-hidden="true"></div>
   <h1>SIMPLYM</h1>
   <div class="subtitle">FREEFORM FM DESIGNER</div>
 
@@ -864,6 +885,13 @@ h1 {
 
 })();
 </script>
+<footer class="site-footer yb-footer standalone">
+  <a href="https://lucianlabs.ca" class="footer-link" target="_blank" rel="noopener">lucianlabs.ca</a>
+  <a href="https://lucianlabs.ca/blog/yama-bruh.html" class="footer-link" target="_blank" rel="noopener">BLOG</a>
+  <a href="https://lucianlabs.ca/branding/yama-bruh.html" class="footer-link" target="_blank" rel="noopener">BRAND</a>
+  <a href="spec.json" class="footer-link">SPEC.JSON</a>
+  <a href="https://github.com/lucian-labs/yama-bruh" class="footer-link" target="_blank" rel="noopener">GITHUB</a>
+</footer>
 <script src="https://lucianlabs.ca/choppa-badge.js"></script>
 
     <!-- the Lucian Labs widget dock, served from lucianlabs.ca. every widget

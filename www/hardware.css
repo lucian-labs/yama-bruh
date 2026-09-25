@@ -1,0 +1,198 @@
+/* hardware.css — the case, for the pages that are not the synth panel.
+   simplym and ymwave are editors with their own layouts; this layer makes
+   them the same moulded object as index: charcoal plastic with a grain, vents
+   and ridged edges, plates recessed into the surface with a lit top edge and
+   a shadowed bottom one, values and code sunk into screens, caps you press
+   instead of pills you click, grooves instead of borders.
+
+   Loaded AFTER each page's own <style>, so same-specificity rules here win by
+   order. Recipes are index.html's (style.css), values are the brand's
+   (lucianlabs.ca/branding/yama-bruh.css). */
+
+/* ── the case ─────────────────────────────────────────────────────────── */
+html { background: #1a1a1a; }
+html, body {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 50% 0%, #262626 0%, #1a1a1a 60%);
+  background-color: #1a1a1a;
+  color: #d0ccc4;
+}
+
+/* ridged case edges down both sides */
+#app::before, #app::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  width: 14px;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(180deg,
+    rgba(20,20,20,0.9) 0px, rgba(40,40,40,0.9) 1px, rgba(25,25,25,0.9) 2px, rgba(15,15,15,0.9) 3px);
+}
+#app::before { left: 0; }
+#app::after { right: 0; }
+#app { position: relative; }
+
+/* speaker grille */
+.air-vents { display: flex; gap: 6px; padding: 14px 40px; margin-bottom: 4px; justify-content: center; }
+.vent-slat {
+  width: 4px; height: 40px; border-radius: 2px;
+  background: linear-gradient(180deg, transparent 0%, #050505 8%, #0a0a0a 50%, #050505 92%, transparent 100%);
+  box-shadow: inset 1px 0 0 rgba(255,255,255,0.04), inset -1px 0 0 rgba(0,0,0,0.8), 1px 0 1px rgba(0,0,0,0.6), 2px 0 2px rgba(0,0,0,0.2);
+}
+/* moulded grooves between sections */
+.case-grooves {
+  height: 16px; margin: 6px 0 14px;
+  background: repeating-linear-gradient(180deg,
+    rgba(30,30,30,0) 0px, rgba(10,10,10,0.6) 1px, rgba(40,40,40,0.3) 2px, rgba(20,20,20,0.1) 3px, rgba(30,30,30,0) 4px);
+}
+
+/* ── silkscreen ───────────────────────────────────────────────────────── */
+h1 { color: #d0ccc4; text-shadow: 1px 1px 0 rgba(0,0,0,0.6), -0.5px -0.5px 0 rgba(255,255,255,0.04); }
+.subtitle { color: #777; }
+.hero, .voice-tools-copy { color: #ccccbb; }
+.panel h2, .operator-card h2, .section-title, .preset-section-title { color: #22ccaa; }
+.section-title { border-bottom: 0; padding-bottom: 0; }
+.status-card span, .panel-label, .operator-card label, .register-row label, .param label, .mini-label,
+.register-meta, .preset-meta { color: #22ccaa; }
+.status-card strong, .preset-name { color: #d0ccc4; }
+.param .val { color: #ccccbb; }
+.page-link, .fun-toggle { color: #558877; }
+
+/* ── plates: recessed into the case, a lit top edge, a shadowed bottom one ── */
+.hero, .voice-tools, .voice-slot, .voice-slot-scope,
+.status-card, .panel, .operator-card, .register-row, .derived-grid .derived-card, .rhythm-pad,
+.preset-sidebar, .preset-item, .community-item, .check-tile, .midi-bar, .fun-footer,
+.sidebar > section, .sidebar > div {
+  border: 1px solid #262626;
+  border-top-color: #333;
+  border-bottom-color: #1c1c1c;
+  border-radius: 2px;
+  background:
+    linear-gradient(165deg, rgba(40,40,40,0.15) 0%, transparent 40%, rgba(60,60,60,0.08) 70%, transparent 100%),
+    rgba(0,0,0,0.55);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -2px 6px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.02);
+}
+.voice-slot.active, .preset-item.active, .community-item.active {
+  border-color: #262626; border-top-color: #333;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -2px 6px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(34,204,170,0.35), 0 0 10px rgba(34,204,170,0.12);
+}
+.community-section { border-top: 0; }
+.community-section::before { content: ''; display: block; height: 16px; margin: 4px 0 10px;
+  background: repeating-linear-gradient(180deg, rgba(30,30,30,0) 0px, rgba(10,10,10,0.6) 1px, rgba(40,40,40,0.3) 2px, rgba(20,20,20,0.1) 3px, rgba(30,30,30,0) 4px); }
+.admin-bar { border-top: 0; }
+.fun-footer { border-style: solid; }
+
+/* ── screens: values, registers, code, fields sunk into the surface ────── */
+#export-output, .register-pill, .bitline, .voice-slot-scope,
+.param select, .param input[type="text"], .param input[type="number"], .midi-bar select,
+.admin-login input, .register-strip .register-pill {
+  background: #060606;
+  border: 1px solid #222;
+  border-top-color: #181818;
+  border-bottom-color: #2a2a2a;
+  border-radius: 3px;
+  color: #5aeaaa;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.03);
+}
+.param select, .midi-bar select { color: #d0ccc4; }
+.param select:focus, .param input:focus, .midi-bar select:focus, .admin-login input:focus {
+  outline: none; border-color: #22ccaa; box-shadow: inset 0 2px 6px rgba(0,0,0,0.8), 0 0 0 2px rgba(34,204,170,0.25);
+}
+#export-output { color: #5aeaaa; }
+
+/* meters read as LED bars in a well */
+.voice-bar { background: #060606; box-shadow: inset 0 1px 3px rgba(0,0,0,0.8); border-radius: 1px; }
+.voice-bar-fill { background: rgba(34,204,170,0.12); }
+.voice-bar-fill span { background: linear-gradient(90deg, #1a7850, #22ccaa 60%, #77ffdd); box-shadow: 0 0 6px rgba(34,204,170,0.4); }
+
+/* ── caps: every button is a moulded key, grey at rest, green when it is on ── */
+.layer-tab, .layer-add, .layer-remove, .wave-btn, .toggle-btn, .export-btn, .export-btn.secondary,
+.view-tab, .chip-btn, .rhythm-pad .chip-btn, .fun-toggle, .page-link, .admin-login button {
+  border: 0;
+  border-radius: 1px;
+  color: #fff;
+  background: linear-gradient(180deg, #999 0%, #777 15%, #606060 55%, #505050 85%, #444 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.2), inset 2px 0 0 rgba(255,255,255,0.1),
+    inset 0 -2px 0 rgba(0,0,0,0.3), inset -2px 0 0 rgba(0,0,0,0.2),
+    0 3px 4px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.35);
+  font-weight: bold;
+  transition: transform 0.04s, box-shadow 0.04s, background 0.1s;
+}
+.layer-tab:hover, .wave-btn:hover, .toggle-btn:hover, .export-btn:hover, .view-tab:hover, .chip-btn:hover, .fun-toggle:hover, .page-link:hover {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(180deg, #aaa 0%, #888 15%, #707070 55%, #606060 85%, #555 100%);
+}
+/* on: the green cap, with the teal glow the rhythm caps have */
+.layer-tab.active, .wave-btn.active, .toggle-btn.active, .view-tab.active, .chip-btn.active, .preset-item.active .chip-btn {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(180deg, #5aeaaa 0%, #3cc88a 15%, #30b87a 55%, #28a870 85%, #1e9060 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.2), inset 2px 0 0 rgba(255,255,255,0.1),
+    inset 0 -2px 0 rgba(0,0,0,0.25), inset -2px 0 0 rgba(0,0,0,0.15),
+    0 0 10px rgba(34,204,170,0.2), 0 3px 4px rgba(0,0,0,0.5);
+}
+/* the committing cap is green from the start; the destructive one is red */
+.export-btn { background: linear-gradient(180deg, #5aeaaa 0%, #3cc88a 12%, #30b87a 40%, #28a870 65%, #1e9060 88%, #1a7850 100%); color: #06301e; text-shadow: none; }
+.export-btn:hover { background: linear-gradient(180deg, #6cf4b8 0%, #46d496 12%, #38c486 40%, #2eb478 65%, #249c68 88%, #1e8458 100%); color: #06301e; }
+.export-btn.secondary { background: linear-gradient(180deg, #999 0%, #777 15%, #606060 55%, #505050 85%, #444 100%); color: #fff; }
+.layer-remove { background: linear-gradient(180deg, #dd4444 0%, #bb2828 20%, #992020 60%, #771818 100%); }
+.layer-remove:hover { color: #fff; background: linear-gradient(180deg, #ee5555 0%, #cc3333 20%, #aa2828 60%, #882020 100%); }
+.layer-add { background: linear-gradient(180deg, #f0d060 0%, #d4b840 12%, #c0a830 40%, #b09820 65%, #988018 88%, #806810 100%); color: #3a2a00; text-shadow: none; }
+/* press: the cap drops 2 and its chamfer flattens */
+.layer-tab:active, .layer-add:active, .layer-remove:active, .wave-btn:active, .toggle-btn:active, .export-btn:active,
+.view-tab:active, .chip-btn:active, .fun-toggle:active, .page-link:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.4);
+}
+.layer-tab.muted { opacity: 0.5; }
+.view-tab, .export-btn, .chip-btn, .layer-tab, .toggle-btn { min-height: 26px; }
+
+/* ── sliders: a groove in the case, a green cap riding it ─────────────── */
+.param input[type="range"] {
+  height: 6px;
+  background: #060606;
+  border-radius: 3px;
+  border: 0;
+  padding: 0;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.04);
+}
+.param input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px; height: 18px;
+  border-radius: 1px;
+  border: 0;
+  background: linear-gradient(180deg, #5aeaaa 0%, #3cc88a 15%, #30b87a 55%, #28a870 85%, #1e9060 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -1px 0 rgba(0,0,0,0.3), 0 2px 3px rgba(0,0,0,0.6);
+  margin-top: -6px;
+  cursor: pointer;
+}
+.param input[type="range"]::-moz-range-thumb {
+  width: 12px; height: 18px;
+  border-radius: 1px;
+  border: 0;
+  background: linear-gradient(180deg, #5aeaaa 0%, #3cc88a 15%, #30b87a 55%, #28a870 85%, #1e9060 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -1px 0 rgba(0,0,0,0.3), 0 2px 3px rgba(0,0,0,0.6);
+  cursor: pointer;
+}
+.param input[type="range"]::-moz-range-track { background: #060606; height: 6px; border-radius: 3px; }
+
+/* ── switches ─────────────────────────────────────────────────────────── */
+input[type="checkbox"] { accent-color: #22ccaa; }
+
+/* ── the brand's behaviour ────────────────────────────────────────────── */
+:focus-visible { outline: 2px solid #22ccaa; outline-offset: 2px; }
+@media (pointer: coarse) {
+  .param select, .param input[type="text"], .param input[type="number"], .midi-bar select, .admin-login input { font-size: 16px; }
+  .view-tab, .export-btn, .chip-btn, .layer-tab, .toggle-btn, .wave-btn { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; }
+  .layer-tab:active, .wave-btn:active, .toggle-btn:active, .export-btn:active, .view-tab:active, .chip-btn:active { transform: none; }
+}
