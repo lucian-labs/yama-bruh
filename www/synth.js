@@ -303,7 +303,7 @@ class YamaBruhSynth {
   _postNoteOn(noteId, midiNote, velocity, preset, cents = 0, noteAlgo = null, sustain = false) {
     if (!this.workletNode) return noteId;
     const freq = 440 * Math.pow(2, (midiNote - 69 + cents / 100) / 12);
-    const msg = { type: 'noteOn', note: noteId, freq, velocity, preset };
+    const msg = { type: 'noteOn', note: noteId, sourceNote: midiNote, freq, velocity, preset };
     if (noteAlgo) msg.noteAlgo = noteAlgo;
     if (sustain) msg.sustain = true;
     this.workletNode.port.postMessage(msg);

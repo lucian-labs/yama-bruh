@@ -280,3 +280,9 @@ node tools/probe-sequence-choke.cjs
 ```
 
 The first two commands save original, isolated-note, end-fade-only and repaired-envelope previews plus endpoint measurements. Repairs exist only in the diagnostic process; production sources remain unchanged. The notification renderer checks attack/decay before key-off and can terminate short notes while still audible; its overall buffer can also omit pitch-scaled release tails. The separate worklet probe demonstrates that unique sequencer IDs bypass same-note choking because `_postNoteOn` does not supply `sourceNote`. MIDI input calls the same `playNote` entry point, so this is not proof that all external input uses different behavior. Human Voice 3 has no default web key sequence; its VR ringtone uses the notification renderer.
+
+### 0.4.1 — short-note release fix
+
+The distributable now releases both operators from their actual key-off levels, including notes released during attack/decay, and allocates complete pitch-scaled tails. Web key-sequence voices now carry their MIDI pitch as `sourceNote`, so same-note choking works with generated voice IDs. Existing captured audit packets remain historical baselines; comparison previews do not modify those packets. Immediate interruption of the shared notification source remains separate from these fixes.
+
+Validate with `node www/tests/notification-release.test.cjs`, `node www/tests/sequence-notes.test.js`, and `node tools/probe-sequence-choke.cjs`.

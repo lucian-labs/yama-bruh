@@ -1,5 +1,5 @@
 // ── YAMA-BRUH Notification Engine (YM2413 Extended) ───────────────────
-// Drop-in FM synth ringtone player for any site.
+// Drop-in FM synth ringtone player for any site. Release 0.4.1.
 // Full YM2413 OPLL: waveforms, tremolo, chip vibrato, KSR, KSL, mod level.
 // No WASM, no dependencies, no UI — just sound.
 //
@@ -260,6 +260,17 @@ class YamaBruhNotify {
     const mAttackSamples = Math.floor(mAttack * sr);
     const mDecaySamples = Math.floor(mDecay * sr);
 
+    // Capture each operator's level at key-off, including attack/decay.
+    const heldLevel = (i, a, d, level, eg, baseDecay) => {
+      if (i < a) return i / (a || 1);
+      if (i < a + d) return 1 - (1 - level) * (i - a) / (d || 1);
+      if (eg <= 0.5) return level;
+      const value = level * Math.pow(0.5, ((i - a - d) / sr) / (baseDecay * 2 + 0.01));
+      return value < 0.001 ? 0 : value;
+    };
+    const carrierKeyOff = heldLevel(noteSamples, attackSamples, decaySamples, sustain, egType, decBase);
+    const modulatorKeyOff = heldLevel(noteSamples, mAttackSamples, mDecaySamples, mSustain, mEgType, mDecBase);
+
     let carrierPhase = 0, modPhase = 0, prevMod = 0;
     const available = buf.length - offset;
     const count = Math.min(totalSamples, available);
@@ -267,47 +278,13 @@ class YamaBruhNotify {
     for (let i = 0; i < count; i++) {
       const t = i / sr;
 
-      // ── Modulator ADSR envelope ──
-      let mEnv;
-      if (i < mAttackSamples) {
-        mEnv = i / (mAttackSamples || 1);
-      } else if (i < mAttackSamples + mDecaySamples) {
-        const dt = (i - mAttackSamples) / (mDecaySamples || 1);
-        mEnv = 1 - (1 - mSustain) * dt;
-      } else if (i < noteSamples) {
-        if (mEgType > 0.5) {
-          const elapsed = (i - mAttackSamples - mDecaySamples) / sr;
-          mEnv = mSustain * Math.pow(0.5, elapsed / (mDecBase * 2 + 0.01));
-          if (mEnv < 0.001) mEnv = 0;
-        } else {
-          mEnv = mSustain;
-        }
-      } else {
-        const relMax = Math.max(mRelease * sr, 1);
-        const dt = (i - noteSamples) / relMax;
-        mEnv = Math.max(mSustain * (1 - dt), 0);
-      }
-
-      // ── Carrier ADSR envelope ──
-      let env;
-      if (i < attackSamples) {
-        env = i / (attackSamples || 1);
-      } else if (i < attackSamples + decaySamples) {
-        const dt = (i - attackSamples) / (decaySamples || 1);
-        env = 1 - (1 - sustain) * dt;
-      } else if (i < noteSamples) {
-        if (egType > 0.5) {
-          const elapsed = (i - attackSamples - decaySamples) / sr;
-          env = sustain * Math.pow(0.5, elapsed / (decBase * 2 + 0.01));
-          if (env < 0.001) env = 0;
-        } else {
-          env = sustain;
-        }
-      } else {
-        const relMax = Math.max(release * sr, 1);
-        const dt = (i - noteSamples) / relMax;
-        env = Math.max(sustain * (1 - dt), 0);
-      }
+      // Key-off takes precedence over unfinished attack and decay.
+      const mEnv = i < noteSamples
+        ? heldLevel(i, mAttackSamples, mDecaySamples, mSustain, mEgType, mDecBase)
+        : modulatorKeyOff * Math.max(0, 1 - (i - noteSamples) / Math.max(mRelease * sr, 1));
+      const env = i < noteSamples
+        ? heldLevel(i, attackSamples, decaySamples, sustain, egType, decBase)
+        : carrierKeyOff * Math.max(0, 1 - (i - noteSamples) / Math.max(release * sr, 1));
 
       // YM2413 Tremolo at 3.7Hz
       const trem = tremDepth > 0 ? 1 - tremDepth * (1 + Math.sin(TAU * 3.7 * t)) * 0.5 : 1;
@@ -556,19 +533,20 @@ class YamaBruhNotify {
     const preset = this._getPreset(resolvedPresetIdx);
 
     const effectiveBeatDuration = beatDuration / speed;
-    let totalBeats = 0;
-    for (const n of sequence) totalBeats += n.dur;
-    const maxRelease = preset[6];
-    const totalSamples = Math.ceil((totalBeats * effectiveBeatDuration + maxRelease) * this.sampleRate);
-
-    const buf = new Float32Array(totalSamples);
-    let offset = 0;
-    for (const n of sequence) {
+    // Use the same pitch-scaled lifetime and integer offsets as _renderNote.
+    let offset = 0, totalSamples = 1;
+    const notes = sequence.map(n => {
       const freq = this._midiToFreq(n.note + pitchShift);
-      const durSecs = n.dur * effectiveBeatDuration;
-      this._renderNote(freq, durSecs, preset, buf, offset, volume);
-      offset += Math.floor(durSecs * this.sampleRate);
-    }
+      const duration = n.dur * effectiveBeatDuration;
+      const release = preset[6] * ((preset[12] || 0) > 0
+        ? Math.pow(2, -preset[12] * Math.log2(freq / 440)) : 1);
+      const note = { freq, duration, offset };
+      totalSamples = Math.max(totalSamples, offset + Math.floor((duration + release) * this.sampleRate));
+      offset += Math.floor(duration * this.sampleRate);
+      return note;
+    });
+    const buf = new Float32Array(totalSamples);
+    for (const n of notes) this._renderNote(n.freq, n.duration, preset, buf, n.offset, volume);
 
     const audioBuffer = ctx.createBuffer(1, buf.length, this.sampleRate);
     audioBuffer.getChannelData(0).set(buf);
