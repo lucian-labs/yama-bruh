@@ -5,6 +5,8 @@ and `~/repos/lucian-utils/AGENTS.md` for shared conventions.
 
 ## Audio investigation
 
+- One-command full audit: `python3 tools/test-audio.py`. Generates 400 temporary WAVs/SVGs, validates PCM and writes the interactive report; use `--output NEW_DIR` for an explicit destination.
+
 - Web keyboard and KEY SEQUENCE use `www/synth.js` and `www/synth-worklet.js`.
 - Bank A lives in `www/yamabruh-notify.js`; Bank B in `www/yamabruh-bank-b.js`.
 - Bank A sequence definitions live in `www/app.js`; Bank B definitions accompany its presets.

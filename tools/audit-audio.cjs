@@ -54,11 +54,12 @@ function run(bank, index) {
   const synth=new scope.Synth(); synth.bank=bank; synth.ready=true;
   const events=[], steals=[]; let peakVoices=0;
   synth.workletNode={port:{postMessage(msg){
-    if(msg.type==='noteOn' && p.voices.length>=p.maxVoices) {
-      const v=p.voices[0]; steals.push({time:now/1000,note:v.note,envelope:v.el,velocity:v.velocity});
-    }
+    const candidate = msg.type==='noteOn' && p.voices.length>=p.maxVoices ? p.voices[0] : null;
     events.push({sample:Math.round(now*sr/1000),type:msg.type,note:msg.note});
     p._onMessage(msg);
+    if(candidate && !p.voices.includes(candidate)) {
+      steals.push({time:now/1000,note:candidate.note,envelope:candidate.el,velocity:candidate.velocity});
+    }
     peakVoices=Math.max(peakVoices,p.voices.length);
   }}};
   synth.setBpm(140);

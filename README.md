@@ -219,6 +219,18 @@ Build with [XcodeGen](https://github.com/yonaskolb/XcodeGen): `cd app && xcodege
 | 81-90 | SFX |
 | 91-99 | Retro / Digital |
 
+## Repeatable audio audit
+
+```bash
+python3 tools/test-audio.py
+```
+
+Requires Node.js and Python 3. Creates a fresh temporary folder with **400 WAVs and waveform SVGs**: every preset in both banks at 44.1 and 48 kHz. Each recording tests a plain note, its default key sequence, rapid retriggers and release tails.
+
+The command validates saved PCM, runs the sequence checks, and generates `index.html`, JSON measurements and diagnostic logs. It prints the output path and a local preview command. Allow roughly 1 GB of temporary storage; artifacts remain available until you or the OS remove them. Use `--output /path/to/new-folder` to choose a new destination.
+
+A nonzero exit indicates failed checks, incomplete recordings, or invalid audio. Voice-cutoff findings remain visible in the report; a passing run does **not** certify click-free audio or physical-device playback.
+
 ## Build
 
 ```bash

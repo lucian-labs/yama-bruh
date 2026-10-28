@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Build a self-contained audit index beside the recorded WAV directories."""
-import json, struct, sys
+import json, struct, sys, html as html_module
+from datetime import date
 from pathlib import Path
 root = Path(sys.argv[1]).resolve()
 report = json.loads((root / 'baseline/report.json').read_text())
 rows = report['results']
-for row in rows:
-    raw = (root / 'baseline' / row['filename']).read_bytes()
+def waveform(recording):
+    raw = recording.read_bytes()
     samples = memoryview(raw)[44:].cast('f')
     step = max(1, len(samples)//600)
     upper, lower = [], []
@@ -14,7 +15,17 @@ for row in rows:
         chunk = samples[i*step:min((i+1)*step,len(samples))]
         upper.append(f'{i},{60-max(chunk)*55:.2f}')
         lower.append(f'{i},{60-min(chunk)*55:.2f}')
-    row['waveform'] = 'M'+' L'.join(upper+lower[::-1])+' Z'
+    return 'M'+' L'.join(upper+lower[::-1])+' Z'
+
+for folder in ['baseline', '48000']:
+    bank_report = json.loads((root / folder / 'report.json').read_text())
+    for recording in bank_report['results']:
+        wav = root / folder / recording['filename']
+        shape = waveform(wav)
+        wav.with_suffix('.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 120"><path fill="#8cb99e" d="' + shape + '"/></svg>')
+
+for row in rows:
+    row['waveform'] = waveform(root / 'baseline' / row['filename'])
     row['stolenVoices'] = len(row['steals'])
     row['firstSteal'] = row['steals'][0]['time'] if row['steals'] else None
     # Full events and parameters remain in report.json.
@@ -27,12 +38,12 @@ html = '''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewp
 <style>
 :root{color-scheme:dark;font-family:system-ui,sans-serif;background:#111617;color:#e5e9e4}body{max-width:1050px;margin:32px auto;padding:0 22px}h1{font-size:28px}h2{font-size:20px}p,li{line-height:1.55}a{color:#9bd8c1}button,input,select{font:inherit}button,select,input[type=search]{background:#253331;color:inherit;border:1px solid #58706b;border-radius:7px;padding:10px}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #b9e6a6}.panel{border:1px solid #384741;background:#1a2321;padding:20px;border-radius:12px;margin:20px 0}.muted{color:#a9b7b1;font-size:14px}.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center}svg{width:100%;height:120px;background:#101714;cursor:pointer}path{fill:#8cb99e}line{stroke:#fff;stroke-width:2}input[type=range]{width:100%}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:9px;border-bottom:1px solid #34423d}td button{text-align:left;padding:6px}.bad{color:#ffb48e}summary{cursor:pointer}#status{min-height:1.5em} .scroll{max-height:550px;overflow:auto}th{position:sticky;top:0;background:#111617}
 </style>
-<h1>Yama-bruh · Sound audit</h1><p>200 web presets · both banks · 92 default key sequences · 28 October 2026</p>
-<div class="panel"><h2>Confirmed: voices are cut off abruptly</h2>
-<ul><li><strong>29 presets</strong> exhausted the 16-voice pool during this test. An older voice is removed with no fade.</li>
-<li>Examples: Glass Celesta, Vibraphone, Music Box, Telephone Bell and Fireworks.</li>
+<h1>Yama-bruh · Sound audit</h1><p>__PRESET_COUNT__ web presets · both banks · __SEQUENCE_COUNT__ default key sequences · __DATE__</p>
+<div class="panel"><h2>__FINDING__</h2>
+<ul><li><strong>29 presets</strong> had an active voice immediately removed at the voice limit during this test.</li>
+<li>__EXAMPLES__</li>
 <li>Some ungated Bank B sequences retain a positive velocity and run to the 128-step cap. Repeated keys stack these sequences.</li></ul>
-<p>Controlled sine test: stealing a voice caused a <strong>0.3496 → 0</strong> jump in one sample. Ordinary note-off at the same phase caused no measurable jump after DAC quantization.</p>
+<details><summary>Controlled diagnostic results</summary><pre>__PROBES__</pre></details>
 <p><strong>Next repair:</strong> fade stolen voices while preserving their release continuity, then rerun this audit. Review long-running sequence definitions separately so intentional one-shot patterns retain their behavior.</p></div>
 <div class="panel"><h2 id="name">Choose a recording</h2>
 <svg id="wave" viewBox="0 0 600 120" role="img" aria-label="Recorded waveform; use the seek slider below"><path id="shape"></path><line id="head" x1="0" y1="0" x2="0" y2="120"></line></svg>
@@ -42,7 +53,7 @@ html = '''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewp
 <div class="controls"><input id="search" type="search" placeholder="Find a preset" aria-label="Find a preset"><select id="filter" aria-label="Filter presets"><option value="all">All 200 presets</option><option value="steals">Voice cutoffs (29)</option><option value="A">Bank A</option><option value="B">Bank B</option></select><span id="count"></span></div>
 <div class="scroll"><table><thead><tr><th>Preset (index)</th><th>Cutoffs</th><th>Largest sample jump</th><th>Sequence</th></tr></thead><tbody id="rows"></tbody></table></div>
 <details class="panel"><summary>Coverage, measurements and limits</summary>
-<ul><li>Real synth.js scheduler, both preset banks and synth-worklet.js, rendered offline at 44.1 kHz. A second complete 200-preset sweep was recorded at 48 kHz in the adjacent 48000 directory.</li><li>Dry output; default delay disabled to isolate transitions. Deterministic randomness. Ideal timers: this does not simulate browser load, message latency, CPU underruns or physical speakers.</li><li>Largest sample jump is a screening metric, not a click diagnosis. Noise, strong FM and the intentionally discontinuous quarter-sine waveform naturally score high.</li><li>Zero non-finite samples across the 200 baseline renders. __TAIL_COUNT__ presets still had active voices at the 14-second recording boundary; the end of those files is an audit cutoff, not evidence of an engine cutoff.</li><li>A separate synthetic patch exposed premature voice removal while the carrier was still attacking, because removal also checks the modulator stage. This did not occur in these default-preset recordings.</li><li>Existing checks passed: 16 sequence tests and 8 Swift package tests. Native app/AUv3 audio, notification renderer, WASM ringtone renderer and physical playback were not exhaustively recorded here.</li><li>Source hashes, preset values, individual cutoff times and sequence definitions are preserved in the JSON. No synthesis or preset behavior has been changed.</li></ul>
+<ul><li>Real synth.js scheduler, both preset banks and synth-worklet.js, rendered offline at 44.1 kHz. A second complete 200-preset sweep was recorded at 48 kHz in the adjacent 48000 directory.</li><li>Dry output; default delay disabled to isolate transitions. Deterministic randomness. Ideal timers: this does not simulate browser load, message latency, CPU underruns or physical speakers.</li><li>Largest sample jump is a screening metric, not a click diagnosis. Noise, strong FM and the intentionally discontinuous quarter-sine waveform naturally score high.</li><li>__NONFINITE__ non-finite samples across the baseline renders. __TAIL_COUNT__ presets still had active voices at the 14-second recording boundary; the end of those files is an audit cutoff, not evidence of an engine cutoff.</li><li>The controlled probe also checks premature carrier removal during attack. Read its captured results above; changes to this behavior are not assumed to be failures.</li><li>Sequence test results are saved in sequence-tests.txt. Voice-cutoff counts are diagnostic findings, not pass/fail thresholds. Native app/AUv3 audio, notification renderer, WASM ringtone renderer and physical playback were not exhaustively recorded here.</li><li>Source hashes, preset values, individual cutoff times and sequence definitions are preserved in the JSON. This audit renders existing synthesis and preset behavior without modifying it.</li></ul>
 <a href="baseline/report.json">Full 44.1 kHz data</a> · <a href="48000/report.json">48 kHz data</a> · <a href="probe-results.txt">Controlled probe</a></details>
 <script>const data=__DATA__;
 const el=id=>document.getElementById(id);let current=null,buffer=null,ctx=null,source=null,offset=0,started=0,playing=false,loading=null,version=0;
@@ -59,6 +70,12 @@ el('wave').onclick=e=>{const b=el('wave').getBoundingClientRect();seek((e.client
 el('jump').onclick=()=>{seek(current.firstSteal-.2);el('status').textContent='Positioned 0.2s before first cutoff';};
 function tick(){const t=position();el('seek').value=t;el('time').textContent=t.toFixed(2)+' / 14.00 s';for(const a of ['x1','x2'])el('head').setAttribute(a,t/14*600);requestAnimationFrame(tick);}el('search').oninput=list;el('filter').onchange=list;list();select(data.find(r=>r.bank==='A'&&r.index===9));tick();
 </script></html>'''.replace('__DATA__',data)
+html=html.replace('__PRESET_COUNT__',str(len(rows))).replace('__SEQUENCE_COUNT__',str(sum(bool(r['hasSequence']) for r in rows)))
+html=html.replace('__NONFINITE__',str(sum(r['nonfinite'] for r in rows)))
+examples=[r['name'] for r in rows if r['stolenVoices']][:5]
+html=html.replace('__EXAMPLES__',html_module.escape('Examples: '+', '.join(examples)+'.' if examples else 'No immediate voice evictions detected.'))
+html=html.replace('__DATE__',date.today().isoformat()).replace('__PROBES__',html_module.escape((root/'probe-results.txt').read_text()))
+html=html.replace('__FINDING__','Abrupt voice removals detected' if any(r['stolenVoices'] for r in rows) else 'No abrupt voice removals detected in this run')
 html=html.replace('__TAIL_COUNT__',str(sum(bool(r['remainingVoices']) for r in rows)))
 html=html.replace('29 presets',str(sum(bool(r['stolenVoices']) for r in rows))+' presets').replace('cutoffs (29)','cutoffs ('+str(sum(bool(r['stolenVoices']) for r in rows))+')')
 (root/'index.html').write_text(html)
