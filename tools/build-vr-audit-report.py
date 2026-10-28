@@ -5,6 +5,18 @@ d=json.loads((root/'report.json').read_text())
 rows=[]
 for r in d['results']:
     versions=[{'file':r['filename'],'label':'Full ringtone','jump':None}]+[{'file':i['file'],'label':f"Interrupted at {i['seconds']}s",'jump':i['seconds']} for i in r['interruptions']]
+    diagnostic={88:'crystal',72:'human-voice-3'}.get(r['preset'])
+    if diagnostic and (root/(diagnostic+'-audit.json')).exists():
+        audit=json.loads((root/(diagnostic+'-audit.json')).read_text())
+        note=next(n for n in audit['evidence'] if n['fullMixJump'] is not None and abs(n['originalLastSample'])>.005)
+        point=note['endTime']; prefix=diagnostic
+        versions[0]['jump']=point
+        versions.extend([
+            {'file':prefix+'-endfade-only.wav','label':'6 ms end-fade only (offline)','jump':point},
+            {'file':prefix+'-envelope-candidate.wav','label':'Envelope repair preview (offline)','jump':point},
+            {'file':f"{prefix}-note-{note['note']}-original.wav",'label':'Isolated note — original','jump':point-note['offset']},
+            {'file':f"{prefix}-note-{note['note']}-candidate.wav",'label':'Isolated note — repair preview','jump':point-note['offset']},
+        ])
     for v in versions:
         raw=(root/v['file']).read_bytes();a=memoryview(raw)[44:].cast('f');v['duration']=len(a)/44100
         top=[];bottom=[]
@@ -16,7 +28,7 @@ page='''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewpor
 <style>:root{color-scheme:dark;font:16px system-ui;background:#111617;color:#e5e9e4}body{max-width:1000px;margin:32px auto;padding:0 20px}h1{font-size:27px}h2{font-size:20px}p,li{line-height:1.5}a{color:#9bd8c1}.panel{background:#1a2321;border:1px solid #384741;border-radius:12px;padding:20px;margin:20px 0}button,select,input{font:inherit;color:inherit;background:#253331;border:1px solid #58706b;border-radius:6px;padding:8px}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #b9e6a6}.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}svg{width:100%;height:120px;background:#101714}input[type=range]{width:100%;padding:0}table{width:100%;border-collapse:collapse}td,th{padding:8px;text-align:left;border-bottom:1px solid #34423d}.scroll{overflow:auto;max-height:440px}.muted{color:#a9b7b1;font-size:14px}#status{min-height:1.5em}</style>
 <h1>Yama-bruh · VR audio audit</h1><p>32 sound uses · 31 Bank A patches · captured VR v0.4.6</p>
 <div class="panel"><strong>Notification renderer findings</strong><ul><li>Short notes can end before their envelopes reach silence.</li><li>Pitch-scaled release tails can exceed the allocated buffer.</li><li>Switching sounds immediately stops the shared previous source.</li></ul><p class="muted">No full-scale exceedances in these renders. Measured discontinuities are not proof of audible clicks. VR spatial processing and physical playback were not captured.</p></div>
-<div class="panel"><h2 id="name"></h2><div class="controls"><label>Recording <select id="version"></select></label><button id="jump">Before interruption</button></div><svg id="wave" viewBox="0 0 600 120" role="img" aria-label="Recording waveform"><path id="shape" fill="#8cb99e"></path><line id="head" stroke="white" stroke-width="2" y1="0" y2="120"></line></svg><input id="seek" type="range" min="0" step="0.001" value="0" aria-label="Seek recording"><div class="controls"><button id="play">Play</button><button id="stop">Stop</button><span id="time"></span><a id="download" download>Download WAV</a></div><p id="status" aria-live="polite">Ready</p><p id="detail" class="muted"></p></div>
+<div class="panel"><h2 id="name"></h2><div class="controls"><label>Recording <select id="version"></select></label><button id="jump">Jump to comparison point</button></div><svg id="wave" viewBox="0 0 600 120" role="img" aria-label="Recording waveform"><path id="shape" fill="#8cb99e"></path><line id="head" stroke="white" stroke-width="2" y1="0" y2="120"></line></svg><input id="seek" type="range" min="0" step="0.001" value="0" aria-label="Seek recording"><div class="controls"><button id="play">Play</button><button id="stop">Stop</button><span id="time"></span><a id="download" download>Download WAV</a></div><p id="status" aria-live="polite">Ready</p><p id="detail" class="muted"></p></div>
 <input id="search" type="search" placeholder="Find a VR sound" aria-label="Find a VR sound"><div class="scroll"><table><thead><tr><th>Sound</th><th>VR ring</th><th>Peak</th><th>Note-end jumps &gt;0.005</th></tr></thead><tbody id="rows"></tbody></table></div>
 <details class="panel"><summary>Evidence and scope</summary><p>The full ringtone is rendered by the exact captured notification library. Interrupted versions join truncated old audio to a newly started copy, before spatial processing. They simulate source interruption; they are not live VR recordings.</p><p>Gem playback lasts about 0.875s, shorter than its 6.5s repeat interval. Other keyboard triggers can still interrupt it.</p><a href="findings.json">Findings</a> · <a href="report.json">Full measurements</a><p class="muted">No sound fixes or VR changes were deployed.</p></details>
 <script>const rows=__DATA__;

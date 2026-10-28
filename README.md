@@ -267,3 +267,16 @@ synth.setCustomParams({
 ## License
 
 MIT - see [LICENSE](LICENSE).
+
+### Short-note diagnostics: Crystal and Human Voice 3
+
+Using the captured VR packet and an existing notification audit output directory:
+
+```sh
+node tools/audit-crystal.cjs PACKET_DIR OUTPUT_DIR crystal
+node tools/audit-crystal.cjs PACKET_DIR OUTPUT_DIR human-voice-3
+python3 tools/build-vr-audit-report.py OUTPUT_DIR
+node tools/probe-sequence-choke.cjs
+```
+
+The first two commands save original, isolated-note, end-fade-only and repaired-envelope previews plus endpoint measurements. Repairs exist only in the diagnostic process; production sources remain unchanged. The notification renderer checks attack/decay before key-off and can terminate short notes while still audible; its overall buffer can also omit pitch-scaled release tails. The separate worklet probe demonstrates that unique sequencer IDs bypass same-note choking because `_postNoteOn` does not supply `sourceNote`. MIDI input calls the same `playNote` entry point, so this is not proof that all external input uses different behavior. Human Voice 3 has no default web key sequence; its VR ringtone uses the notification renderer.
