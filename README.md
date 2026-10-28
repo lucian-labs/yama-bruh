@@ -231,6 +231,14 @@ The command validates saved PCM, runs the sequence checks, and generates `index.
 
 A nonzero exit indicates failed checks, incomplete recordings, or invalid audio. Voice-cutoff findings remain visible in the report; a passing run does **not** certify click-free audio or physical-device playback.
 
+### Captured VR notification audit
+
+```bash
+node tools/audit-notify-packet.cjs /path/to/captured-packet
+```
+
+The packet must contain `manifest.json` (seed, volume, sample rate, ring/preset/parameter mappings and `cdn_sha256`) and the matching `yamabruh-notify.js`. The audit verifies the source hash and every patch, records each ringtone plus simulated interruptions, and reports note-end discontinuities, release-tail truncation and full-scale exceedances. Output defaults to a fresh temporary directory. This exercises the notification renderer, separately from the keyboard AudioWorklet; it does not validate VR spatial playback or claim perceptually audible clicks.
+
 ## Build
 
 ```bash
